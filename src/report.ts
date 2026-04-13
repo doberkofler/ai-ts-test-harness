@@ -271,6 +271,29 @@ tbody tr:hover {
 	overflow: auto;
 }
 
+.program-label {
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	margin-top: 12px;
+	margin-bottom: 6px;
+}
+
+.program {
+	white-space: pre-wrap;
+	font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+	font-size: 0.78rem;
+	color: var(--text-main);
+	background: #f8fafc;
+	border: 1px solid var(--stroke);
+	padding: 8px;
+	border-radius: 9px;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+	max-height: 400px;
+	overflow: auto;
+}
+
 .details-actions {
 	white-space: nowrap;
 }
@@ -444,6 +467,8 @@ const render = () => {
 					+ '<div class="drilldown-content">'
 					+ '<div class="drilldown-meta">' + statusText + ' • ' + escapeHtml(result.category) + ' • ' + formatDuration(result.duration_ms) + '</div>'
 					+ '<div class="error">' + escapeHtml(typeof result.error === 'string' && result.error.length > 0 ? result.error : 'No error output.') + '</div>'
+					+ '<div class="program-label">Generated Program:</div>'
+					+ '<div class="program">' + escapeHtml(result.program) + '</div>'
 					+ '</div>'
 					+ '</td>'
 					+ '</tr>'

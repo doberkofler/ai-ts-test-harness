@@ -88,6 +88,8 @@ describe('formatResultsHtmlFile', () => {
 		expect(html).toContain('arithmetic');
 		expect(html).toContain('sum');
 		expect(html).toContain('max');
+		expect(html).toContain('Generated Program:');
+		expect(html).toContain('return a + b;');
 	});
 });
 

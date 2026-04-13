@@ -5,11 +5,16 @@ import {type Problem, type Result} from './types.ts';
 
 const TIMEOUT_MS = 5000;
 
+type VitestTaskLike = {
+	result?: {errors?: unknown[]};
+	tasks?: VitestTaskLike[];
+};
+
 type VitestRunLike = {
 	state: {
 		getUnhandledErrors: () => unknown[];
 		getFailedFilepaths: () => string[];
-		getFiles: (keys?: string[]) => {result?: {errors?: unknown[]}}[];
+		getFiles: (keys?: string[]) => VitestTaskLike[];
 		getCountOfFailedTests: () => number;
 	};
 	close: () => Promise<void>;
@@ -77,24 +82,36 @@ const getErrorOutput = (error: unknown): string => {
 	return sanitizeErrorText(String(error));
 };
 
+const getErrorsFromTask = (task: VitestTaskLike): unknown[] => {
+	const errors: unknown[] = [];
+	const taskErrors = task.result ? task.result.errors : undefined;
+	if (taskErrors) {
+		errors.push(...taskErrors);
+	}
+	if (task.tasks) {
+		for (const child of task.tasks) {
+			errors.push(...getErrorsFromTask(child));
+		}
+	}
+	return errors;
+};
+
 const getVitestFailureOutput = (runnerInstance: VitestRunLike): string => {
-	const messages: string[] = [];
+	const messages = new Set<string>();
 
 	for (const unhandledError of runnerInstance.state.getUnhandledErrors()) {
-		messages.push(getErrorOutput(unhandledError));
+		messages.add(getErrorOutput(unhandledError));
 	}
 
 	const failedFiles = runnerInstance.state.getFiles(runnerInstance.state.getFailedFilepaths());
 	for (const failedFile of failedFiles) {
-		const {result} = failedFile;
-		const {errors = []} = result ?? {};
-		for (const error of errors) {
-			messages.push(getErrorOutput(error));
+		for (const error of getErrorsFromTask(failedFile)) {
+			messages.add(getErrorOutput(error));
 		}
 	}
 
-	if (messages.length > 0) {
-		return messages.join('\n\n');
+	if (messages.size > 0) {
+		return [...messages].join('\n\n');
 	}
 
 	const failedTests = runnerInstance.state.getCountOfFailedTests();
