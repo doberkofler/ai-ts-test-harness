@@ -1,0 +1,64 @@
+{
+	"name": "ai-ts-test-harness",
+	"version": "0.1.0",
+	"private": true,
+	"description": "A test harness for AI models",
+	"keywords": [
+		"ai",
+		"cli",
+		"harness",
+		"test",
+		"typescript"
+	],
+	"homepage": "https://github.com/doberkofler/ai-ts-test-harness#readme",
+	"bugs": {
+		"url": "https://github.com/doberkofler/ai-ts-test-harness/issues"
+	},
+	"license": "MIT",
+	"author": "Dieter Oberkofler",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/doberkofler/ai-ts-test-harness.git"
+	},
+	"bin": "./dist/index.js",
+	"type": "module",
+	"scripts": {
+		"lint": "tsc && oxlint --disable-nested-config src client server tests *.config.ts && pnpm run format:check",
+		"format": "oxfmt --write .",
+		"format:check": "oxfmt --check .",
+		"test": "vitest run --coverage",
+		"release": "release-it",
+		"ci": "pnpm run lint && pnpm run build && pnpm run test",
+		"create-changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
+		"prepare": "husky",
+		"build": "vite build",
+		"run": "vite build && node dist/index.js"
+	},
+	"dependencies": {
+		"commander": "14.0.3",
+		"debug": "4.4.3",
+		"openai": "6.34.0",
+		"zod": "4.3.6"
+	},
+	"devDependencies": {
+		"@commitlint/cli": "20.5.0",
+		"@commitlint/config-conventional": "20.5.0",
+		"@types/cli-progress": "3.11.6",
+		"@types/debug": "4.1.13",
+		"@types/node": "25.6.0",
+		"@vitest/coverage-v8": "4.1.4",
+		"conventional-changelog": "7.2.0",
+		"eslint-plugin-regexp": "3.1.0",
+		"husky": "9.1.7",
+		"oxfmt": "0.44.0",
+		"oxlint": "1.59.0",
+		"oxlint-tsgolint": "0.20.0",
+		"release-it": "19.2.4",
+		"typescript": "6.0.2",
+		"vite": "8.0.8",
+		"vitest": "4.1.4"
+	},
+	"create-template-project": {
+		"template": "cli"
+	}
+}
