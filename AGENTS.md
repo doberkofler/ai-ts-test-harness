@@ -79,15 +79,14 @@ The CLI prints the resolved runtime parameters at startup to make debugging runs
 
 ## Problem Definition Workflow
 
-- Problem definitions live in `src/problems/` as one `.md` file per problem.
-- The parser/validator is implemented in `src/load-problems.ts`.
-- Required Markdown sections:
-  - `## kind` (`implement-function` or `direct-refactor`; defaults to `implement-function`)
-  - `## description`
-  - `## signature` for `implement-function`
-  - `## input` for `direct-refactor`
-  - `## tests`
-- `name` is derived from the filename (numeric prefix stripped).
+- Problem definitions live in `src/problems/` as recursive category directories.
+- Each problem is a `.problem.ts` file exporting a default problem object.
+- The loader/validator is implemented in `src/load-problems.ts`.
+- Required fields:
+  - Shared: `name`, `category`, `description`, `tests`
+  - `implement-function`: `signature`
+  - `direct-refactor`: `input`, `entry`
+- `name` must match the filename (without `.problem.ts`).
 
 ### Refactor Test Expectations
 

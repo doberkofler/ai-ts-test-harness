@@ -21,6 +21,9 @@
 		"url": "https://github.com/doberkofler/ai-ts-test-harness.git"
 	},
 	"bin": "./dist/index.js",
+	"imports": {
+		"#problem-api": "./src/problem-api.ts"
+	},
 	"type": "module",
 	"scripts": {
 		"lint": "tsc && oxlint --disable-nested-config src client server tests *.config.ts && pnpm run format:check",

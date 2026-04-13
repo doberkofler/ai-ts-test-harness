@@ -1,3 +1,5 @@
+import type assert from 'node:assert';
+
 type ProblemBase = {
 	/** Unique identifier */
 	name: string;
@@ -5,9 +7,32 @@ type ProblemBase = {
 	category: string;
 	/** Natural language description sent to the model */
 	description: string[];
-	/** assert.strictEqual / assert.deepStrictEqual calls, one per line */
-	tests: string;
+	/** Test body as assertion lines or callback */
+	tests: ProblemTests;
 };
+
+export type ImplementProblemTestContext = {
+	assert: typeof assert;
+	implementation: unknown;
+	code: {result: string};
+};
+
+export type DirectRefactorProblemTestContext = {
+	assert: typeof assert;
+	original: unknown;
+	transformed: unknown;
+	code: {input: string; result: string};
+};
+
+export type ProblemTestCallback = (context: {
+	assert: typeof assert;
+	implementation?: unknown;
+	original?: unknown;
+	transformed?: unknown;
+	code: {result: string; input?: string};
+}) => void;
+
+export type ProblemTests = string | ProblemTestCallback;
 
 /** Function-implementation benchmark */
 export type ImplementFunctionProblem = ProblemBase & {
@@ -21,6 +46,8 @@ export type DirectRefactorProblem = ProblemBase & {
 	kind: 'direct-refactor';
 	/** Source code provided to the model for transformation */
 	input: string;
+	/** Function identifier used for behavior-equivalence checks */
+	entry: string;
 };
 
 /** A single benchmark problem */
@@ -41,6 +68,8 @@ export type RuntimeConfig = {
 	debug: boolean;
 	timeoutMs: number;
 	ollamaUrl: string;
+	apiKey?: string;
+	oauthToken?: string;
 	selectedCategories?: string[];
 };
 

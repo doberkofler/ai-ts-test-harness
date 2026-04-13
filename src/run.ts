@@ -58,10 +58,13 @@ export const selectProblemsByFilters = (problems: Problem[], testName?: string, 
 export const selectProblems = (problems: Problem[], testName?: string): Problem[] => selectProblemsByFilters(problems, testName);
 
 export const printRuntimeConfig = (problems: Problem[], config: RuntimeConfig): void => {
+	const authMode = typeof config.apiKey === 'string' ? 'api-key' : typeof config.oauthToken === 'string' ? 'oauth-token' : 'ollama-default';
+
 	console.log(styleText('AI Test Harness', STYLES.bold));
 	console.log(styleText('----------------', STYLES.dim));
 	console.log(`Model      : ${styleText(config.model, STYLES.cyan)}`);
 	console.log(`Ollama URL : ${config.ollamaUrl}`);
+	console.log(`Auth       : ${authMode}`);
 	console.log(`Timeout    : ${config.timeoutMs}ms (${formatMs(config.timeoutMs)})`);
 	console.log(`Debug      : ${config.debug ? styleText('enabled', STYLES.yellow) : 'disabled'}`);
 	console.log(
@@ -101,6 +104,8 @@ export const runCommand = async (options: {
 	debug: boolean;
 	llmTimeoutMs: string;
 	ollamaUrl: string;
+	apiKey?: string;
+	oauthToken?: string;
 	output: string;
 	test: string | undefined;
 	category: string | undefined;
@@ -118,7 +123,15 @@ export const runCommand = async (options: {
 		throw new TypeError(`Invalid --output value: ${options.output}`);
 	}
 
-	const allProblems = loadProblems('./problems');
+	if (typeof options.apiKey === 'string' && options.apiKey.length === 0) {
+		throw new TypeError('Invalid --api-key value');
+	}
+
+	if (typeof options.oauthToken === 'string' && options.oauthToken.length === 0) {
+		throw new TypeError('Invalid --oauth-token value');
+	}
+
+	const allProblems = loadProblems('./src/problems');
 	const selectedCategories = parseCategoryFilter(options.category);
 	const problems = selectProblemsByFilters(allProblems, options.test, selectedCategories);
 	const runtimeConfig: RuntimeConfig = {
@@ -126,6 +139,8 @@ export const runCommand = async (options: {
 		debug: options.debug,
 		timeoutMs,
 		ollamaUrl: options.ollamaUrl,
+		...(typeof options.apiKey === 'string' ? {apiKey: options.apiKey} : {}),
+		...(typeof options.oauthToken === 'string' ? {oauthToken: options.oauthToken} : {}),
 		...(Array.isArray(selectedCategories) ? {selectedCategories} : {}),
 	};
 
@@ -140,7 +155,14 @@ export const runCommand = async (options: {
 			console.log(`${styleText(current, STYLES.dim)} ${styleText(problem.name, STYLES.bold)}`);
 
 			// oxlint-disable-next-line no-await-in-loop
-			const result = await solveProblem(problem, {model: options.model, ollamaUrl: options.ollamaUrl, debug: options.debug, timeoutMs});
+			const result = await solveProblem(problem, {
+				model: options.model,
+				ollamaUrl: options.ollamaUrl,
+				...(typeof options.apiKey === 'string' ? {apiKey: options.apiKey} : {}),
+				...(typeof options.oauthToken === 'string' ? {oauthToken: options.oauthToken} : {}),
+				debug: options.debug,
+				timeoutMs,
+			});
 
 			const status = result.passed ? styleText('PASS', STYLES.green) : styleText('FAIL', STYLES.red);
 			console.log(`${status} in ${formatMs(result.duration_ms)}\n`);

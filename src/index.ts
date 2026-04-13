@@ -8,6 +8,8 @@ type CliOpts = {
 	debug: boolean;
 	llmTimeoutMs: string;
 	ollamaUrl: string;
+	apiKey?: string;
+	oauthToken?: string;
 	output: string;
 	htmlOutput?: string;
 	test?: string;
@@ -24,6 +26,8 @@ const main = async (): Promise<void> => {
 	program.option('--debug', 'Print LLM request/response for each problem', false);
 	program.option('--llm-timeout-ms <ms>', 'LLM response timeout in milliseconds', String(DEFAULT_LLM_TIMEOUT_MS));
 	program.option('--ollama-url <url>', 'Ollama-compatible API base URL', DEFAULT_OLLAMA_URL);
+	program.option('--api-key <key>', 'API key for cloud model authorization');
+	program.option('--oauth-token <token>', 'OAuth token for cloud model authorization');
 	program.option('--output <file>', 'Write run results to a JSON file', 'results.json');
 	program.option('--html-output <file>', 'Write an HTML report file (defaults to output path with .html extension)');
 	program.option('--test <name>', 'Run a specific test by exact problem name');
@@ -47,6 +51,8 @@ const main = async (): Promise<void> => {
 				debug: opts.debug,
 				llmTimeoutMs: opts.llmTimeoutMs,
 				ollamaUrl: opts.ollamaUrl,
+				...(typeof opts.apiKey === 'string' ? {apiKey: opts.apiKey} : {}),
+				...(typeof opts.oauthToken === 'string' ? {oauthToken: opts.oauthToken} : {}),
 				output: opts.output,
 				test: opts.test,
 				category: opts.category,
@@ -91,6 +97,8 @@ const main = async (): Promise<void> => {
 			debug: opts.debug,
 			llmTimeoutMs: opts.llmTimeoutMs,
 			ollamaUrl: opts.ollamaUrl,
+			...(typeof opts.apiKey === 'string' ? {apiKey: opts.apiKey} : {}),
+			...(typeof opts.oauthToken === 'string' ? {oauthToken: opts.oauthToken} : {}),
 			output: opts.output,
 			test: opts.test,
 			category: opts.category,

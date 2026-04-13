@@ -17,6 +17,7 @@ const problems: Problem[] = [
 		kind: 'direct-refactor',
 		description: ['Rename short variables'],
 		input: 'function f(x:number){return x}',
+		entry: 'f',
 		tests: 'assert.strictEqual(1, 1);',
 	},
 ];
@@ -58,6 +59,20 @@ describe('formatResultsFile', () => {
 
 		expect(output.total).toBe(0);
 		expect(output.pass_rate_percent).toBe(0);
+	});
+
+	test('does not persist auth credentials into result payload', () => {
+		const output = formatResultsFile([], {
+			model: 'test-model',
+			ollamaUrl: 'http://localhost:11434/v1',
+			timeoutMs: 5000,
+			debug: false,
+			apiKey: 'secret-key',
+			oauthToken: 'secret-token',
+		});
+
+		expect(output).not.toHaveProperty('api_key');
+		expect(output).not.toHaveProperty('oauth_token');
 	});
 });
 

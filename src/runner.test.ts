@@ -17,10 +17,28 @@ const directRefactorProblem: Problem = {
 	kind: 'direct-refactor',
 	description: ['Rename local identifiers in provided TypeScript code.'],
 	input: 'function rename(a: number): number { const tmp = a + 1; return tmp; }',
+	entry: 'rename',
 	tests: `
 		assert.match(result, /function rename/);
 		assert.doesNotMatch(result, /\btmp\b/);
 	`,
+};
+
+const functionTestsProblem: Problem = {
+	name: 'sum-function-tests',
+	category: 'arithmetic',
+	description: ['Add two numbers'],
+	signature: 'function sum(a: number, b: number): number',
+	tests: ({assert, implementation}) => {
+		const callable = implementation;
+		if (typeof callable !== 'function') {
+			throw new TypeError('expected implementation to be callable');
+		}
+
+		if (Reflect.apply(callable, undefined, [2, 3]) !== 5) {
+			assert.fail('expected sum(2, 3) to equal 5');
+		}
+	},
 };
 
 const createVitestMock = (
@@ -265,6 +283,35 @@ describe('runProblem', () => {
 		expect(result.passed).toBe(true);
 		expect(result.error).toBeUndefined();
 		expect(generatedPath).not.toBe('');
+		expect(existsSync(generatedPath)).not.toBe(true);
+	});
+
+	test('supports function-based tests for implement problems', async () => {
+		let generatedPath = '';
+
+		const result = await runProblem(functionTestsProblem, 'function sum(a: number, b: number): number { return a + b; }', {
+			startVitest: async (_mode, filters) => {
+				await Promise.resolve();
+				const [maybePath] = filters ?? [];
+				if (typeof maybePath !== 'string') {
+					throw new TypeError('missing temp test path');
+				}
+				generatedPath = maybePath;
+
+				const content = readFileSync(generatedPath, 'utf8');
+				expect(content).toContain('const implementation = evaluateFunction(generatedSource, implementationEntry);');
+				expect(content).toContain('__problemTests({assert, implementation, code});');
+
+				return createVitestMock({
+					getCountOfFailedTests: () => 0,
+					getUnhandledErrors: () => [],
+					getFailedFilepaths: () => [],
+					getFiles: () => [{}],
+				});
+			},
+		});
+
+		expect(result.passed).toBe(true);
 		expect(existsSync(generatedPath)).not.toBe(true);
 	});
 });

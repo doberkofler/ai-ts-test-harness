@@ -30,6 +30,15 @@ export type RunProblemOptions = {
 
 const sanitizeForFileName = (value: string): string => value.replaceAll(/[^\w-]/g, '_');
 
+const parseFunctionNameFromSignature = (signature: string): string => {
+	const match = /function\s+([A-Za-z_$][\w$]*)\s*\(/.exec(signature);
+	if (!match || typeof match[1] !== 'string') {
+		throw new TypeError(`Unable to extract function name from signature: ${signature}`);
+	}
+
+	return match[1];
+};
+
 const indentBlock = (text: string, indent: string): string =>
 	text
 		.split('\n')
@@ -143,6 +152,46 @@ const withMutedOutput = async <T>(run: () => Promise<T>): Promise<T> => {
  * runs it with Vitest's Node API, and returns pass/fail.
  */
 export const runProblem = async (problem: Problem, generatedCode: string, options: RunProblemOptions = {}): Promise<Result> => {
+	const implementFunctionSupport =
+		problem.kind === 'direct-refactor'
+			? []
+			: [
+					`import vm from 'node:vm';`,
+					`import ts from 'typescript';`,
+					``,
+					`const generatedSource = ${JSON.stringify(generatedCode)};`,
+					`const implementationEntry = ${JSON.stringify(parseFunctionNameFromSignature(problem.signature))};`,
+					``,
+					`const evaluateFunction = (source: string, functionName: string): unknown => {`,
+					`\tconst wrappedSource = [`,
+					`\t\tsource,`,
+					`\t\t\`\`,`,
+					`\t\t\`module.exports = {__extracted: typeof \${functionName} !== 'undefined' ? \${functionName} : undefined};\`,`,
+					`\t].join('\\n');`,
+					``,
+					`\tconst transpiled = ts.transpileModule(wrappedSource, {`,
+					`\t\tcompilerOptions: {`,
+					`\t\t\ttarget: ts.ScriptTarget.ES2022,`,
+					`\t\t\tmodule: ts.ModuleKind.CommonJS,`,
+					`\t\t},`,
+					`\t}).outputText;`,
+					``,
+					`\tconst moduleLike: {exports: Record<string, unknown>} = {exports: {}};`,
+					`\tvm.runInNewContext(transpiled, {module: moduleLike, exports: moduleLike.exports});`,
+					`\tconst extracted = moduleLike.exports.__extracted;`,
+					``,
+					`\tif (typeof extracted === 'undefined') {`,
+					`\t\tthrow new TypeError(\`Missing function in generated code: \${functionName}\`);`,
+					`\t}`,
+					``,
+					`\treturn extracted;`,
+					`};`,
+					``,
+					`const implementation = evaluateFunction(generatedSource, implementationEntry);`,
+					`const code = {result: generatedSource};`,
+					``,
+				];
+
 	const directRefactorSupport =
 		problem.kind === 'direct-refactor'
 			? [
@@ -151,6 +200,7 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 					``,
 					`const input = ${JSON.stringify(problem.input)};`,
 					`const result = ${JSON.stringify(generatedCode)};`,
+					`const entry = ${JSON.stringify(problem.entry)};`,
 					``,
 					`const evaluateRefactorFunction = (source: string, functionName: string): unknown => {`,
 					`\tconst wrappedSource = [`,
@@ -177,19 +227,33 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 					`\treturn extracted;`,
 					`};`,
 					``,
+					`const original = evaluateRefactorFunction(input, entry);`,
+					`const transformed = evaluateRefactorFunction(result, entry);`,
+					`const code = {input, result};`,
+					``,
 				]
 			: [];
+
+	const functionBasedTests = typeof problem.tests === 'function' ? `const __problemTests = (${problem.tests.toString()});` : '';
+	const testsBody =
+		typeof problem.tests === 'function'
+			? problem.kind === 'direct-refactor'
+				? '__problemTests({assert, original, transformed, code});'
+				: '__problemTests({assert, implementation, code});'
+			: problem.tests;
 
 	const program = [
 		`import {describe, test} from 'vitest';`,
 		`import assert from 'node:assert';`,
 		``,
+		...implementFunctionSupport,
 		...directRefactorSupport,
 		...(problem.kind === 'direct-refactor' ? [] : [generatedCode]),
+		functionBasedTests,
 		``,
 		`describe(${JSON.stringify(problem.name)}, () => {`,
 		`\ttest('generated solution', () => {`,
-		indentBlock(problem.tests, '\t\t'),
+		indentBlock(testsBody, '\t\t'),
 		`\t});`,
 		`});`,
 	].join('\n');

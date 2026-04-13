@@ -62,117 +62,131 @@ After each run, the CLI saves both JSON and HTML reports, and prints a clickable
 
 ## Problem Definitions
 
-Problems are defined as one Markdown file per problem in `problems/`.
+Problems are defined as typed TypeScript modules in `src/problems/`.
 
-The parser lives in `src/load-problems.ts` and reads only level-2 headings (`## ...`) as sections.
-Section names are matched case-insensitively by lowercasing (for example `## Kind` and `## kind` are equivalent).
+### Directory Layout
 
-### Required File Structure
+- Files are discovered recursively under `src/problems`.
+- Use category folders to group problems (for example `src/problems/refactor`, `src/problems/algorithms`).
+- Use descriptive file names without numeric prefixes.
+- File extension must be `.problem.ts`.
 
-Each problem file must contain these logical sections:
+Example layout:
 
-- `## kind` (optional): `implement-function` or `direct-refactor`; defaults to `implement-function` if omitted.
-- `## category` (required): category label used by `--category` filtering and result reports.
-- `## description` (required): one or more instruction lines.
-- `## tests` (required): Vitest assertions to evaluate the model output.
-- `## signature` (required only for `implement-function`): TypeScript function signature.
-- `## input` (required only for `direct-refactor`): source code that the model must refactor.
+```text
+src/problems/
+  algorithms/
+    fibonacci.problem.ts
+  refactor/
+    declaration-to-expression.problem.ts
+    for-loop-to-for-of.problem.ts
+```
 
-### Parsing Rules (Exact Behavior)
+### Load Order
 
-- **Only section content is parsed:** text before the first `## ...` heading is ignored.
-- **One value per section name:** if a heading appears multiple times, the last occurrence wins.
-- **`description` normalization:**
-  - split by newline,
-  - trim whitespace,
-  - drop empty lines,
-  - remove a leading markdown bullet marker (`- ` or `* `) when present.
-- **`category` normalization:** trimmed and lowercased before validation and storage.
-- **Code fences are optional for `signature`, `input`, and `tests`:**
-  - if wrapped in triple backticks, the outer fence is removed,
-  - optional fence language is ignored,
-  - inner content is trimmed.
-- **Problem name is derived from the filename:**
-  - file extension `.md` is removed,
-  - any leading numeric prefix plus separators is removed (`^\d+[-_\s]*`),
-  - result becomes the problem `name`.
-  - Example: `001-add.md` -> `add`, `010 toNumber.md` -> `toNumber`.
+Problems are executed in ascending alphabetical order by relative path under `src/problems`.
+
+### Naming Rules
+
+- The problem `name` is derived from the filename (without `.problem.ts`).
+- The exported `name` value must match the filename exactly.
+- Example: `src/problems/logic/fizzbuzz.problem.ts` -> `name: 'fizzbuzz'`.
+
+### Module Shape
+
+Each file exports a default problem definition. Two kinds are supported:
+
+- `implement-function`
+- `direct-refactor`
+
+Shared required fields:
+
+- `name: string`
+- `category: string` (normalized to lowercase)
+- `description: string[]`
+- `tests: string | (context) => void`
+	- string mode: plain assertion lines
+	- function mode: linted/intellisense-capable callback
+
+`implement-function` adds:
+
+- `signature: string`
+
+`direct-refactor` adds:
+
+- `input: string`
+- `entry: string` (function identifier used for behavior checks)
 
 ### Authoring Template: `implement-function`
 
-````md
-## kind
-implement-function
-
-## category
-arithmetic
-
-## description
-- Write a pure function.
-- Handle edge cases listed in tests.
-
-## signature
 ```ts
-export function add(a: number, b: number): number;
-```
+import {defineImplementProblem} from '#problem-api';
 
-## tests
-```ts
-import {describe, expect, it} from 'vitest';
-
-describe('add', () => {
-	it('adds two numbers', () => {
-		expect(add(1, 2)).toBe(3);
-	});
+export default defineImplementProblem({
+  name: 'add',
+  category: 'arithmetic',
+  description: ['Return the sum of two numbers.'],
+  signature: 'function add(a: number, b: number): number',
+  tests: [
+    'assert.strictEqual(add(1, 2), 3);',
+    'assert.strictEqual(add(-1, 1), 0);',
+  ].join('\n'),
 });
 ```
-````
 
 ### Authoring Template: `direct-refactor`
 
-````md
-## kind
-direct-refactor
-
-## category
-refactor
-
-## description
-- Refactor the code to use `for...of`.
-- Preserve behavior.
-
-## input
 ```ts
-export function sum(values: number[]): number {
-	let total = 0;
-	for (let i = 0; i < values.length; i++) {
-		total += values[i]!;
-	}
-	return total;
-}
-```
+import {defineRefactorProblem} from '#problem-api';
 
-## tests
-```ts
-import {describe, expect, it} from 'vitest';
-
-describe('sum refactor', () => {
-	it('preserves behavior', () => {
-		expect(sum([1, 2, 3])).toBe(6);
-	});
-
-	it('uses for...of', () => {
-		expect(transformedCode).toMatch(/for\s*\(\s*const\s+\w+\s+of\s+/);
-	});
+export default defineRefactorProblem({
+  name: 'declaration-to-expression',
+  category: 'refactor',
+  description: ['Convert function declaration to const arrow function.'],
+  input: [
+    'function multiply(a: number, b: number): number {',
+    '\treturn a * b;',
+    '}',
+  ].join('\n'),
+  entry: 'multiply',
+  tests: [
+    'assert.strictEqual((transformed as (a: number, b: number) => number)(3, 4), (original as (a: number, b: number) => number)(3, 4));',
+    String.raw`assert.match(code.result, /const\s+multiply\s*=/);`,
+    String.raw`assert.doesNotMatch(code.result, /function\s+multiply\s*\(/);`,
+  ].join('\n'),
 });
 ```
-````
 
-For `direct-refactor` tests, prefer semantic checks over full-text output comparisons:
+In `direct-refactor` tests, the harness injects:
 
-- Verify behavior still works on representative inputs.
-- Verify only required structural transformations.
-- Avoid strict full-output equality assertions that fail on harmless formatting differences.
+- `original`: extracted function from `input` (using `entry`)
+- `transformed`: extracted function from generated refactor
+- `code.input`: original source string
+- `code.result`: transformed source string
+
+### Function-based Tests (optional)
+
+`tests` can also be a callback for better editor support:
+
+```ts
+import {defineImplementProblem} from '#problem-api';
+
+export default defineImplementProblem({
+	name: 'fibonacci',
+	category: 'algorithms',
+	description: ['Return nth fibonacci number'],
+	signature: 'function fibonacci(n: number): number',
+	tests: ({assert, implementation}) => {
+		const fibonacciFn = implementation as (n: number) => number;
+		assert.strictEqual(fibonacciFn(10), 55);
+	},
+});
+```
+
+Callback context:
+
+- implement-function: `assert`, `implementation`, `code.result`
+- direct-refactor: `assert`, `original`, `transformed`, `code.input`, `code.result`
 
 ## Tooling
 

@@ -16,6 +16,7 @@ const directRefactorProblem: Problem = {
 	kind: 'direct-refactor',
 	description: ['Rename weak local identifiers in provided code while preserving behavior.'],
 	input: 'function rename(a: number): number { const tmp = a + 1; return tmp; }',
+	entry: 'rename',
 	tests: `assert.match(result, /function rename/);`,
 };
 

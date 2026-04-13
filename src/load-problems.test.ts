@@ -1,156 +1,137 @@
+import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {describe, expect, test} from 'vitest';
-import {parseProblemDefinition} from './load-problems.ts';
+import {loadProblems} from './load-problems.ts';
 
-describe('parseProblemDefinition', () => {
-	test('parses implement-function definitions', () => {
-		const markdown = [
-			'## kind',
-			'implement-function',
-			'',
-			'## category',
-			'arithmetic',
-			'',
-			'## description',
-			'- Add two values.',
-			'- Return the result.',
-			'',
-			'## signature',
-			'```ts',
-			'function add(a: number, b: number): number',
-			'```',
-			'',
-			'## tests',
-			'```ts',
-			'assert.strictEqual(add(1, 2), 3);',
-			'```',
-		].join('\n');
+const createTempProblemsDir = (): string => mkdtempSync(join(tmpdir(), 'problem-loader-'));
 
-		const parsed = parseProblemDefinition('/tmp/001-add.md', markdown);
-		expect(parsed).toEqual({
-			name: 'add',
-			category: 'arithmetic',
-			kind: 'implement-function',
-			description: ['Add two values.', 'Return the result.'],
-			signature: 'function add(a: number, b: number): number',
-			tests: 'assert.strictEqual(add(1, 2), 3);',
-		});
+describe('loadProblems', () => {
+	test('loads .problem.ts files recursively and sorts by path', () => {
+		const root = createTempProblemsDir();
+
+		try {
+			mkdirSync(join(root, 'logic'), {recursive: true});
+			mkdirSync(join(root, 'algorithms'), {recursive: true});
+			mkdirSync(join(root, 'refactor', 'loops'), {recursive: true});
+
+			writeFileSync(
+				join(root, 'logic', 'fizzbuzz.problem.ts'),
+				[
+					`import {defineImplementProblem} from '#problem-api';`,
+					``,
+					`export default defineImplementProblem({`,
+					`\tname: 'fizzbuzz',`,
+					`\tcategory: 'Logic',`,
+					`\tdescription: ['FizzBuzz output'],`,
+					`\tsignature: 'function fizzbuzz(n: number): string',`,
+					`\ttests: "assert.strictEqual(fizzbuzz(3), 'Fizz');",`,
+					`});`,
+				].join('\n'),
+				'utf8',
+			);
+
+			writeFileSync(
+				join(root, 'algorithms', 'add.problem.ts'),
+				[
+					`import {defineImplementProblem} from '#problem-api';`,
+					``,
+					`export default defineImplementProblem({`,
+					`\tname: 'add',`,
+					`\tcategory: 'Arithmetic',`,
+					`\tdescription: ['Add values'],`,
+					`\tsignature: 'function add(a: number, b: number): number',`,
+					`\ttests: 'assert.strictEqual(add(1, 2), 3);',`,
+					`});`,
+				].join('\n'),
+				'utf8',
+			);
+
+			writeFileSync(
+				join(root, 'refactor', 'loops', 'for-loop.problem.ts'),
+				[
+					`import {defineRefactorProblem} from '#problem-api';`,
+					``,
+					`export default defineRefactorProblem({`,
+					`\tname: 'for-loop',`,
+					`\tcategory: 'Refactor',`,
+					`\tdescription: ['Use for...of'],`,
+					`\tinput: 'function sum(values: number[]): number { return values.length; }',`,
+					`\tentry: 'sum',`,
+					`\ttests: "assert.strictEqual(typeof original, 'function');",`,
+					`});`,
+				].join('\n'),
+				'utf8',
+			);
+
+			const loaded = loadProblems(root);
+			expect(loaded.map((problem) => problem.name)).toEqual(['add', 'fizzbuzz', 'for-loop']);
+			expect(loaded.map((problem) => problem.category)).toEqual(['arithmetic', 'logic', 'refactor']);
+			expect(loaded[2]).toMatchObject({kind: 'direct-refactor', entry: 'sum'});
+		} finally {
+			rmSync(root, {recursive: true, force: true});
+		}
 	});
 
-	test('parses direct-refactor definitions', () => {
-		const markdown = [
-			'## kind',
-			'direct-refactor',
-			'',
-			'## category',
-			'refactor',
-			'',
-			'## description',
-			'- Rewrite declaration as an expression.',
-			'',
-			'## input',
-			'```ts',
-			'function run(): void {}',
-			'```',
-			'',
-			'## tests',
-			'```ts',
-			'assert.match(result, /const run/);',
-			'```',
-		].join('\n');
+	test('throws when exported name does not match file name', () => {
+		const root = createTempProblemsDir();
 
-		const parsed = parseProblemDefinition('/tmp/002-declarationToExpression.md', markdown);
-		expect(parsed).toEqual({
-			name: 'declarationToExpression',
-			category: 'refactor',
-			kind: 'direct-refactor',
-			description: ['Rewrite declaration as an expression.'],
-			input: 'function run(): void {}',
-			tests: 'assert.match(result, /const run/);',
-		});
+		try {
+			mkdirSync(join(root, 'logic'), {recursive: true});
+			writeFileSync(
+				join(root, 'logic', 'fizzbuzz.problem.ts'),
+				[
+					`import {defineImplementProblem} from '#problem-api';`,
+					``,
+					`export default defineImplementProblem({`,
+					`\tname: 'wrong-name',`,
+					`\tcategory: 'logic',`,
+					`\tdescription: ['bad name'],`,
+					`\tsignature: 'function fizzbuzz(n: number): string',`,
+					`\ttests: "assert.strictEqual(fizzbuzz(1), '1');",`,
+					`});`,
+				].join('\n'),
+				'utf8',
+			);
+
+			expect(() => loadProblems(root)).toThrow('Problem name mismatch');
+		} finally {
+			rmSync(root, {recursive: true, force: true});
+		}
 	});
 
-	test('defaults kind to implement-function when omitted', () => {
-		const markdown = [
-			'## category',
-			'arithmetic',
-			'',
-			'## description',
-			'- Add two values.',
-			'',
-			'## signature',
-			'```ts',
-			'function add(a: number, b: number): number',
-			'```',
-			'',
-			'## tests',
-			'```ts',
-			'assert.strictEqual(add(1, 2), 3);',
-			'```',
-		].join('\n');
+	test('loads function-based tests', () => {
+		const root = createTempProblemsDir();
 
-		const parsed = parseProblemDefinition('/tmp/001-add.md', markdown);
-		expect(parsed.kind).toBe('implement-function');
-	});
+		try {
+			mkdirSync(join(root, 'logic'), {recursive: true});
+			writeFileSync(
+				join(root, 'logic', 'callable-tests.problem.ts'),
+				[
+					`import {defineImplementProblem} from '#problem-api';`,
+					``,
+					`export default defineImplementProblem({`,
+					`\tname: 'callable-tests',`,
+					`\tcategory: 'logic',`,
+					`\tdescription: ['function tests'],`,
+					`\tsignature: 'function callableTests(input: number): number',`,
+					`\ttests: ({assert}) => {`,
+					`\t\tassert.ok(true);`,
+					`\t},`,
+					`});`,
+				].join('\n'),
+				'utf8',
+			);
 
-	test('throws when direct-refactor input is missing', () => {
-		const markdown = [
-			'## kind',
-			'direct-refactor',
-			'',
-			'## category',
-			'refactor',
-			'',
-			'## description',
-			'- Rename identifiers.',
-			'',
-			'## tests',
-			'```ts',
-			'assert.match(result, /rename/);',
-			'```',
-		].join('\n');
-
-		expect(() => parseProblemDefinition('/tmp/001-rename.md', markdown)).toThrow('direct-refactor problems must include an input section');
-	});
-
-	test('throws when implement-function signature is missing', () => {
-		const markdown = [
-			'## kind',
-			'implement-function',
-			'',
-			'## category',
-			'arithmetic',
-			'',
-			'## description',
-			'- Add two values.',
-			'',
-			'## tests',
-			'```ts',
-			'assert.strictEqual(add(1, 2), 3);',
-			'```',
-		].join('\n');
-
-		expect(() => parseProblemDefinition('/tmp/001-add.md', markdown)).toThrow('implement-function problems must include a signature section');
-	});
-
-	test('throws when category is missing', () => {
-		const markdown = [
-			'## kind',
-			'implement-function',
-			'',
-			'## description',
-			'- Add two values.',
-			'',
-			'## signature',
-			'```ts',
-			'function add(a: number, b: number): number',
-			'```',
-			'',
-			'## tests',
-			'```ts',
-			'assert.strictEqual(add(1, 2), 3);',
-			'```',
-		].join('\n');
-
-		expect(() => parseProblemDefinition('/tmp/001-add.md', markdown)).toThrow('problems must include a category section');
+			const [loaded] = loadProblems(root);
+			if (!loaded) {
+				throw new TypeError('expected one loaded problem');
+			}
+			if (typeof loaded.tests !== 'function') {
+				throw new TypeError('expected tests callback');
+			}
+		} finally {
+			rmSync(root, {recursive: true, force: true});
+		}
 	});
 });

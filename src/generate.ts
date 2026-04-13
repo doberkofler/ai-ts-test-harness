@@ -25,15 +25,18 @@ type CreateCompletion = (request: CompletionRequest, options: CompletionOptions)
 export type GenerateOptions = {
 	model: string;
 	ollamaUrl?: string;
+	apiKey?: string;
+	oauthToken?: string;
 	debug?: boolean;
 	timeoutMs?: number;
 	createCompletion?: CreateCompletion;
 };
 
-const createCompletionForUrl = (ollamaUrl: string): CreateCompletion => {
-	const client = clientsByUrl.get(ollamaUrl) ?? new OpenAI({baseURL: ollamaUrl, apiKey: 'ollama', maxRetries: 0});
-	if (!clientsByUrl.has(ollamaUrl)) {
-		clientsByUrl.set(ollamaUrl, client);
+const createCompletionForUrl = (ollamaUrl: string, authKey?: string): CreateCompletion => {
+	const clientKey = `${ollamaUrl}|${authKey ?? 'ollama'}`;
+	const client = clientsByUrl.get(clientKey) ?? new OpenAI({baseURL: ollamaUrl, apiKey: authKey ?? 'ollama', maxRetries: 0});
+	if (!clientsByUrl.has(clientKey)) {
+		clientsByUrl.set(clientKey, client);
 	}
 
 	return async (request, options) => {
@@ -97,7 +100,8 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		console.log(prompt);
 	}
 
-	const completion = options.createCompletion ?? createCompletionForUrl(options.ollamaUrl ?? DEFAULT_OLLAMA_URL);
+	const authKey = options.apiKey ?? options.oauthToken;
+	const completion = options.createCompletion ?? createCompletionForUrl(options.ollamaUrl ?? DEFAULT_OLLAMA_URL, authKey);
 	const timeoutMs = resolveTimeoutMs(options.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS);
 
 	const request: CompletionRequest = {
