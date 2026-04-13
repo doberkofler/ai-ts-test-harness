@@ -3,7 +3,7 @@ import {defineImplementProblem} from '#problem-api';
 export default defineImplementProblem({
 	name: 'add',
 	category: 'arithmetic',
-	description: ['Return the sum of two numbers.'],
+	description: 'Return the sum of two numbers.',
 	signature: 'function add(a: number, b: number): number',
 	tests: [
 		'assert.strictEqual(add(1, 2), 3);',

@@ -3,9 +3,8 @@ import {defineRefactorProblem} from '#problem-api';
 export default defineRefactorProblem({
 	name: 'declaration-to-expression',
 	category: 'refactor',
-	description: [
+	description:
 		'Refactor the given TypeScript function declaration into a const arrow function expression. Preserve the parameter list, type annotations, and body exactly.',
-	],
 	input: ['function multiply(a: number, b: number): number {', '\treturn a * b;', '}'].join('\n'),
 	entry: 'multiply',
 	tests: [

@@ -6,7 +6,9 @@ type ProblemBase = {
 	/** Problem category used for filtering/reporting */
 	category: string;
 	/** Natural language description sent to the model */
-	description: string[];
+	description: string | string[];
+	/** Optional precomputed solution to the problem */
+	solution?: string | string[];
 	/** Test body as assertion lines or callback */
 	tests: ProblemTests;
 };

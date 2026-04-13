@@ -134,4 +134,38 @@ describe('loadProblems', () => {
 			rmSync(root, {recursive: true, force: true});
 		}
 	});
+
+	test('supports string descriptions and optional solutions', () => {
+		const root = createTempProblemsDir();
+
+		try {
+			mkdirSync(join(root, 'logic'), {recursive: true});
+			writeFileSync(
+				join(root, 'logic', 'description-and-solution.problem.ts'),
+				[
+					`import {defineImplementProblem} from '#problem-api';`,
+					``,
+					`export default defineImplementProblem({`,
+					`\tname: 'description-and-solution',`,
+					`\tcategory: 'logic',`,
+					`\tdescription: 'single line description',`,
+					`\tsignature: 'function descriptionAndSolution(): number',`,
+					`\tsolution: 'function descriptionAndSolution(): number { return 1; }',`,
+					`\ttests: 'assert.strictEqual(descriptionAndSolution(), 1);',`,
+					`});`,
+				].join('\n'),
+				'utf8',
+			);
+
+			const [loaded] = loadProblems(root);
+			if (!loaded || loaded.kind === 'direct-refactor') {
+				throw new TypeError('expected implement-function problem');
+			}
+
+			expect(loaded.description).toBe('single line description');
+			expect(loaded.solution).toBe('function descriptionAndSolution(): number { return 1; }');
+		} finally {
+			rmSync(root, {recursive: true, force: true});
+		}
+	});
 });

@@ -2,6 +2,7 @@ import {Command} from 'commander';
 import {DEFAULT_LLM_TIMEOUT_MS, DEFAULT_OLLAMA_URL} from './generate.ts';
 import {runCommand} from './run.ts';
 import {reportCommand} from './report.ts';
+import {validateCommand} from './validate.ts';
 
 type CliOpts = {
 	model: string;
@@ -62,6 +63,24 @@ const main = async (): Promise<void> => {
 		});
 
 	program
+		.command('validate')
+		.description('Validate problem tests against optional solutions')
+		.action(async (_options, command: Command) => {
+			commandExecuted = true;
+			const optsAny = command.optsWithGlobals();
+			if (!isCliOpts(optsAny)) {
+				throw new Error('Invalid CLI options');
+			}
+			const opts = optsAny;
+
+			await validateCommand({
+				test: opts.test,
+				category: opts.category,
+				debug: opts.debug,
+			});
+		});
+
+	program
 		.command('report')
 		.description('Generate reports')
 		.action((_options, command: Command) => {
@@ -85,12 +104,18 @@ const main = async (): Promise<void> => {
 			return;
 		}
 
-		// If no command, run both
+		// If no command, validate, run tests, then report.
 		const optsAny = command.opts();
 		if (!isCliOpts(optsAny)) {
 			throw new Error('Invalid CLI options');
 		}
 		const opts = optsAny;
+
+		await validateCommand({
+			test: opts.test,
+			category: opts.category,
+			debug: opts.debug,
+		});
 
 		const runOpts: Parameters<typeof runCommand>[0] = {
 			model: opts.model,

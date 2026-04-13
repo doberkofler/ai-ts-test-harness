@@ -15,6 +15,8 @@ Run the harness against all built-in problems:
 pnpm run run
 ```
 
+When you run the CLI without an explicit command, it now executes `validate`, `run`, and `report` in sequence.
+
 Or run the built binary directly:
 
 ```bash
@@ -31,6 +33,12 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 - `--html-output <file>`: Optional HTML report path. If omitted, the CLI writes one next to `--output` using the same filename and `.html` extension.
 - `--test <name>`: Run only one specific problem by exact name (for example, `--test=fizzbuzz`).
 - `--category <list>`: Run only problems in the listed categories (comma-separated, for example, `--category=algorithms,refactor`).
+
+### CLI Commands
+
+- `validate`: Validates problem definitions by executing each problem's optional `solution` (if present) and confirming tests reject an intentionally invalid solution.
+- `run`: Queries the configured model and runs generated answers against tests.
+- `report`: Generates reports from an existing JSON results file.
 
 When the harness starts, it prints the effective CLI parameters (`model`, `debug`, `llmTimeoutMs`, `ollamaUrl`) so you can verify runtime settings immediately.
 
@@ -103,7 +111,8 @@ Shared required fields:
 
 - `name: string`
 - `category: string` (normalized to lowercase)
-- `description: string[]`
+- `description: string | string[]`
+- `solution?: string | string[]` (optional reference implementation used by `validate`)
 - `tests: string | (context) => void`
 	- string mode: plain assertion lines
 	- function mode: linted/intellisense-capable callback
@@ -125,7 +134,8 @@ import {defineImplementProblem} from '#problem-api';
 export default defineImplementProblem({
   name: 'add',
   category: 'arithmetic',
-  description: ['Return the sum of two numbers.'],
+  description: 'Return the sum of two numbers.',
+  solution: 'function add(a: number, b: number): number { return a + b; }',
   signature: 'function add(a: number, b: number): number',
   tests: [
     'assert.strictEqual(add(1, 2), 3);',
@@ -143,6 +153,11 @@ export default defineRefactorProblem({
   name: 'declaration-to-expression',
   category: 'refactor',
   description: ['Convert function declaration to const arrow function.'],
+  solution: [
+    'const multiply = (a: number, b: number): number => {',
+    '\treturn a * b;',
+    '};',
+  ],
   input: [
     'function multiply(a: number, b: number): number {',
     '\treturn a * b;',

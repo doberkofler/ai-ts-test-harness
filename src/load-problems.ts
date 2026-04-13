@@ -10,12 +10,15 @@ const testsSchema = z.custom<ProblemTests>((value) => (typeof value === 'string'
 	message: 'problems must include tests as a non-empty string or callback',
 });
 
+const nonEmptyStringOrStringArraySchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
+
 const implementProblemSchema = z.object({
 	name: z.string().min(1),
 	kind: z.literal('implement-function').default('implement-function'),
 	category: z.string().min(1, 'problems must include a category value'),
-	description: z.array(z.string().min(1)).min(1),
+	description: nonEmptyStringOrStringArraySchema,
 	signature: z.string().min(1),
+	solution: nonEmptyStringOrStringArraySchema.optional(),
 	tests: testsSchema,
 });
 
@@ -23,9 +26,10 @@ const refactorProblemSchema = z.object({
 	name: z.string().min(1),
 	kind: z.literal('direct-refactor'),
 	category: z.string().min(1, 'problems must include a category value'),
-	description: z.array(z.string().min(1)).min(1),
+	description: nonEmptyStringOrStringArraySchema,
 	input: z.string().min(1, 'direct-refactor problems must include an input value'),
 	entry: z.string().min(1, 'direct-refactor problems must include an entry value'),
+	solution: nonEmptyStringOrStringArraySchema.optional(),
 	tests: testsSchema,
 });
 
@@ -106,15 +110,20 @@ const parseProblemModule = (filePath: string): Problem => {
 	}
 
 	if (parsed.kind === 'direct-refactor') {
+		const {solution, ...rest} = parsed;
 		return {
-			...parsed,
+			...rest,
 			category: normalizeCategory(parsed.category),
+			...(typeof solution === 'undefined' ? {} : {solution}),
 		};
 	}
 
+	const {solution, ...rest} = parsed;
+
 	return {
-		...parsed,
+		...rest,
 		category: normalizeCategory(parsed.category),
+		...(typeof solution === 'undefined' ? {} : {solution}),
 	};
 };
 

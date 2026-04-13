@@ -68,7 +68,7 @@ const resolveTimeoutMs = (timeoutMs: number): number => {
  * for direct-refactor problems this is transformed source code.
  */
 export const generate = async (problem: Problem, options: GenerateOptions): Promise<string> => {
-	const description = problem.description.map((line) => `- ${line}`).join('\n');
+	const description = Array.isArray(problem.description) ? problem.description.map((line) => `- ${line}`).join('\n') : `- ${problem.description}`;
 
 	const prompt =
 		problem.kind === 'direct-refactor'

@@ -3,17 +3,19 @@ import {type DirectRefactorProblem, type ImplementFunctionProblem, type ProblemT
 type ImplementProblemInput = {
 	name: string;
 	category: string;
-	description: string[];
+	description: string | string[];
 	signature: string;
+	solution?: string | string[];
 	tests: ProblemTests;
 };
 
 type RefactorProblemInput = {
 	name: string;
 	category: string;
-	description: string[];
+	description: string | string[];
 	input: string;
 	entry: string;
+	solution?: string | string[];
 	tests: ProblemTests;
 };
 

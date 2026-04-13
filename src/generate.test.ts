@@ -117,4 +117,34 @@ describe('generate', () => {
 		expect(capturedPrompt).toContain('Input code:');
 		expect(capturedPrompt).toContain(directRefactorProblem.input);
 	});
+
+	test('accepts single-string descriptions', async () => {
+		let capturedPrompt = '';
+		const createCompletion: GenerateOptions['createCompletion'] = async (request) => {
+			const [firstMessage] = request.messages;
+			if (!firstMessage) {
+				throw new Error('request should include one message');
+			}
+
+			capturedPrompt = firstMessage.content;
+			const response = await Promise.resolve({
+				choices: [{message: {content: 'function sum(a: number, b: number): number { return a + b; }'}}],
+			});
+			return response;
+		};
+
+		await generate(
+			{
+				...problem,
+				description: 'Add two integers',
+			},
+			{
+				model: 'test-model',
+				createCompletion,
+			},
+		);
+
+		expect(capturedPrompt).toContain('Description:');
+		expect(capturedPrompt).toContain('- Add two integers');
+	});
 });

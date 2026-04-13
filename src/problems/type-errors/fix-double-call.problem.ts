@@ -3,7 +3,7 @@ import {defineRefactorProblem} from '#problem-api';
 export default defineRefactorProblem({
 	name: 'fix-double-call',
 	category: 'type-errors',
-	description: ['Fix the type error while preserving behavior.'],
+	description: 'Fix the type error while preserving behavior.',
 	input: [
 		'function double(n: number): number {',
 		'\treturn n * 2;',
