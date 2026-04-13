@@ -4,10 +4,28 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import {z} from 'zod';
 import {defineImplementProblem, defineRefactorProblem} from './problem-api.ts';
-import {type Problem, type ProblemTests} from './types.ts';
+import {
+	type DirectRefactorProblemSolutionCallback,
+	type DirectRefactorProblemTestCallback,
+	type ImplementProblemSolutionCallback,
+	type ImplementProblemTestCallback,
+	type Problem,
+} from './types.ts';
 
-const testsSchema = z.custom<ProblemTests>((value) => (typeof value === 'string' && value.length > 0) || typeof value === 'function', {
-	message: 'problems must include tests as a non-empty string or callback',
+const implementTestsSchema = z.custom<ImplementProblemTestCallback>((value) => typeof value === 'function', {
+	message: 'problems must include tests as a callback function',
+});
+
+const refactorTestsSchema = z.custom<DirectRefactorProblemTestCallback>((value) => typeof value === 'function', {
+	message: 'problems must include tests as a callback function',
+});
+
+const implementSolutionSchema = z.custom<ImplementProblemSolutionCallback>((value) => typeof value === 'function', {
+	message: 'implement-function solutions must be callback functions',
+});
+
+const refactorSolutionSchema = z.custom<DirectRefactorProblemSolutionCallback>((value) => typeof value === 'function', {
+	message: 'direct-refactor solutions must be callback functions',
 });
 
 const nonEmptyStringOrStringArraySchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
@@ -18,8 +36,8 @@ const implementProblemSchema = z.object({
 	category: z.string().min(1, 'problems must include a category value'),
 	description: nonEmptyStringOrStringArraySchema,
 	signature: z.string().min(1),
-	solution: nonEmptyStringOrStringArraySchema.optional(),
-	tests: testsSchema,
+	solution: implementSolutionSchema.optional(),
+	tests: implementTestsSchema,
 });
 
 const refactorProblemSchema = z.object({
@@ -29,8 +47,8 @@ const refactorProblemSchema = z.object({
 	description: nonEmptyStringOrStringArraySchema,
 	input: z.string().min(1, 'direct-refactor problems must include an input value'),
 	entry: z.string().min(1, 'direct-refactor problems must include an entry value'),
-	solution: nonEmptyStringOrStringArraySchema.optional(),
-	tests: testsSchema,
+	solution: refactorSolutionSchema.optional(),
+	tests: refactorTestsSchema,
 });
 
 const problemSchema = z.union([implementProblemSchema, refactorProblemSchema]);

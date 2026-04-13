@@ -7,7 +7,9 @@ const problem: Problem = {
 	category: 'arithmetic',
 	description: ['Add two integers'],
 	signature: 'function sum(a: number, b: number): number',
-	tests: `assert.strictEqual(sum(1, 2), 3);`,
+	tests: ({assert}) => {
+		assert.strictEqual(1, 1);
+	},
 };
 
 const directRefactorProblem: Problem = {
@@ -17,7 +19,9 @@ const directRefactorProblem: Problem = {
 	description: ['Rename weak local identifiers in provided code while preserving behavior.'],
 	input: 'function rename(a: number): number { const tmp = a + 1; return tmp; }',
 	entry: 'rename',
-	tests: `assert.match(result, /function rename/);`,
+	tests: ({assert, code}) => {
+		assert.match(code.result, /function rename/);
+	},
 };
 
 describe('generate', () => {

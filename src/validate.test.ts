@@ -9,8 +9,16 @@ const implementProblem: Problem = {
 	category: 'arithmetic',
 	description: 'Add two numbers',
 	signature: 'function sum(a: number, b: number): number',
-	solution: 'function sum(a: number, b: number): number { return a + b; }',
-	tests: 'assert.strictEqual(sum(1, 2), 3);',
+	solution: function sum(a: number, b: number): number {
+		return a + b;
+	},
+	tests: ({assert, implementation}) => {
+		if (typeof implementation !== 'function') {
+			throw new TypeError('expected implementation to be callable');
+		}
+
+		assert.strictEqual(Reflect.apply(implementation, undefined, [1, 2]), 3);
+	},
 };
 
 const refactorProblem: Problem = {
@@ -20,8 +28,10 @@ const refactorProblem: Problem = {
 	description: ['Rename local variables'],
 	input: 'function rename(a: number): number { const tmp = a + 1; return tmp; }',
 	entry: 'rename',
-	solution: 'function rename(a: number): number { const value = a + 1; return value; }',
-	tests: String.raw`assert.doesNotMatch(code.result, /\btmp\b/);`,
+	solution: (input) => input.replaceAll('tmp', 'value'),
+	tests: ({assert, code}) => {
+		assert.doesNotMatch(code.result, /\btmp\b/);
+	},
 };
 
 describe('validateCommand', () => {

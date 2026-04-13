@@ -1,4 +1,14 @@
-import type assert from 'node:assert';
+export type AssertApi = {
+	strictEqual: (actual: unknown, expected: unknown, message?: string | Error) => void;
+	deepStrictEqual: (actual: unknown, expected: unknown, message?: string | Error) => void;
+	notStrictEqual: (actual: unknown, expected: unknown, message?: string | Error) => void;
+	match: (actual: string, expected: RegExp, message?: string | Error) => void;
+	doesNotMatch: (actual: string, expected: RegExp, message?: string | Error) => void;
+	ok: (value: unknown, message?: string | Error) => void;
+	throws: (block: () => unknown, error?: RegExp | ((error: unknown) => boolean), message?: string | Error) => void;
+	rejects: (block: (() => Promise<unknown>) | Promise<unknown>, error?: RegExp | ((error: unknown) => boolean), message?: string | Error) => Promise<void>;
+	fail: (message?: string | Error) => never;
+};
 
 type ProblemBase = {
 	/** Unique identifier */
@@ -7,40 +17,40 @@ type ProblemBase = {
 	category: string;
 	/** Natural language description sent to the model */
 	description: string | string[];
-	/** Optional precomputed solution to the problem */
-	solution?: string | string[];
-	/** Test body as assertion lines or callback */
-	tests: ProblemTests;
 };
 
+export type ImplementProblemSolutionCallback = (...args: readonly never[]) => unknown;
+
+export type DirectRefactorProblemSolutionCallback = (input: string) => string;
+
 export type ImplementProblemTestContext = {
-	assert: typeof assert;
-	implementation: unknown;
+	assert: AssertApi;
+	implementation: (...args: readonly unknown[]) => unknown;
 	code: {result: string};
 };
 
 export type DirectRefactorProblemTestContext = {
-	assert: typeof assert;
-	original: unknown;
-	transformed: unknown;
+	assert: AssertApi;
+	original: (...args: readonly unknown[]) => unknown;
+	transformed: (...args: readonly unknown[]) => unknown;
 	code: {input: string; result: string};
 };
 
-export type ProblemTestCallback = (context: {
-	assert: typeof assert;
-	implementation?: unknown;
-	original?: unknown;
-	transformed?: unknown;
-	code: {result: string; input?: string};
-}) => void;
+export type ImplementProblemTestCallback = (context: ImplementProblemTestContext) => void | Promise<void>;
 
-export type ProblemTests = string | ProblemTestCallback;
+export type DirectRefactorProblemTestCallback = (context: DirectRefactorProblemTestContext) => void | Promise<void>;
+
+export type ProblemTests = ImplementProblemTestCallback | DirectRefactorProblemTestCallback;
 
 /** Function-implementation benchmark */
 export type ImplementFunctionProblem = ProblemBase & {
 	kind?: 'implement-function';
 	/** Full function signature — model must implement this */
 	signature: string;
+	/** Optional precomputed solution to the problem */
+	solution?: ImplementProblemSolutionCallback;
+	/** Test body callback */
+	tests: ImplementProblemTestCallback;
 };
 
 /** Direct refactoring benchmark */
@@ -50,6 +60,10 @@ export type DirectRefactorProblem = ProblemBase & {
 	input: string;
 	/** Function identifier used for behavior-equivalence checks */
 	entry: string;
+	/** Optional precomputed source transformation for validation */
+	solution?: DirectRefactorProblemSolutionCallback;
+	/** Test body callback */
+	tests: DirectRefactorProblemTestCallback;
 };
 
 /** A single benchmark problem */
@@ -69,6 +83,7 @@ export type RuntimeConfig = {
 	model: string;
 	debug: boolean;
 	timeoutMs: number;
+	cooldownMs?: number;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;
@@ -80,6 +95,7 @@ export type ResultsFile = {
 	model: string;
 	ollama_url: string;
 	llm_timeout_ms: number;
+	cooldown_ms?: number;
 	debug: boolean;
 	selected_categories?: string[];
 	total: number;

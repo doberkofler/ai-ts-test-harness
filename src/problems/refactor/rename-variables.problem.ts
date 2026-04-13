@@ -9,14 +9,14 @@ export default defineRefactorProblem({
 		'\n',
 	),
 	entry: 'computeDiscount',
-	tests: [
-		'assert.strictEqual((transformed as (amount: number, percent: number) => number)(100, 10), (original as (amount: number, percent: number) => number)(100, 10));',
-		'assert.strictEqual((transformed as (amount: number, percent: number) => number)(49.99, 12.5), (original as (amount: number, percent: number) => number)(49.99, 12.5));',
-		'assert.strictEqual((transformed as (amount: number, percent: number) => number)(0, 75), (original as (amount: number, percent: number) => number)(0, 75));',
-		String.raw`assert.doesNotMatch(code.result, /\btmp\b/, 'tmp must be renamed');`,
-		String.raw`assert.doesNotMatch(code.result, /\bres\b/, 'res must be renamed');`,
-		String.raw`assert.doesNotMatch(code.result, /\ba\b/, 'param a must be renamed');`,
-		String.raw`assert.doesNotMatch(code.result, /\bb\b/, 'param b must be renamed');`,
-		"assert.match(code.result, /function computeDiscount/, 'function name must be preserved');",
-	].join('\n'),
+	tests: ({assert, original, transformed, code}) => {
+		assert.strictEqual(transformed(100, 10), original(100, 10));
+		assert.strictEqual(transformed(49.99, 12.5), original(49.99, 12.5));
+		assert.strictEqual(transformed(0, 75), original(0, 75));
+		assert.doesNotMatch(code.result, /\btmp\b/, 'tmp must be renamed');
+		assert.doesNotMatch(code.result, /\bres\b/, 'res must be renamed');
+		assert.doesNotMatch(code.result, /\ba\b/, 'param a must be renamed');
+		assert.doesNotMatch(code.result, /\bb\b/, 'param b must be renamed');
+		assert.match(code.result, /function computeDiscount/, 'function name must be preserved');
+	},
 });

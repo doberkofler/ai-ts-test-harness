@@ -15,11 +15,15 @@ export default defineRefactorProblem({
 		'}',
 	].join('\n'),
 	entry: 'addItem',
-	tests: [
-		"const originalCart = {items: Object.freeze(['apple']) as readonly string[]};",
-		"const result = (transformed as (cart: {readonly items: readonly string[]}, item: string) => {readonly items: readonly string[]})(originalCart, 'banana');",
-		"assert.deepStrictEqual(result.items, ['apple', 'banana']);",
-		"assert.deepStrictEqual(originalCart.items, ['apple']);",
-		String.raw`assert.doesNotMatch(code.result, /\.push\s*\(/, 'push mutation should not be used');`,
-	].join('\n'),
+	tests: ({assert, transformed, code}) => {
+		const originalCart = {items: Object.freeze(['apple'])};
+		const result = transformed(originalCart, 'banana');
+		if (typeof result !== 'object' || result === null) {
+			throw new TypeError('expected addItem() to return an object');
+		}
+
+		assert.deepStrictEqual(Reflect.get(result, 'items'), ['apple', 'banana']);
+		assert.deepStrictEqual(originalCart.items, ['apple']);
+		assert.doesNotMatch(code.result, /\.push\s*\(/, 'push mutation should not be used');
+	},
 });

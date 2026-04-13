@@ -15,8 +15,8 @@ export default defineRefactorProblem({
 		'}',
 	].join('\n'),
 	entry: 'getConfig',
-	tests: [
-		"assert.deepStrictEqual((transformed as () => {host: string; port: number})(), {host: 'localhost', port: 3000});",
-		String.raw`assert.doesNotMatch(code.result, /\bextra\b/, 'extra property must be removed');`,
-	].join('\n'),
+	tests: ({assert, transformed, code}) => {
+		assert.deepStrictEqual(transformed(), {host: 'localhost', port: 3000});
+		assert.doesNotMatch(code.result, /\bextra\b/, 'extra property must be removed');
+	},
 });

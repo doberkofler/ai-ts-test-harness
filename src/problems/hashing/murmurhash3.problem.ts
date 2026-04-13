@@ -1,5 +1,7 @@
 import {defineImplementProblem} from '#problem-api';
 
+const fromHex = (value: string): number => Number.parseInt(value, 16);
+
 export default defineImplementProblem({
 	name: 'murmurhash3',
 	category: 'hashing',
@@ -9,17 +11,17 @@ export default defineImplementProblem({
 		'Return an unsigned 32-bit integer.',
 	],
 	signature: 'function murmurhash3(str: string, seed: number): number',
-	tests: [
-		"assert.strictEqual(murmurhash3('', 0), 0);",
-		"assert.strictEqual(murmurhash3('', 1), 0x514e28b7);",
-		"assert.strictEqual(murmurhash3('a', 0), 0x3c2569b2);",
-		"assert.strictEqual(murmurhash3('ab', 0), 0x5f14e8b3);",
-		"assert.strictEqual(murmurhash3('abcd', 0), 0x1f1ee412);",
-		"assert.strictEqual(murmurhash3('hello', 0), 0x248bfa47);",
-		"assert.strictEqual(murmurhash3('hello', 42), 0x4f2e8b1a);",
-		"assert.strictEqual(murmurhash3('The quick brown fox', 0), 0x2f9a9e6b);",
-		"assert.notStrictEqual(murmurhash3('test', 0), murmurhash3('test', 1));",
-		"assert.ok(murmurhash3('negative?', 0) >= 0);",
-		"assert.ok(murmurhash3('negative?', 0) <= 0xffffffff);",
-	].join('\n'),
+	tests: ({assert, implementation}) => {
+		assert.strictEqual(implementation('', 0), 0);
+		assert.strictEqual(implementation('', 1), fromHex('514E28B7'));
+		assert.strictEqual(implementation('a', 0), fromHex('3C2569B2'));
+		assert.strictEqual(implementation('ab', 0), fromHex('5F14E8B3'));
+		assert.strictEqual(implementation('abcd', 0), fromHex('1F1EE412'));
+		assert.strictEqual(implementation('hello', 0), fromHex('248BFA47'));
+		assert.strictEqual(implementation('hello', 42), fromHex('4F2E8B1A'));
+		assert.strictEqual(implementation('The quick brown fox', 0), fromHex('2F9A9E6B'));
+		assert.notStrictEqual(implementation('test', 0), implementation('test', 1));
+		assert.ok(Number(implementation('negative?', 0)) >= 0);
+		assert.ok(Number(implementation('negative?', 0)) <= fromHex('FFFFFFFF'));
+	},
 });

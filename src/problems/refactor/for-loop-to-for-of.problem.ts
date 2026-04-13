@@ -15,11 +15,11 @@ export default defineRefactorProblem({
 		'}',
 	].join('\n'),
 	entry: 'sumAll',
-	tests: [
-		'assert.strictEqual((transformed as (numbers: number[]) => number)([1, 2, 3, 4]), (original as (numbers: number[]) => number)([1, 2, 3, 4]));',
-		'assert.strictEqual((transformed as (numbers: number[]) => number)([10, -5, 4]), (original as (numbers: number[]) => number)([10, -5, 4]));',
-		'assert.strictEqual((transformed as (numbers: number[]) => number)([]), (original as (numbers: number[]) => number)([]));',
-		String.raw`assert.doesNotMatch(code.result, /for\s*\(\s*let\s+i\s*=\s*0\s*;\s*i\s*<\s*numbers\.length\s*;\s*i\+\+\s*\)/, 'indexed loop must be removed');`,
-		String.raw`assert.match(code.result, /for\s*\(\s*const\s+\w+\s+of\s+numbers\s*\)/, 'for...of loop must exist');`,
-	].join('\n'),
+	tests: ({assert, original, transformed, code}) => {
+		assert.strictEqual(transformed([1, 2, 3, 4]), original([1, 2, 3, 4]));
+		assert.strictEqual(transformed([10, -5, 4]), original([10, -5, 4]));
+		assert.strictEqual(transformed([]), original([]));
+		assert.doesNotMatch(code.result, /for\s*\(\s*let\s+i\s*=\s*0\s*;\s*i\s*<\s*numbers\.length\s*;\s*i\+\+\s*\)/, 'indexed loop must be removed');
+		assert.match(code.result, /for\s*\(\s*const\s+\w+\s+of\s+numbers\s*\)/, 'for...of loop must exist');
+	},
 });

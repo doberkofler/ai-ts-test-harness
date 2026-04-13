@@ -112,19 +112,18 @@ Shared required fields:
 - `name: string`
 - `category: string` (normalized to lowercase)
 - `description: string | string[]`
-- `solution?: string | string[]` (optional reference implementation used by `validate`)
-- `tests: string | (context) => void`
-	- string mode: plain assertion lines
-	- function mode: linted/intellisense-capable callback
+- `tests: (context) => void | Promise<void>`
 
 `implement-function` adds:
 
 - `signature: string`
+- `solution?: (...args) => unknown`
 
 `direct-refactor` adds:
 
 - `input: string`
 - `entry: string` (function identifier used for behavior checks)
+- `solution?: (input: string) => string`
 
 ### Authoring Template: `implement-function`
 
@@ -135,12 +134,15 @@ export default defineImplementProblem({
   name: 'add',
   category: 'arithmetic',
   description: 'Return the sum of two numbers.',
-  solution: 'function add(a: number, b: number): number { return a + b; }',
+  solution: function add(a: number, b: number): number {
+    return a + b;
+  },
   signature: 'function add(a: number, b: number): number',
-  tests: [
-    'assert.strictEqual(add(1, 2), 3);',
-    'assert.strictEqual(add(-1, 1), 0);',
-  ].join('\n'),
+	 tests: ({assert, implementation}) => {
+	 	const add = implementation as (a: number, b: number) => number;
+	 	assert.strictEqual(add(1, 2), 3);
+	 	assert.strictEqual(add(-1, 1), 0);
+	 },
 });
 ```
 
@@ -153,22 +155,23 @@ export default defineRefactorProblem({
   name: 'declaration-to-expression',
   category: 'refactor',
   description: ['Convert function declaration to const arrow function.'],
-  solution: [
-    'const multiply = (a: number, b: number): number => {',
-    '\treturn a * b;',
-    '};',
-  ],
+  solution: (source) =>
+    source
+      .replace('function multiply', 'const multiply =')
+      .replace('): number {', '): number => {'),
   input: [
     'function multiply(a: number, b: number): number {',
     '\treturn a * b;',
     '}',
   ].join('\n'),
   entry: 'multiply',
-  tests: [
-    'assert.strictEqual((transformed as (a: number, b: number) => number)(3, 4), (original as (a: number, b: number) => number)(3, 4));',
-    String.raw`assert.match(code.result, /const\s+multiply\s*=/);`,
-    String.raw`assert.doesNotMatch(code.result, /function\s+multiply\s*\(/);`,
-  ].join('\n'),
+	 tests: ({assert, original, transformed, code}) => {
+	 	const transformedMultiply = transformed as (a: number, b: number) => number;
+	 	const originalMultiply = original as (a: number, b: number) => number;
+	 	assert.strictEqual(transformedMultiply(3, 4), originalMultiply(3, 4));
+	 	assert.match(code.result, /const\s+multiply\s*=/);
+	 	assert.doesNotMatch(code.result, /function\s+multiply\s*\(/);
+	 },
 });
 ```
 
@@ -179,9 +182,9 @@ In `direct-refactor` tests, the harness injects:
 - `code.input`: original source string
 - `code.result`: transformed source string
 
-### Function-based Tests (optional)
+### Tests Callback
 
-`tests` can also be a callback for better editor support:
+`tests` is always a callback for editor support and linting:
 
 ```ts
 import {defineImplementProblem} from '#problem-api';

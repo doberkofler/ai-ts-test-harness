@@ -9,7 +9,9 @@ const problems: Problem[] = [
 		category: 'logic',
 		description: ['Return fizzbuzz values'],
 		signature: 'function fizzbuzz(n: number): string[]',
-		tests: 'assert.strictEqual(1, 1);',
+		tests: ({assert}) => {
+			assert.strictEqual(1, 1);
+		},
 	},
 	{
 		name: 'renameVariables',
@@ -18,7 +20,9 @@ const problems: Problem[] = [
 		description: ['Rename short variables'],
 		input: 'function f(x:number){return x}',
 		entry: 'f',
-		tests: 'assert.strictEqual(1, 1);',
+		tests: ({assert}) => {
+			assert.strictEqual(1, 1);
+		},
 	},
 ];
 
@@ -33,12 +37,14 @@ describe('formatResultsFile', () => {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
 			timeoutMs: 5000,
+			cooldownMs: 10_000,
 			debug: true,
 		});
 
 		expect(output.model).toBe('test-model');
 		expect(output.ollama_url).toBe('http://localhost:11434/v1');
 		expect(output.llm_timeout_ms).toBe(5000);
+		expect(output.cooldown_ms).toBe(10_000);
 		expect(output.debug).toBe(true);
 		expect(output.selected_categories).toBeUndefined();
 		expect(output.total).toBe(2);

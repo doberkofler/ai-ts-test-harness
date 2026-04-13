@@ -12,7 +12,10 @@ export const solveProblem = async (problem: Problem, options: GenerateOptions): 
 		// oxlint-disable-next-line no-await-in-loop
 		const result = await runProblem(problem, code, {debug: options.debug ?? false});
 
-		return result;
+		return {
+			...result,
+			duration_ms: Date.now() - start,
+		};
 	} catch (error) {
 		const errorText = error instanceof Error ? error.message : String(error);
 

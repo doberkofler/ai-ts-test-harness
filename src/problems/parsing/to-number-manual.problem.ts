@@ -11,28 +11,28 @@ export default defineImplementProblem({
 		'Do NOT use parseFloat, parseInt, Number(), +, or any built-in string-to-number conversion.',
 	],
 	signature: 'function toNumber(s: string): number | null',
-	tests: [
-		"assert.strictEqual(toNumber('42'), 42);",
-		"assert.strictEqual(toNumber('3.14'), 3.14);",
-		"assert.strictEqual(toNumber('-7'), -7);",
-		"assert.strictEqual(toNumber('-3.14'), -3.14);",
-		"assert.strictEqual(toNumber('  42  '), 42);",
-		"assert.strictEqual(toNumber('abc'), null);",
-		"assert.strictEqual(toNumber(''), null);",
-		"assert.strictEqual(toNumber('   '), null);",
-		"assert.strictEqual(toNumber('12abc'), null);",
-		"assert.strictEqual(toNumber('1.2.3'), null);",
-		"assert.strictEqual(toNumber('-'), null);",
-		"assert.strictEqual(toNumber('-.'), null);",
-		"assert.strictEqual(toNumber('.'), null);",
-		"assert.strictEqual(toNumber('Infinity'), null);",
-		"assert.strictEqual(toNumber('-0'), 0);",
-		"assert.strictEqual(toNumber('007'), 7);",
-		"assert.strictEqual(toNumber('1+2'), null);",
-		"assert.strictEqual(toNumber('1-2'), null);",
-		"assert.strictEqual(toNumber('+-1'), null);",
-		"assert.strictEqual(toNumber('--1'), null);",
-		"assert.strictEqual(toNumber('++1'), null);",
-		"assert.strictEqual(toNumber('1.'), null);",
-	].join('\n'),
+	tests: ({assert, implementation}) => {
+		assert.strictEqual(implementation('42'), 42);
+		assert.strictEqual(implementation('3.14'), 3.14);
+		assert.strictEqual(implementation('-7'), -7);
+		assert.strictEqual(implementation('-3.14'), -3.14);
+		assert.strictEqual(implementation('  42  '), 42);
+		assert.strictEqual(implementation('abc'), null);
+		assert.strictEqual(implementation(''), null);
+		assert.strictEqual(implementation('   '), null);
+		assert.strictEqual(implementation('12abc'), null);
+		assert.strictEqual(implementation('1.2.3'), null);
+		assert.strictEqual(implementation('-'), null);
+		assert.strictEqual(implementation('-.'), null);
+		assert.strictEqual(implementation('.'), null);
+		assert.strictEqual(implementation('Infinity'), null);
+		assert.strictEqual(implementation('-0'), 0);
+		assert.strictEqual(implementation('007'), 7);
+		assert.strictEqual(implementation('1+2'), null);
+		assert.strictEqual(implementation('1-2'), null);
+		assert.strictEqual(implementation('+-1'), null);
+		assert.strictEqual(implementation('--1'), null);
+		assert.strictEqual(implementation('++1'), null);
+		assert.strictEqual(implementation('1.'), null);
+	},
 });

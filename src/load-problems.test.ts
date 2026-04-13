@@ -25,7 +25,9 @@ describe('loadProblems', () => {
 					`\tcategory: 'Logic',`,
 					`\tdescription: ['FizzBuzz output'],`,
 					`\tsignature: 'function fizzbuzz(n: number): string',`,
-					`\ttests: "assert.strictEqual(fizzbuzz(3), 'Fizz');",`,
+					`\ttests: ({assert}) => {`,
+					`\t\tassert.strictEqual(true, true);`,
+					`\t},`,
 					`});`,
 				].join('\n'),
 				'utf8',
@@ -41,7 +43,9 @@ describe('loadProblems', () => {
 					`\tcategory: 'Arithmetic',`,
 					`\tdescription: ['Add values'],`,
 					`\tsignature: 'function add(a: number, b: number): number',`,
-					`\ttests: 'assert.strictEqual(add(1, 2), 3);',`,
+					`\ttests: ({assert}) => {`,
+					`\t\tassert.strictEqual(true, true);`,
+					`\t},`,
 					`});`,
 				].join('\n'),
 				'utf8',
@@ -58,7 +62,9 @@ describe('loadProblems', () => {
 					`\tdescription: ['Use for...of'],`,
 					`\tinput: 'function sum(values: number[]): number { return values.length; }',`,
 					`\tentry: 'sum',`,
-					`\ttests: "assert.strictEqual(typeof original, 'function');",`,
+					`\ttests: ({assert}) => {`,
+					`\t\tassert.strictEqual(true, true);`,
+					`\t},`,
 					`});`,
 				].join('\n'),
 				'utf8',
@@ -88,7 +94,9 @@ describe('loadProblems', () => {
 					`\tcategory: 'logic',`,
 					`\tdescription: ['bad name'],`,
 					`\tsignature: 'function fizzbuzz(n: number): string',`,
-					`\ttests: "assert.strictEqual(fizzbuzz(1), '1');",`,
+					`\ttests: ({assert}) => {`,
+					`\t\tassert.strictEqual(true, true);`,
+					`\t},`,
 					`});`,
 				].join('\n'),
 				'utf8',
@@ -135,7 +143,7 @@ describe('loadProblems', () => {
 		}
 	});
 
-	test('supports string descriptions and optional solutions', () => {
+	test('supports string descriptions and callback solutions', () => {
 		const root = createTempProblemsDir();
 
 		try {
@@ -150,8 +158,10 @@ describe('loadProblems', () => {
 					`\tcategory: 'logic',`,
 					`\tdescription: 'single line description',`,
 					`\tsignature: 'function descriptionAndSolution(): number',`,
-					`\tsolution: 'function descriptionAndSolution(): number { return 1; }',`,
-					`\ttests: 'assert.strictEqual(descriptionAndSolution(), 1);',`,
+					`\tsolution: function descriptionAndSolution(): number { return 1; },`,
+					`\ttests: ({assert}) => {`,
+					`\t\tassert.strictEqual(true, true);`,
+					`\t},`,
 					`});`,
 				].join('\n'),
 				'utf8',
@@ -163,7 +173,10 @@ describe('loadProblems', () => {
 			}
 
 			expect(loaded.description).toBe('single line description');
-			expect(loaded.solution).toBe('function descriptionAndSolution(): number { return 1; }');
+			if (typeof loaded.solution !== 'function') {
+				throw new TypeError('expected solution callback');
+			}
+			expect(loaded.solution.toString()).toContain('descriptionAndSolution');
 		} finally {
 			rmSync(root, {recursive: true, force: true});
 		}

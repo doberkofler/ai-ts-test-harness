@@ -156,13 +156,12 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 		problem.kind === 'direct-refactor'
 			? []
 			: [
-					`import vm from 'node:vm';`,
 					`import ts from 'typescript';`,
 					``,
 					`const generatedSource = ${JSON.stringify(generatedCode)};`,
 					`const implementationEntry = ${JSON.stringify(parseFunctionNameFromSignature(problem.signature))};`,
 					``,
-					`const evaluateFunction = (source: string, functionName: string): unknown => {`,
+					`const evaluateFunction = (source: string, functionName: string): ((...args: readonly unknown[]) => unknown) => {`,
 					`\tconst wrappedSource = [`,
 					`\t\tsource,`,
 					`\t\t\`\`,`,
@@ -177,11 +176,16 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 					`\t}).outputText;`,
 					``,
 					`\tconst moduleLike: {exports: Record<string, unknown>} = {exports: {}};`,
-					`\tvm.runInNewContext(transpiled, {module: moduleLike, exports: moduleLike.exports});`,
+					`\tconst executeTranspiled = new Function('module', 'exports', transpiled) as (module: {exports: Record<string, unknown>}, exports: Record<string, unknown>) => void;`,
+					`\texecuteTranspiled(moduleLike, moduleLike.exports);`,
 					`\tconst extracted = moduleLike.exports.__extracted;`,
 					``,
 					`\tif (typeof extracted === 'undefined') {`,
 					`\t\tthrow new TypeError(\`Missing function in generated code: \${functionName}\`);`,
+					`\t}`,
+					``,
+					`\tif (typeof extracted !== 'function') {`,
+					`\t\tthrow new TypeError(\`Generated symbol is not callable: \${functionName}\`);`,
 					`\t}`,
 					``,
 					`\treturn extracted;`,
@@ -195,14 +199,13 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 	const directRefactorSupport =
 		problem.kind === 'direct-refactor'
 			? [
-					`import vm from 'node:vm';`,
 					`import ts from 'typescript';`,
 					``,
 					`const input = ${JSON.stringify(problem.input)};`,
 					`const result = ${JSON.stringify(generatedCode)};`,
 					`const entry = ${JSON.stringify(problem.entry)};`,
 					``,
-					`const evaluateRefactorFunction = (source: string, functionName: string): unknown => {`,
+					`const evaluateRefactorFunction = (source: string, functionName: string): ((...args: readonly unknown[]) => unknown) => {`,
 					`\tconst wrappedSource = [`,
 					`\t\tsource,`,
 					`\t\t\`\`,`,
@@ -217,11 +220,16 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 					`\t}).outputText;`,
 					``,
 					`\tconst moduleLike: {exports: Record<string, unknown>} = {exports: {}};`,
-					`\tvm.runInNewContext(transpiled, {module: moduleLike, exports: moduleLike.exports});`,
+					`\tconst executeTranspiled = new Function('module', 'exports', transpiled) as (module: {exports: Record<string, unknown>}, exports: Record<string, unknown>) => void;`,
+					`\texecuteTranspiled(moduleLike, moduleLike.exports);`,
 					`\tconst extracted = moduleLike.exports.__extracted;`,
 					``,
 					`\tif (typeof extracted === 'undefined') {`,
 					`\t\tthrow new TypeError(\`Missing function in transformed code: \${functionName}\`);`,
+					`\t}`,
+					``,
+					`\tif (typeof extracted !== 'function') {`,
+					`\t\tthrow new TypeError(\`Transformed symbol is not callable: \${functionName}\`);`,
 					`\t}`,
 					``,
 					`\treturn extracted;`,
@@ -234,13 +242,11 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 				]
 			: [];
 
-	const functionBasedTests = typeof problem.tests === 'function' ? `const __problemTests = (${problem.tests.toString()});` : '';
+	const functionBasedTests = `const __problemTests = (${problem.tests.toString()});`;
 	const testsBody =
-		typeof problem.tests === 'function'
-			? problem.kind === 'direct-refactor'
-				? '__problemTests({assert, original, transformed, code});'
-				: '__problemTests({assert, implementation, code});'
-			: problem.tests;
+		problem.kind === 'direct-refactor'
+			? 'return __problemTests({assert, original, transformed, code});'
+			: 'return __problemTests({assert, implementation, code});';
 
 	const program = [
 		`import {describe, test} from 'vitest';`,

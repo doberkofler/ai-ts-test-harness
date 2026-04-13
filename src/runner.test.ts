@@ -8,7 +8,9 @@ const problem: Problem = {
 	category: 'arithmetic',
 	description: ['Add two numbers'],
 	signature: 'function sum(a: number, b: number): number',
-	tests: `assert.strictEqual(sum(1, 2), 3);`,
+	tests: ({assert, implementation}) => {
+		assert.strictEqual(implementation(1, 2), 3);
+	},
 };
 
 const directRefactorProblem: Problem = {
@@ -18,10 +20,10 @@ const directRefactorProblem: Problem = {
 	description: ['Rename local identifiers in provided TypeScript code.'],
 	input: 'function rename(a: number): number { const tmp = a + 1; return tmp; }',
 	entry: 'rename',
-	tests: `
-		assert.match(result, /function rename/);
-		assert.doesNotMatch(result, /\btmp\b/);
-	`,
+	tests: ({assert, code}) => {
+		assert.match(code.result, /function rename/);
+		assert.doesNotMatch(code.result, /\btmp\b/);
+	},
 };
 
 const functionTestsProblem: Problem = {
@@ -31,11 +33,7 @@ const functionTestsProblem: Problem = {
 	signature: 'function sum(a: number, b: number): number',
 	tests: ({assert, implementation}) => {
 		const callable = implementation;
-		if (typeof callable !== 'function') {
-			throw new TypeError('expected implementation to be callable');
-		}
-
-		if (Reflect.apply(callable, undefined, [2, 3]) !== 5) {
+		if (callable(2, 3) !== 5) {
 			assert.fail('expected sum(2, 3) to equal 5');
 		}
 	},
@@ -103,7 +101,7 @@ describe('runProblem', () => {
 				const content = readFileSync(generatedPath, 'utf8');
 				expect(content).toContain("import {describe, test} from 'vitest';");
 				expect(content).toContain("import assert from 'node:assert';");
-				expect(content).toContain('assert.strictEqual(sum(1, 2), 3);');
+				expect(content).toContain('assert.strictEqual(implementation(1, 2), 3);');
 
 				return createVitestMock(
 					{
@@ -265,10 +263,10 @@ describe('runProblem', () => {
 					const content = readFileSync(generatedPath, 'utf8');
 					expect(content).toContain('const result = ');
 					expect(content).toContain('const input = ');
-					expect(content).toContain("import vm from 'node:vm';");
 					expect(content).toContain("import ts from 'typescript';");
+					expect(content).toContain("const executeTranspiled = new Function('module', 'exports', transpiled)");
 					expect(content).toContain('const evaluateRefactorFunction = ');
-					expect(content).toContain('assert.match(result, /function rename/);');
+					expect(content).toContain('assert.match(code.result, /function rename/);');
 
 					return createVitestMock({
 						getCountOfFailedTests: () => 0,
@@ -300,7 +298,7 @@ describe('runProblem', () => {
 
 				const content = readFileSync(generatedPath, 'utf8');
 				expect(content).toContain('const implementation = evaluateFunction(generatedSource, implementationEntry);');
-				expect(content).toContain('__problemTests({assert, implementation, code});');
+				expect(content).toContain('return __problemTests({assert, implementation, code});');
 
 				return createVitestMock({
 					getCountOfFailedTests: () => 0,

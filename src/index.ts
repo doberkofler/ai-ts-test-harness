@@ -8,6 +8,7 @@ type CliOpts = {
 	model: string;
 	debug: boolean;
 	llmTimeoutMs: string;
+	cooldownMs: string;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;
@@ -26,6 +27,7 @@ const main = async (): Promise<void> => {
 	program.option('--model <model>', 'Model to use', 'gemma4:31b-it-q4_K_M');
 	program.option('--debug', 'Print LLM request/response for each problem', false);
 	program.option('--llm-timeout-ms <ms>', 'LLM response timeout in milliseconds', String(DEFAULT_LLM_TIMEOUT_MS));
+	program.option('--cooldown-ms <ms>', 'Delay between problems in milliseconds', '10000');
 	program.option('--ollama-url <url>', 'Ollama-compatible API base URL', DEFAULT_OLLAMA_URL);
 	program.option('--api-key <key>', 'API key for cloud model authorization');
 	program.option('--oauth-token <token>', 'OAuth token for cloud model authorization');
@@ -51,6 +53,7 @@ const main = async (): Promise<void> => {
 				model: opts.model,
 				debug: opts.debug,
 				llmTimeoutMs: opts.llmTimeoutMs,
+				cooldownMs: opts.cooldownMs,
 				ollamaUrl: opts.ollamaUrl,
 				...(typeof opts.apiKey === 'string' ? {apiKey: opts.apiKey} : {}),
 				...(typeof opts.oauthToken === 'string' ? {oauthToken: opts.oauthToken} : {}),
@@ -111,16 +114,11 @@ const main = async (): Promise<void> => {
 		}
 		const opts = optsAny;
 
-		await validateCommand({
-			test: opts.test,
-			category: opts.category,
-			debug: opts.debug,
-		});
-
 		const runOpts: Parameters<typeof runCommand>[0] = {
 			model: opts.model,
 			debug: opts.debug,
 			llmTimeoutMs: opts.llmTimeoutMs,
+			cooldownMs: opts.cooldownMs,
 			ollamaUrl: opts.ollamaUrl,
 			...(typeof opts.apiKey === 'string' ? {apiKey: opts.apiKey} : {}),
 			...(typeof opts.oauthToken === 'string' ? {oauthToken: opts.oauthToken} : {}),
@@ -135,6 +133,13 @@ const main = async (): Promise<void> => {
 			output: opts.output,
 			htmlOutput: opts.htmlOutput,
 		};
+
+		await validateCommand({
+			test: opts.test,
+			category: opts.category,
+			debug: opts.debug,
+		});
+
 		reportCommand(reportOpts);
 	});
 

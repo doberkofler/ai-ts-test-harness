@@ -371,6 +371,7 @@ tbody tr:hover {
 			<span>Model: ${payload.model}</span>
 			<span>Categories: ${Array.isArray(payload.selected_categories) && payload.selected_categories.length > 0 ? payload.selected_categories.join(', ') : 'all'}</span>
 			<span>Timeout: ${payload.llm_timeout_ms}ms</span>
+			<span>Cooldown: ${typeof payload.cooldown_ms === 'number' ? payload.cooldown_ms : 0}ms</span>
 		</div>
 		<div class="cards">
 			<div class="card"><div class="label">Pass Rate</div><div class="value">${payload.pass_rate_percent}%</div></div>
@@ -526,6 +527,7 @@ export const formatResultsHtmlFile = (results: Result[], config: RuntimeConfig):
 		model: config.model,
 		ollama_url: config.ollamaUrl,
 		llm_timeout_ms: config.timeoutMs,
+		...(typeof config.cooldownMs === 'number' ? {cooldown_ms: config.cooldownMs} : {}),
 		debug: config.debug,
 		...(Array.isArray(config.selectedCategories) ? {selected_categories: config.selectedCategories} : {}),
 		total: results.length,
@@ -570,6 +572,7 @@ export const reportCommand = (options: {output: string; htmlOutput: string | und
 		model: data.model,
 		debug: data.debug,
 		timeoutMs: data.llm_timeout_ms,
+		...(typeof data.cooldown_ms === 'number' ? {cooldownMs: data.cooldown_ms} : {}),
 		ollamaUrl: data.ollama_url,
 		...(Array.isArray(data.selected_categories) ? {selectedCategories: data.selected_categories} : {}),
 	};

@@ -12,8 +12,6 @@ const parseFunctionNameFromSignature = (signature: string): string => {
 	return match[1];
 };
 
-const normalizeCodeVariants = (value: string | string[]): string[] => (Array.isArray(value) ? [value.join('\n')] : [value]);
-
 const createInvalidSolution = (problem: Problem): string => {
 	if (problem.kind === 'direct-refactor') {
 		return problem.input;
@@ -25,7 +23,19 @@ const createInvalidSolution = (problem: Problem): string => {
 
 const formatFailure = (problemName: string, issue: string): string => `- ${problemName}: ${issue}`;
 
-const hasSolution = (problem: Problem): problem is Problem & {solution: string | string[]} => typeof problem.solution !== 'undefined';
+const hasSolution = (problem: Problem): problem is Problem & {solution: NonNullable<Problem['solution']>} => typeof problem.solution === 'function';
+
+const createProvidedSolution = (problem: Problem): string => {
+	if (typeof problem.solution !== 'function') {
+		throw new TypeError(`Problem "${problem.name}" is missing a solution callback`);
+	}
+
+	if (problem.kind === 'direct-refactor') {
+		return problem.solution(problem.input);
+	}
+
+	return problem.solution.toString();
+};
 
 export const validateCommand = async (options: {
 	test: string | undefined;
@@ -43,13 +53,12 @@ export const validateCommand = async (options: {
 	const failures: string[] = [];
 
 	for (const problem of problemsWithSolutions) {
-		for (const solution of normalizeCodeVariants(problem.solution)) {
-			checks += 1;
-			// oxlint-disable-next-line no-await-in-loop
-			const solutionResult = await (options.runProblemFn ?? runProblem)(problem, solution, {debug: options.debug});
-			if (!solutionResult.passed) {
-				failures.push(formatFailure(problem.name, `provided solution failed tests (${solutionResult.error ?? 'unknown error'})`));
-			}
+		const solution = createProvidedSolution(problem);
+		checks += 1;
+		// oxlint-disable-next-line no-await-in-loop
+		const solutionResult = await (options.runProblemFn ?? runProblem)(problem, solution, {debug: options.debug});
+		if (!solutionResult.passed) {
+			failures.push(formatFailure(problem.name, `provided solution failed tests (${solutionResult.error ?? 'unknown error'})`));
 		}
 
 		checks += 1;
