@@ -1,5 +1,6 @@
 import {describe, expect, test} from 'vitest';
-import {formatResultsFile, formatResultsHtmlFile, parseCategoryFilter, selectProblems, selectProblemsByFilters} from './index.ts';
+import {formatResultsFile, parseCategoryFilter, selectProblems, selectProblemsByFilters} from './run.ts';
+import {formatResultsHtmlFile} from './report.ts';
 import {type Problem, type Result} from './types.ts';
 
 const problems: Problem[] = [
