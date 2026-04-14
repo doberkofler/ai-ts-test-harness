@@ -35,7 +35,7 @@ export const registerGlobalCliOptions = (program: Command): void => {
 	program.option('--ollama-url <url>', 'Ollama-compatible API base URL', DEFAULT_OLLAMA_URL);
 	program.option('--api-key <key>', 'API key for cloud model authorization');
 	program.option('--oauth-token <token>', 'OAuth token for cloud model authorization');
-	program.option('--output <file>', 'Write run results to a JSON file', 'results.json');
+	program.option('--output <path>', 'Directory to write results to, or file/directory to read from', 'results');
 	program.option('--html-output <file>', 'Write an HTML report file (defaults to output path with .html extension)');
 	program.option('--test <name>', 'Run a specific test by exact problem name');
 	program.option('--category <list>', 'Run only categories from a comma-separated list (for example, algorithms,refactor)');

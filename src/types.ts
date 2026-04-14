@@ -88,6 +88,15 @@ export type RuntimeConfig = {
 	apiKey?: string;
 	oauthToken?: string;
 	selectedCategories?: string[];
+	systemInfo?: SystemInfo;
+};
+
+export type SystemInfo = {
+	hostname: string;
+	os: string;
+	cpu: string;
+	ram_gb: number;
+	gpu?: string;
 };
 
 export type ResultsFile = {
@@ -98,6 +107,7 @@ export type ResultsFile = {
 	cooldown_period_secs?: number;
 	debug: boolean;
 	selected_categories?: string[];
+	system_info?: SystemInfo;
 	total: number;
 	passed: number;
 	failed: number;

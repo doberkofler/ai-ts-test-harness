@@ -1,11 +1,13 @@
-import {writeFileSync} from 'node:fs';
-import {resolve} from 'node:path';
+import {mkdirSync, writeFileSync} from 'node:fs';
+import {join, resolve} from 'node:path';
 import {loadProblems} from './load-problems.ts';
 import {summarizeResults} from './core/results-summary.ts';
 import {parseCategoryFilter, selectProblems, selectProblemsByFilters} from './core/problem-selection.ts';
 import {executeProblems, type ExecuteRunOptions} from './run-execution.ts';
 import {parseRunCommandOptions, type ParsedRunCommandOptions, type RunCommandOptions} from './run-options.ts';
 import {type Problem, type Result, type RuntimeConfig, type ResultsFile} from './types.ts';
+import {getSystemInfo} from './system-info.ts';
+import {reportCommand} from './report.ts';
 
 export {parseCategoryFilter, selectProblems, selectProblemsByFilters};
 
@@ -48,6 +50,7 @@ export const formatResultsFile = (results: Result[], config: RuntimeConfig): Res
 		...(typeof config.cooldownPeriodSecs === 'number' ? {cooldown_period_secs: config.cooldownPeriodSecs} : {}),
 		debug: config.debug,
 		...(Array.isArray(config.selectedCategories) ? {selected_categories: config.selectedCategories} : {}),
+		...(config.systemInfo ? {system_info: config.systemInfo} : {}),
 		total: summary.total,
 		passed: summary.passed,
 		failed: summary.failed,
@@ -81,8 +84,34 @@ export const createRunContext = (options: RunCommandOptions): RunContext => {
 
 export const runCommandWithContext = async (context: RunContext): Promise<{results: Result[]; outputPath: string; config: RuntimeConfig}> => {
 	const results = await executeProblems(context.problems, context.executeOptions);
-	const outputPath = writeResultsFile(results, context.parsedOptions.output, context.runtimeConfig);
+
+	const systemInfo = await getSystemInfo();
+	context.runtimeConfig.systemInfo = systemInfo;
+
+	const {output} = context.parsedOptions;
+	let outputPath = output;
+	if (!output.endsWith('.json')) {
+		mkdirSync(output, {recursive: true});
+
+		const now = new Date();
+		const yyyy = now.getFullYear();
+		const mm = String(now.getMonth() + 1).padStart(2, '0');
+		const dd = String(now.getDate()).padStart(2, '0');
+		const hh = String(now.getHours()).padStart(2, '0');
+		const min = String(now.getMinutes()).padStart(2, '0');
+		const ss = String(now.getSeconds()).padStart(2, '0');
+		const timestamp = `${yyyy}${mm}${dd}-${hh}${min}${ss}`;
+
+		const safeModelName = context.runtimeConfig.model.replaceAll(/[^a-z0-9.-]/gi, '_');
+		outputPath = join(output, `run_${timestamp}_${safeModelName}.json`);
+	} else {
+		const dir = resolve(output, '..');
+		mkdirSync(dir, {recursive: true});
+	}
+
+	outputPath = writeResultsFile(results, outputPath, context.runtimeConfig);
 	console.log(`Saved JSON results to ${outputPath}`);
+	reportCommand({output: outputPath, htmlOutput: undefined});
 
 	return {results, outputPath, config: context.runtimeConfig};
 };

@@ -1,5 +1,5 @@
-import {writeFileSync, readFileSync} from 'node:fs';
-import {parse, resolve} from 'node:path';
+import {readdirSync, readFileSync, statSync, writeFileSync} from 'node:fs';
+import {join, parse, resolve} from 'node:path';
 import {z} from 'zod';
 import {summarizeResults} from './core/results-summary.ts';
 import {type Result, type ResultsFile, type RuntimeConfig} from './types.ts';
@@ -23,6 +23,15 @@ const resultsFileSchema = z.object({
 	cooldown_period_secs: z.number().optional(),
 	debug: z.boolean(),
 	selected_categories: z.array(z.string()).optional(),
+	system_info: z
+		.object({
+			hostname: z.string(),
+			os: z.string(),
+			cpu: z.string(),
+			ram_gb: z.number(),
+			gpu: z.string().optional(),
+		})
+		.optional(),
 	total: z.number(),
 	passed: z.number(),
 	failed: z.number(),
@@ -58,6 +67,13 @@ export const renderResultsHtml = (payload: ResultsFile): string => {
 		.replaceAll('<', String.raw`\u003c`)
 		.replaceAll('>', String.raw`\u003e`)
 		.replaceAll('&', String.raw`\u0026`);
+
+	const hardwareInfo = payload.system_info
+		? `<span>Host: ${payload.system_info.hostname}</span>
+		   <span>OS: ${payload.system_info.os}</span>
+		   <span>CPU: ${payload.system_info.cpu} (${payload.system_info.ram_gb}GB RAM)</span>
+		   ${typeof payload.system_info.gpu === 'string' && payload.system_info.gpu.length > 0 ? `<span>GPU: ${payload.system_info.gpu}</span>` : ''}`
+		: '';
 
 	return `<!doctype html>
 <html lang="en">
@@ -396,6 +412,7 @@ tbody tr:hover {
 			<span>Categories: ${Array.isArray(payload.selected_categories) && payload.selected_categories.length > 0 ? payload.selected_categories.join(', ') : 'all'}</span>
 			<span>Timeout: ${payload.llm_timeout_secs}s</span>
 			<span>Cooldown: ${typeof payload.cooldown_period_secs === 'number' ? payload.cooldown_period_secs : 0}s</span>
+			${hardwareInfo}
 		</div>
 		<div class="cards">
 			<div class="card"><div class="label">Pass Rate</div><div class="value">${payload.pass_rate_percent}%</div></div>
@@ -556,6 +573,7 @@ export const formatResultsHtmlFile = (results: Result[], config: RuntimeConfig):
 		...(typeof config.cooldownPeriodSecs === 'number' ? {cooldown_period_secs: config.cooldownPeriodSecs} : {}),
 		debug: config.debug,
 		...(Array.isArray(config.selectedCategories) ? {selected_categories: config.selectedCategories} : {}),
+		...(config.systemInfo ? {system_info: config.systemInfo} : {}),
 		total: summary.total,
 		passed: summary.passed,
 		failed: summary.failed,
@@ -568,6 +586,13 @@ export const formatResultsHtmlFile = (results: Result[], config: RuntimeConfig):
 export const writeResultsHtmlFile = (results: Result[], jsonOutputPath: string, htmlOutputPath: string | undefined, config: RuntimeConfig): string => {
 	const resolvedOutputPath = typeof htmlOutputPath === 'string' ? resolve(htmlOutputPath) : deriveHtmlOutputPath(jsonOutputPath);
 	const html = formatResultsHtmlFile(results, config);
+	writeFileSync(resolvedOutputPath, html, 'utf8');
+	return resolvedOutputPath;
+};
+
+export const writeResultsPayloadHtmlFile = (payload: ResultsFile, jsonOutputPath: string, htmlOutputPath: string | undefined): string => {
+	const resolvedOutputPath = typeof htmlOutputPath === 'string' ? resolve(htmlOutputPath) : deriveHtmlOutputPath(jsonOutputPath);
+	const html = renderResultsHtml(payload);
 	writeFileSync(resolvedOutputPath, html, 'utf8');
 	return resolvedOutputPath;
 };
@@ -597,6 +622,17 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 				},
 	);
 
+	const systemInfo =
+		typeof parsed.system_info === 'undefined'
+			? undefined
+			: {
+					hostname: parsed.system_info.hostname,
+					os: parsed.system_info.os,
+					cpu: parsed.system_info.cpu,
+					ram_gb: parsed.system_info.ram_gb,
+					...(typeof parsed.system_info.gpu === 'string' ? {gpu: parsed.system_info.gpu} : {}),
+				};
+
 	return {
 		generated_at: parsed.generated_at,
 		model: parsed.model,
@@ -605,6 +641,7 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 		...(typeof parsed.cooldown_period_secs === 'number' ? {cooldown_period_secs: parsed.cooldown_period_secs} : {}),
 		debug: parsed.debug,
 		...(Array.isArray(parsed.selected_categories) ? {selected_categories: parsed.selected_categories} : {}),
+		...(typeof systemInfo === 'undefined' ? {} : {system_info: systemInfo}),
 		total: parsed.total,
 		passed: parsed.passed,
 		failed: parsed.failed,
@@ -618,22 +655,211 @@ export type ReportCommandOptions = {
 	htmlOutput: string | undefined;
 };
 
+type RunReportEntry = {
+	jsonPath: string;
+	htmlPath: string;
+	payload: ResultsFile;
+};
+
+const isJsonFilePath = (pathValue: string): boolean => pathValue.toLowerCase().endsWith('.json');
+
+const collectJsonFiles = (pathValue: string): string[] => {
+	const resolvedPath = resolve(pathValue);
+	const stats = statSync(resolvedPath);
+
+	if (stats.isDirectory()) {
+		return readdirSync(resolvedPath)
+			.filter((entry) => entry.toLowerCase().endsWith('.json'))
+			.map((entry) => resolve(join(resolvedPath, entry)))
+			.sort();
+	}
+
+	if (!stats.isFile() || !isJsonFilePath(resolvedPath)) {
+		throw new TypeError(`--output must point to a .json file or a directory: ${pathValue}`);
+	}
+
+	return [resolvedPath];
+};
+
+const readRunPayload = (jsonPath: string): ResultsFile => {
+	const jsonContent = readFileSync(jsonPath, 'utf8');
+	return parseResultsFile(jsonContent);
+};
+
+const renderIndexHtml = (entries: RunReportEntry[], directoryPath: string): string => {
+	const escapedEntries = JSON.stringify(
+		entries.map((entry) => {
+			const systemInfo = entry.payload.system_info;
+			return {
+				jsonFile: parse(entry.jsonPath).base,
+				htmlFile: parse(entry.htmlPath).base,
+				generatedAt: entry.payload.generated_at,
+				model: entry.payload.model,
+				passRate: entry.payload.pass_rate_percent,
+				passed: entry.payload.passed,
+				total: entry.payload.total,
+				hostname: typeof systemInfo === 'undefined' ? '' : systemInfo.hostname,
+				cpu: typeof systemInfo === 'undefined' ? '' : systemInfo.cpu,
+				gpu: typeof systemInfo === 'undefined' || typeof systemInfo.gpu !== 'string' ? '' : systemInfo.gpu,
+				ramGb: typeof systemInfo === 'undefined' ? 0 : systemInfo.ram_gb,
+			};
+		}),
+	)
+		.replaceAll('<', String.raw`\u003c`)
+		.replaceAll('>', String.raw`\u003e`)
+		.replaceAll('&', String.raw`\u0026`);
+
+	return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Test Harness Index</title>
+<style>
+:root {
+	--bg-start: #eef6ff;
+	--bg-end: #dcf6e8;
+	--text-main: #102a43;
+	--text-muted: #486581;
+	--surface: rgba(255, 255, 255, 0.9);
+	--stroke: #d9e2ec;
+	--accent: #0b7285;
+	--pass: #2f9e44;
+	--fail: #c92a2a;
+}
+
+* { box-sizing: border-box; }
+body {
+	margin: 0;
+	min-height: 100vh;
+	font-family: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
+	color: var(--text-main);
+	background:
+		radial-gradient(circle at 12% 14%, rgba(14, 116, 144, 0.14), transparent 38%),
+		radial-gradient(circle at 86% 10%, rgba(47, 158, 68, 0.14), transparent 34%),
+		linear-gradient(180deg, var(--bg-start), var(--bg-end));
+	padding: 22px;
+}
+
+.shell { max-width: 1120px; margin: 0 auto; }
+.hero {
+	background: linear-gradient(135deg, #0f172a, #0b7285);
+	color: #f8fafc;
+	border-radius: 20px;
+	padding: 20px;
+	box-shadow: 0 20px 42px rgba(15, 23, 42, 0.2);
+}
+.hero h1 { margin: 0; font-size: clamp(1.4rem, 2.7vw, 2.2rem); letter-spacing: -0.02em; }
+.hero p { margin: 8px 0 0; color: #dbeafe; }
+
+.panel {
+	margin-top: 16px;
+	background: var(--surface);
+	border: 1px solid var(--stroke);
+	border-radius: 16px;
+	padding: 14px;
+	box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #e6edf6; }
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { padding: 10px 12px; border-bottom: 1px solid #edf2f7; text-align: left; vertical-align: top; }
+th { background: #f7fbff; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.78rem; color: #334e68; }
+tbody tr:hover { background: #f8fcff; }
+.badge { display: inline-block; border-radius: 999px; padding: 2px 8px; color: #fff; font-size: 0.76rem; font-weight: 700; }
+.pass { background: var(--pass); }
+.fail { background: var(--fail); }
+a { color: var(--accent); text-decoration: none; font-weight: 600; }
+a:hover { text-decoration: underline; }
+.muted { color: var(--text-muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main class="shell">
+	<section class="hero">
+		<h1>AI Test Harness Run Index</h1>
+		<p>Directory: ${directoryPath}</p>
+	</section>
+	<section class="panel">
+		<div class="table-wrap">
+			<table aria-label="Run reports">
+				<thead>
+					<tr>
+						<th>Generated</th>
+						<th>Model</th>
+						<th>Pass Rate</th>
+						<th>Host</th>
+						<th>Hardware</th>
+						<th>Report</th>
+					</tr>
+				</thead>
+				<tbody id="rows"></tbody>
+			</table>
+		</div>
+	</section>
+</main>
+<script>
+const rows = ${escapedEntries};
+rows.sort((a, b) => Date.parse(b.generatedAt) - Date.parse(a.generatedAt));
+
+const tbody = document.getElementById('rows');
+tbody.innerHTML = rows.map((row) => {
+	const statusClass = row.passRate === 100 ? 'pass' : 'fail';
+	const hardware = [row.cpu, row.gpu, row.ramGb > 0 ? row.ramGb + 'GB RAM' : ''].filter(Boolean).join(' • ');
+	return '<tr>'
+		+ '<td>' + new Date(row.generatedAt).toLocaleString() + '</td>'
+		+ '<td><div>' + row.model + '</div><div class="muted">' + row.jsonFile + '</div></td>'
+		+ '<td><span class="badge ' + statusClass + '">' + row.passRate + '%</span> (' + row.passed + '/' + row.total + ')</td>'
+		+ '<td>' + (row.hostname || 'n/a') + '</td>'
+		+ '<td>' + (hardware || 'n/a') + '</td>'
+		+ '<td><a href="' + row.htmlFile + '">Open report</a></td>'
+		+ '</tr>';
+}).join('');
+</script>
+</body>
+</html>
+`;
+};
+
+const writeIndexHtml = (entries: RunReportEntry[], outputDir: string): string => {
+	const indexPath = resolve(outputDir, 'index.html');
+	writeFileSync(indexPath, renderIndexHtml(entries, outputDir), 'utf8');
+	return indexPath;
+};
+
 export const reportCommand = (options: ReportCommandOptions): void => {
-	const jsonContent = readFileSync(resolve(options.output), 'utf8');
-	const data = parseResultsFile(jsonContent);
+	const jsonPaths = collectJsonFiles(options.output);
+	if (jsonPaths.length === 0) {
+		throw new TypeError(`No JSON result files found in ${resolve(options.output)}`);
+	}
 
-	const {results} = data;
-	printSummary(results);
+	if (jsonPaths.length > 1 && typeof options.htmlOutput === 'string') {
+		throw new TypeError('--html-output can only be used when --output points to a single .json file');
+	}
 
-	const config: RuntimeConfig = {
-		model: data.model,
-		debug: data.debug,
-		llmTimeoutSecs: data.llm_timeout_secs,
-		...(typeof data.cooldown_period_secs === 'number' ? {cooldownPeriodSecs: data.cooldown_period_secs} : {}),
-		ollamaUrl: data.ollama_url,
-		...(Array.isArray(data.selected_categories) ? {selectedCategories: data.selected_categories} : {}),
-	};
+	const runEntries: RunReportEntry[] = [];
+	for (const jsonPath of jsonPaths) {
+		const payload = readRunPayload(jsonPath);
+		const htmlPath = writeResultsPayloadHtmlFile(payload, jsonPath, options.htmlOutput);
+		runEntries.push({jsonPath, htmlPath, payload});
+	}
 
-	writeResultsHtmlFile(results, options.output, options.htmlOutput, config);
-	console.log(`Saved HTML report to file://${deriveHtmlOutputPath(options.output)}`);
+	runEntries.sort((a, b) => Date.parse(b.payload.generated_at) - Date.parse(a.payload.generated_at));
+	const [latest] = runEntries;
+	if (latest) {
+		printSummary(latest.payload.results);
+	}
+	if (typeof latest === 'undefined') {
+		throw new TypeError(`No JSON result files found in ${resolve(options.output)}`);
+	}
+
+	const outputDir = resolve(parse(latest.jsonPath).dir);
+	const indexPath = writeIndexHtml(runEntries, outputDir);
+
+	if (jsonPaths.length === 1) {
+		console.log(`Saved HTML report to file://${latest.htmlPath}`);
+	} else {
+		console.log(`Rebuilt ${jsonPaths.length} HTML reports in ${outputDir}`);
+	}
+	console.log(`Saved HTML index to file://${indexPath}`);
 };

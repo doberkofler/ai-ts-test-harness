@@ -65,7 +65,6 @@ const main = async (): Promise<void> => {
 		const runContext = createRunContext(toRunCommandOptions(opts));
 		printRuntimeConfig(runContext.problems, runContext.runtimeConfig);
 		await runCommandWithContext(runContext);
-		reportCommand(toReportCommandOptions(opts));
 	});
 
 	await program.parseAsync(process.argv);
