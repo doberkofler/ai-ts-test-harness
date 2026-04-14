@@ -1,6 +1,8 @@
 import {loadProblems} from './load-problems.ts';
 import {parseCategoryFilter, selectProblemsByFilters} from './core/problem-selection.ts';
 import {parseFunctionNameFromSignature} from './core/signature.ts';
+import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
+import {formatCompletedProblemLine, formatProblemStartLine, formatRunningLiveLine} from './run-progress.ts';
 import {runProblem} from './runner.ts';
 import {type Problem} from './types.ts';
 
@@ -79,13 +81,29 @@ export type ValidateCommandOptions = {
 	debug: boolean;
 	loadProblemsFn?: typeof loadProblems;
 	runProblemFn?: typeof runProblem;
+	stream?: NodeJS.WriteStream;
+	log?: (message: string) => void;
+	now?: () => number;
+	setIntervalFn?: (callback: () => void, delayMs: number) => ReturnType<typeof setInterval>;
+	clearIntervalFn?: (timerId: ReturnType<typeof setInterval>) => void;
 };
 
 export const validateCommand = async (options: ValidateCommandOptions): Promise<void> => {
+	const stream = options.stream ?? process.stdout;
+	const log = options.log ?? console.log;
+	const now = options.now ?? Date.now;
+	const setIntervalFn = options.setIntervalFn ?? setInterval;
+	const clearIntervalFn = options.clearIntervalFn ?? clearInterval;
+	const preferUnicode = stream.isTTY;
+	const showLiveTimer = supportsLiveLine(stream) && !options.debug;
+
 	const allProblems = (options.loadProblemsFn ?? loadProblems)('./src/problems');
 	const selectedCategories = parseCategoryFilter(options.category);
 	const selectedProblems = selectProblemsByFilters(allProblems, options.test, selectedCategories);
-	const solvedCount = selectedProblems.filter((problem) => hasSolution(problem)).length;
+	const solvedProblems = selectedProblems.filter(
+		(problem): problem is Problem & {solution: NonNullable<Problem['solution']>} => typeof problem.solution === 'function',
+	);
+	const solvedCount = solvedProblems.length;
 	const validationTable: ValidationTableRow[] = selectedProblems.map((problem) => ({
 		problem: problem.name,
 		category: problem.category,
@@ -97,9 +115,18 @@ export const validateCommand = async (options: ValidateCommandOptions): Promise<
 	let checks = 0;
 	const failures: string[] = [];
 
-	for (const problem of selectedProblems) {
-		if (!hasSolution(problem)) {
-			continue;
+	for (const [index, problem] of solvedProblems.entries()) {
+		if (!showLiveTimer) {
+			log(formatProblemStartLine(index, solvedProblems.length, problem.name));
+		}
+
+		const startedAtMs = now();
+		let timerId: ReturnType<typeof setInterval> | undefined;
+		if (showLiveTimer) {
+			writeLiveLine(stream, formatRunningLiveLine(problem.name, 0));
+			timerId = setIntervalFn(() => {
+				replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAtMs));
+			}, 1000);
 		}
 
 		const solution = createProvidedSolution(problem);
@@ -110,26 +137,47 @@ export const validateCommand = async (options: ValidateCommandOptions): Promise<
 
 		const issueMessages: string[] = [];
 
-		checks += 1;
-		// oxlint-disable-next-line no-await-in-loop
-		const solutionResult = await (options.runProblemFn ?? runProblem)(problem, solution, {debug: options.debug});
-		if (!solutionResult.passed) {
-			const issue = `provided solution failed tests (${solutionResult.error ?? 'unknown error'})`;
-			failures.push(formatFailure(problem.name, issue));
-			issueMessages.push(issue);
-		}
+		let totalDurationMs = 0;
+		try {
+			checks += 1;
+			// oxlint-disable-next-line no-await-in-loop
+			const solutionResult = await (options.runProblemFn ?? runProblem)(problem, solution, {debug: options.debug});
+			totalDurationMs += solutionResult.duration_ms;
+			if (!solutionResult.passed) {
+				const issue = `provided solution failed tests (${solutionResult.error ?? 'unknown error'})`;
+				failures.push(formatFailure(problem.name, issue));
+				issueMessages.push(issue);
+			}
 
-		checks += 1;
-		// oxlint-disable-next-line no-await-in-loop
-		const invalidResult = await (options.runProblemFn ?? runProblem)(problem, createInvalidSolution(problem), {debug: options.debug});
-		if (invalidResult.passed) {
-			const issue = 'tests accepted an intentionally invalid solution';
-			failures.push(formatFailure(problem.name, issue));
-			issueMessages.push(issue);
+			checks += 1;
+			// oxlint-disable-next-line no-await-in-loop
+			const invalidResult = await (options.runProblemFn ?? runProblem)(problem, createInvalidSolution(problem), {debug: options.debug});
+			totalDurationMs += invalidResult.duration_ms;
+			if (invalidResult.passed) {
+				const issue = 'tests accepted an intentionally invalid solution';
+				failures.push(formatFailure(problem.name, issue));
+				issueMessages.push(issue);
+			}
+		} finally {
+			if (typeof timerId !== 'undefined') {
+				clearIntervalFn(timerId);
+				clearLiveLine(stream);
+			}
 		}
 
 		tableRow.status = issueMessages.length === 0 ? 'passed' : 'failed';
 		tableRow.details = issueMessages.length === 0 ? 'Provided and negative checks passed' : issueMessages.join('; ');
+
+		log(
+			formatCompletedProblemLine({
+				index,
+				total: solvedProblems.length,
+				name: problem.name,
+				passed: issueMessages.length === 0,
+				durationMs: Math.max(totalDurationMs, now() - startedAtMs),
+				preferUnicode,
+			}),
+		);
 	}
 
 	printValidationTable(validationTable);

@@ -81,6 +81,8 @@ describe('validateCommand', () => {
 		});
 
 		expect(runProblemFn).toHaveBeenCalledTimes(4);
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('[ 1/2] sum'));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('[ 2/2] rename-variables'));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('no-solution-yet'));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('missing-solution'));
 		expect(logSpy).toHaveBeenCalledWith('Validation passed for 2/3 problems with solutions (4 checks).');
