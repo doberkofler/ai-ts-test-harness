@@ -1,5 +1,5 @@
 import {setTimeout as sleep} from 'node:timers/promises';
-import {formatClockTime, formatElapsedClock} from './core/time-format.ts';
+import {formatElapsedClock} from './core/time-format.ts';
 import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
 import {solveProblem} from './solveProblem.ts';
 import {type Problem, type Result} from './types.ts';
@@ -22,7 +22,6 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 		const current = `[${String(index + 1).padStart(2, ' ')}/${problems.length}]`;
 		console.log(`${styleText(current, STYLES.dim)} ${styleText(problem.name, STYLES.bold)}`);
 		const startedAt = Date.now();
-		console.log(`Started   : ${formatClockTime(new Date(startedAt))}`);
 
 		const showLiveTimer = supportsLiveLine(process.stdout) && !options.debug;
 		let timerId: ReturnType<typeof setInterval> | undefined;

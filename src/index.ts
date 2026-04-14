@@ -62,10 +62,10 @@ const main = async (): Promise<void> => {
 			throw new TypeError('Invalid CLI options');
 		}
 
-		await validateCommand(toValidateCommandOptions(opts));
-
 		const runContext = createRunContext(toRunCommandOptions(opts));
 		printRuntimeConfig(runContext.problems, runContext.runtimeConfig);
+
+		await validateCommand(toValidateCommandOptions(opts));
 		await runCommandWithContext(runContext);
 
 		reportCommand(toReportCommandOptions(opts));
