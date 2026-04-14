@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'parallelize-independent-awaits',
-	category: 'refactor',
 	description: 'Refactor independent sequential awaits to run concurrently with Promise.all.',
 	input: [
 		'const loadA = async (): Promise<number> => 4;',

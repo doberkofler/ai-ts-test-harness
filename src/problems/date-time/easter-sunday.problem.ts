@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'easter-sunday',
-	category: 'date-time',
 	description: 'Return the month (1-12) and day of Easter Sunday for a given year using the Anonymous Gregorian algorithm.',
 	signature: 'function easterSunday(year: number): {month: number; day: number}',
 	solution: function easterSunday(year: number): {month: number; day: number} {

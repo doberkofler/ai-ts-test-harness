@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'promises-to-async',
-	category: 'refactor',
 	description:
 		'Refactor the given TypeScript function from Promise .then()/.catch() chaining to async/await with try/catch. Preserve the function name, return type, and error handling behaviour.',
 	input: [

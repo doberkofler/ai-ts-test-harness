@@ -4,7 +4,6 @@ type Operation = readonly [op: 'push' | 'pop' | 'top' | 'getMin', value?: number
 
 export default defineImplementProblem({
 	name: 'min-stack',
-	category: 'algorithms',
 	description: 'Implement a stack that can return the minimum value in constant time while processing operation tuples.',
 	signature: "function minStack(operations: readonly (readonly ['push' | 'pop' | 'top' | 'getMin', number?])[]): (number | null)[]",
 	solution: function minStack(operations: readonly Operation[]): (number | null)[] {

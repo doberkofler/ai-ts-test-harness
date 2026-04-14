@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'iso-week',
-	category: 'date-time',
 	description: ['Return the ISO 8601 week number and ISO year for a given Date.', 'The ISO year may differ from the calendar year near year boundaries.'],
 	signature: 'function getISOWeek(date: Date): {week: number; year: number}',
 	solution: function getISOWeek(date: Date): {week: number; year: number} {

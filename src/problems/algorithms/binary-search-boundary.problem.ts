@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'binary-search-boundary',
-	category: 'algorithms',
 	description: 'Given a sorted array and target, return the first index where target appears, or -1 when missing.',
 	signature: 'function binarySearchBoundary(values: number[], target: number): number',
 	solution: function binarySearchBoundary(values: number[], target: number): number {

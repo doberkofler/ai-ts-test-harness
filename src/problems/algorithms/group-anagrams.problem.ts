@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'group-anagrams',
-	category: 'algorithms',
 	description: 'Group words that are anagrams. Return groups sorted by first appearance in the input.',
 	signature: 'function groupAnagrams(words: string[]): string[][]',
 	solution: function groupAnagrams(words: string[]): string[][] {

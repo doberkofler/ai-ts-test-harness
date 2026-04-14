@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'longest-substring-no-repeat',
-	category: 'algorithms',
 	description: 'Return the length of the longest substring without repeating characters.',
 	signature: 'function longestSubstringNoRepeat(input: string): number',
 	solution: function longestSubstringNoRepeat(input: string): number {

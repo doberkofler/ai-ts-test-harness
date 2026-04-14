@@ -4,7 +4,6 @@ type CacheOperation = readonly [op: 'get' | 'put', key: number, value?: number];
 
 export default defineImplementProblem({
 	name: 'lru-cache',
-	category: 'algorithms',
 	description: 'Simulate an LRU cache with given capacity and operation tuples. Return outputs for each operation.',
 	signature: "function lruCache(capacity: number, operations: readonly (readonly ['get' | 'put', number, number?])[]): (number | null)[]",
 	solution: function lruCache(capacity: number, operations: readonly CacheOperation[]): (number | null)[] {

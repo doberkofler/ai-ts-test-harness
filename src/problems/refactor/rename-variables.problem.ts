@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'rename-variables',
-	category: 'refactor',
 	description:
 		'Rename all local variables and parameters in the given TypeScript code to descriptive, semantically meaningful names that reflect their purpose in context. Preserve all logic, structure, and type annotations.',
 	input: ['function computeDiscount(a: number, b: number): number {', '\tconst tmp = a * (b / 100);', '\tconst res = a - tmp;', '\treturn res;', '}'].join(

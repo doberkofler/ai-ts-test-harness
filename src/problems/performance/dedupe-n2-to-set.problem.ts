@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'dedupe-n2-to-set',
-	category: 'performance',
 	description: 'Refactor O(n^2) array deduplication to use Set-based O(n) behavior.',
 	input: [
 		'export function dedupe(values: number[]): number[] {',

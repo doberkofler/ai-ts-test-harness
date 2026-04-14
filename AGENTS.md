@@ -83,7 +83,8 @@ The CLI prints the resolved runtime parameters at startup to make debugging runs
 - Each problem is a `.problem.ts` file exporting a default problem object.
 - The loader/validator is implemented in `src/load-problems.ts`.
 - Required fields:
-  - Shared: `name`, `category`, `description`, `tests`
+  - Shared: `name`, `description`, `tests`
+  - Category is derived from the problem file's parent directory (relative to `src/problems`).
   - `implement-function`: `signature`
   - `direct-refactor`: `input`, `entry`
 - `name` must match the filename (without `.problem.ts`).

@@ -110,9 +110,9 @@ Each file exports a default problem definition. Two kinds are supported:
 Shared required fields:
 
 - `name: string`
-- `category: string` (normalized to lowercase)
 - `description: string | string[]`
 - `tests: (context) => void | Promise<void>`
+- `category` is derived from the problem file's parent directory relative to `src/problems` (normalized to lowercase, preserving nested paths like `refactor/loops`)
 
 `implement-function` adds:
 
@@ -132,7 +132,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
   name: 'add',
-  category: 'arithmetic',
   description: 'Return the sum of two numbers.',
   solution: function add(a: number, b: number): number {
     return a + b;
@@ -153,7 +152,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
   name: 'declaration-to-expression',
-  category: 'refactor',
   description: ['Convert function declaration to const arrow function.'],
   solution: (source) =>
     source
@@ -191,7 +189,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'fibonacci',
-	category: 'algorithms',
 	description: ['Return nth fibonacci number'],
 	signature: 'function fibonacci(n: number): number',
 	tests: ({assert, implementation}) => {

@@ -22,7 +22,6 @@ describe('loadProblems', () => {
 					``,
 					`export default defineImplementProblem({`,
 					`\tname: 'fizzbuzz',`,
-					`\tcategory: 'Logic',`,
 					`\tdescription: ['FizzBuzz output'],`,
 					`\tsignature: 'function fizzbuzz(n: number): string',`,
 					`\ttests: ({assert}) => {`,
@@ -40,7 +39,6 @@ describe('loadProblems', () => {
 					``,
 					`export default defineImplementProblem({`,
 					`\tname: 'add',`,
-					`\tcategory: 'Arithmetic',`,
 					`\tdescription: ['Add values'],`,
 					`\tsignature: 'function add(a: number, b: number): number',`,
 					`\ttests: ({assert}) => {`,
@@ -58,7 +56,6 @@ describe('loadProblems', () => {
 					``,
 					`export default defineRefactorProblem({`,
 					`\tname: 'for-loop',`,
-					`\tcategory: 'Refactor',`,
 					`\tdescription: ['Use for...of'],`,
 					`\tinput: 'function sum(values: number[]): number { return values.length; }',`,
 					`\tentry: 'sum',`,
@@ -72,7 +69,7 @@ describe('loadProblems', () => {
 
 			const loaded = loadProblems(root);
 			expect(loaded.map((problem) => problem.name)).toEqual(['add', 'fizzbuzz', 'for-loop']);
-			expect(loaded.map((problem) => problem.category)).toEqual(['arithmetic', 'logic', 'refactor']);
+			expect(loaded.map((problem) => problem.category)).toEqual(['algorithms', 'logic', 'refactor/loops']);
 			expect(loaded[2]).toMatchObject({kind: 'direct-refactor', entry: 'sum'});
 		} finally {
 			rmSync(root, {recursive: true, force: true});
@@ -91,7 +88,6 @@ describe('loadProblems', () => {
 					``,
 					`export default defineImplementProblem({`,
 					`\tname: 'wrong-name',`,
-					`\tcategory: 'logic',`,
 					`\tdescription: ['bad name'],`,
 					`\tsignature: 'function fizzbuzz(n: number): string',`,
 					`\ttests: ({assert}) => {`,
@@ -120,7 +116,6 @@ describe('loadProblems', () => {
 					``,
 					`export default defineImplementProblem({`,
 					`\tname: 'callable-tests',`,
-					`\tcategory: 'logic',`,
 					`\tdescription: ['function tests'],`,
 					`\tsignature: 'function callableTests(input: number): number',`,
 					`\ttests: ({assert}) => {`,
@@ -155,7 +150,6 @@ describe('loadProblems', () => {
 					``,
 					`export default defineImplementProblem({`,
 					`\tname: 'description-and-solution',`,
-					`\tcategory: 'logic',`,
 					`\tdescription: 'single line description',`,
 					`\tsignature: 'function descriptionAndSolution(): number',`,
 					`\tsolution: function descriptionAndSolution(): number { return 1; },`,

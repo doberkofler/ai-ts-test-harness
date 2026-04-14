@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'center-text',
-	category: 'strings',
 	description: [
 		'Center a string within a field of the given width using spaces.',
 		'If the padding is odd, the extra space goes to the right.',

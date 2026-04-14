@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'safe-json-parse',
-	category: 'parsing',
 	description: ['Safely parse JSON text into unknown.', 'Return null for invalid JSON input.'],
 	signature: 'function safeJsonParse(input: string): unknown',
 	solution: function safeJsonParse(input: string): unknown {

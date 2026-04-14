@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'promise-all-to-all-settled',
-	category: 'refactor',
 	description: 'Refactor Promise.all usage so one rejected task does not fail the whole operation.',
 	input: [
 		'export async function collectResults(tasks: Array<() => Promise<number>>): Promise<number[]> {',

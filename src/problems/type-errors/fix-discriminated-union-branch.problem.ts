@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-discriminated-union-branch',
-	category: 'type-errors',
 	description: 'Fix incorrect property access in discriminated union branches.',
 	input: [
 		'type UserEvent = {type: "user"; userId: string};',

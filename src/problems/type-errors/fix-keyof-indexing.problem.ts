@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-keyof-indexing',
-	category: 'type-errors',
 	description: 'Fix unsafe generic indexing by constraining key to keyof T.',
 	input: ['export function getProp<T>(value: T, key: string) {', '	return value[key];', '}'].join('\n'),
 	entry: 'getProp',

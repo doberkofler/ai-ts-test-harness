@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'quicksort',
-	category: 'algorithms',
 	description: [
 		'Sort an array of numbers in ascending order using the quicksort algorithm.',
 		'Must implement quicksort recursively; do not use Array.prototype.sort or any other built-in sort.',

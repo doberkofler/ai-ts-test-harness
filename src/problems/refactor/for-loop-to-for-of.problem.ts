@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'for-loop-to-for-of',
-	category: 'refactor',
 	description:
 		'Refactor the given TypeScript indexed for(;;) loop that iterates an array by index into an equivalent for...of loop. Preserve all surrounding code and logic.',
 	input: [

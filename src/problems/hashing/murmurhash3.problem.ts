@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'murmurhash3',
-	category: 'hashing',
 	description: [
 		'Implement MurmurHash3 (32-bit) for a string input with a numeric seed.',
 		'Process input as UTF-16 code units (use charCodeAt; no TextEncoder or Buffer).',

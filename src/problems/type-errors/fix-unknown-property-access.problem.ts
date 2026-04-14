@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-unknown-property-access',
-	category: 'type-errors',
 	description: ['Fix unsafe property access on `unknown` input.', 'Return a trimmed name when payload has a valid string `name` field; otherwise throw.'],
 	input: ['export function readName(payload: unknown): string {', '	return payload.name.trim();', '}'].join('\n'),
 	entry: 'readName',

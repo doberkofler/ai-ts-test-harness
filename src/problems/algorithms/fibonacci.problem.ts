@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'fibonacci',
-	category: 'algorithms',
 	description: 'Return the nth Fibonacci number (0-indexed). fib(0)=0, fib(1)=1, fib(2)=1, fib(3)=2, ...',
 	signature: 'function fibonacci(n: number): number',
 	solution: function fibonacci(n: number): number {

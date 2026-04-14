@@ -15,7 +15,6 @@ type BStarNode = {
 
 export default defineImplementProblem({
 	name: 'b-star-tree',
-	category: 'data-structures',
 	description: [
 		'Implement a parameterized B* tree of order t (minimum degree, t >= 2).',
 		'Before splitting a full node, attempt to redistribute keys to a sibling.',

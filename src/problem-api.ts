@@ -1,15 +1,12 @@
 import {
-	type DirectRefactorProblem,
 	type DirectRefactorProblemSolutionCallback,
 	type DirectRefactorProblemTestCallback,
-	type ImplementFunctionProblem,
 	type ImplementProblemSolutionCallback,
 	type ImplementProblemTestCallback,
 } from './types.ts';
 
 type ImplementProblemInput = {
 	name: string;
-	category: string;
 	description: string | string[];
 	signature: string;
 	solution?: ImplementProblemSolutionCallback;
@@ -18,7 +15,6 @@ type ImplementProblemInput = {
 
 type RefactorProblemInput = {
 	name: string;
-	category: string;
 	description: string | string[];
 	input: string;
 	entry: string;
@@ -26,12 +22,12 @@ type RefactorProblemInput = {
 	tests: DirectRefactorProblemTestCallback;
 };
 
-export const defineImplementProblem = (input: ImplementProblemInput): ImplementFunctionProblem => ({
+export const defineImplementProblem = (input: ImplementProblemInput): ImplementProblemInput & {kind: 'implement-function'} => ({
 	...input,
 	kind: 'implement-function',
 });
 
-export const defineRefactorProblem = (input: RefactorProblemInput): DirectRefactorProblem => ({
+export const defineRefactorProblem = (input: RefactorProblemInput): RefactorProblemInput & {kind: 'direct-refactor'} => ({
 	...input,
 	kind: 'direct-refactor',
 });

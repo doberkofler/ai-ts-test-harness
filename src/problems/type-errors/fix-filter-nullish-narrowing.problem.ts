@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-filter-nullish-narrowing',
-	category: 'type-errors',
 	description: 'Fix filter(Boolean) so the result narrows to string[] with an explicit type predicate.',
 	input: ['export function compact(values: Array<string | null | undefined>): string[] {', '	return values.filter(Boolean);', '}'].join('\n'),
 	entry: 'compact',

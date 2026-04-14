@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-reduce-accumulator-any',
-	category: 'type-errors',
 	description: 'Fix reduce accumulator typing by returning a strongly typed record.',
 	input: [
 		'type Item = {id: string; count: number};',

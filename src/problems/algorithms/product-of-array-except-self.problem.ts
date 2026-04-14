@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'product-of-array-except-self',
-	category: 'algorithms',
 	description: 'Return an array where each element is the product of all values except itself, without division.',
 	signature: 'function productOfArrayExceptSelf(values: number[]): number[]',
 	solution: function productOfArrayExceptSelf(values: number[]): number[] {

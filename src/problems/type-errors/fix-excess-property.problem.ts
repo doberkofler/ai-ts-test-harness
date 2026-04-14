@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-excess-property',
-	category: 'type-errors',
 	description: ["Fix object literal excess property error for field 'extra'.", 'Return a Config with only host and port.'],
 	input: [
 		'type Config = {',

@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'query-param-coercion',
-	category: 'parsing',
 	description: [
 		'Parse URL query params into a typed object with page, limit, and includeArchived.',
 		'Default page=1, limit=20, includeArchived=false when values are missing or invalid.',

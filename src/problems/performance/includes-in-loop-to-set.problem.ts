@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'includes-in-loop-to-set',
-	category: 'performance',
 	description: 'Refactor repeated includes checks inside a loop to use a precomputed Set lookup.',
 	input: [
 		'export function selectAllowed(items: string[], allowed: string[]): string[] {',

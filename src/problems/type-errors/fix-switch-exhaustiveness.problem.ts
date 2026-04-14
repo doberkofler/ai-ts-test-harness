@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-switch-exhaustiveness',
-	category: 'type-errors',
 	description: 'Fix non-exhaustive switch over a union by handling all cases with a never check.',
 	input: [
 		"type Status = 'idle' | 'loading' | 'done';",

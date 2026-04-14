@@ -4,7 +4,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'validate-date',
-	category: 'date-time',
 	description: [
 		'Return true if the string is a valid calendar date in YYYY-MM-DD format, false otherwise.',
 		'Must reject invalid months, out-of-range days, and incorrect leap-year dates.',

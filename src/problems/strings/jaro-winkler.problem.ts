@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'jaro-winkler',
-	category: 'strings',
 	description: [
 		'Compute the Jaro-Winkler similarity between two strings.',
 		'Return a value in [0, 1] where 1 is an exact match and 0 is no similarity.',

@@ -1,5 +1,5 @@
 import {readdirSync, readFileSync} from 'node:fs';
-import {basename, join, relative} from 'node:path';
+import {basename, dirname, join, relative, sep} from 'node:path';
 import vm from 'node:vm';
 import ts from 'typescript';
 import {z} from 'zod';
@@ -33,7 +33,6 @@ const nonEmptyStringOrStringArraySchema = z.union([z.string().min(1), z.array(z.
 const implementProblemSchema = z.object({
 	name: z.string().min(1),
 	kind: z.literal('implement-function').default('implement-function'),
-	category: z.string().min(1, 'problems must include a category value'),
 	description: nonEmptyStringOrStringArraySchema,
 	signature: z.string().min(1),
 	solution: implementSolutionSchema.optional(),
@@ -43,7 +42,6 @@ const implementProblemSchema = z.object({
 const refactorProblemSchema = z.object({
 	name: z.string().min(1),
 	kind: z.literal('direct-refactor'),
-	category: z.string().min(1, 'problems must include a category value'),
 	description: nonEmptyStringOrStringArraySchema,
 	input: z.string().min(1, 'direct-refactor problems must include an input value'),
 	entry: z.string().min(1, 'direct-refactor problems must include an entry value'),
@@ -54,6 +52,17 @@ const refactorProblemSchema = z.object({
 const problemSchema = z.union([implementProblemSchema, refactorProblemSchema]);
 
 const normalizeCategory = (value: string): string => value.trim().toLowerCase();
+
+const parseCategoryFromPath = (rootDir: string, filePath: string): string => {
+	const parentDir = dirname(filePath);
+	const relativeParentDir = relative(rootDir, parentDir);
+	if (relativeParentDir === '.') {
+		throw new TypeError(`Problem file must be in a category directory: ${filePath}`);
+	}
+
+	const normalizedParentDir = relativeParentDir.split(sep).join('/');
+	return normalizeCategory(normalizedParentDir);
+};
 
 const parseNameFromPath = (filePath: string): string => {
 	const fileName = basename(filePath);
@@ -118,10 +127,11 @@ const collectProblemFiles = (rootDir: string): string[] => {
 	return allFiles.sort((leftPath, rightPath) => relative(rootDir, leftPath).localeCompare(relative(rootDir, rightPath)));
 };
 
-const parseProblemModule = (filePath: string): Problem => {
+const parseProblemModule = (rootDir: string, filePath: string): Problem => {
 	const exported = loadProblemModule(filePath);
 	const parsed = problemSchema.parse(exported);
 	const nameFromFile = parseNameFromPath(filePath);
+	const categoryFromPath = parseCategoryFromPath(rootDir, filePath);
 
 	if (parsed.name !== nameFromFile) {
 		throw new TypeError(`Problem name mismatch in ${filePath}: expected "${nameFromFile}" but received "${parsed.name}"`);
@@ -131,7 +141,7 @@ const parseProblemModule = (filePath: string): Problem => {
 		const {solution, ...rest} = parsed;
 		return {
 			...rest,
-			category: normalizeCategory(parsed.category),
+			category: categoryFromPath,
 			...(typeof solution === 'undefined' ? {} : {solution}),
 		};
 	}
@@ -140,9 +150,9 @@ const parseProblemModule = (filePath: string): Problem => {
 
 	return {
 		...rest,
-		category: normalizeCategory(parsed.category),
+		category: categoryFromPath,
 		...(typeof solution === 'undefined' ? {} : {solution}),
 	};
 };
 
-export const loadProblems = (dir: string): Problem[] => collectProblemFiles(dir).map((filePath) => parseProblemModule(filePath));
+export const loadProblems = (dir: string): Problem[] => collectProblemFiles(dir).map((filePath) => parseProblemModule(dir, filePath));

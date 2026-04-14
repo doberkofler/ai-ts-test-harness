@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'top-k-frequent',
-	category: 'algorithms',
 	description: 'Return the k most frequent numbers in descending frequency order.',
 	signature: 'function topKFrequent(values: number[], k: number): number[]',
 	solution: function topKFrequent(values: number[], k: number): number[] {

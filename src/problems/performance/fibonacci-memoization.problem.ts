@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fibonacci-memoization',
-	category: 'performance',
 	description: 'Refactor naive recursive Fibonacci to memoized implementation with identical results.',
 	input: [
 		'export function fibonacci(n: number): number {',

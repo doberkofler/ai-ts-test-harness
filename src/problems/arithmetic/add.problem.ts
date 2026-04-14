@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'add',
-	category: 'arithmetic',
 	description: 'Return the sum of two numbers.',
 	signature: 'function add(a: number, b: number): number',
 	solution: function add(a: number, b: number): number {

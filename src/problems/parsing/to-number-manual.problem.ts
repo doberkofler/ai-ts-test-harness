@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'to-number-manual',
-	category: 'parsing',
 	description: [
 		'Parse a string to a number by manually inspecting each character.',
 		'Trim whitespace before parsing.',

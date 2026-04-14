@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'to-boolean-strict',
-	category: 'parsing',
 	description: [
 		'Convert known string values to booleans.',
 		'Accept true/false/1/0/yes/no (case-insensitive) with trimming.',

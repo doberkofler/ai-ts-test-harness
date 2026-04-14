@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-typo-method',
-	category: 'type-errors',
 	description: ["Fix Property 'toUppercase' does not exist on type 'string'.", 'Preserve behavior and function signature.'],
 	input: ['export function shout(message: string): string {', '\treturn message.toUppercase();', '}'].join('\n'),
 	entry: 'shout',

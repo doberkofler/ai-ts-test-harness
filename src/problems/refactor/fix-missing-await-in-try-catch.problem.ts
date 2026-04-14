@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-missing-await-in-try-catch',
-	category: 'refactor',
 	description: 'Refactor async error handling so try/catch actually captures promise rejections.',
 	input: [
 		'const fetchData = async (id: string): Promise<string> => {',

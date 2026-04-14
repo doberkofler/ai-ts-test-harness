@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'normalize-number-input',
-	category: 'parsing',
 	description: [
 		'Normalize unknown numeric input from string | number | null.',
 		'Trim and parse strings as decimal numbers; reject blank and invalid values.',

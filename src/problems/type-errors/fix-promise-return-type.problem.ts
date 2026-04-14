@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-promise-return-type',
-	category: 'type-errors',
 	description: 'Fix async return type mismatch so the function returns Promise<number>.',
 	input: [
 		'const fetchCount = async (): Promise<string> => Promise.resolve("123");',

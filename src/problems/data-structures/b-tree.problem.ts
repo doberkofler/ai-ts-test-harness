@@ -15,7 +15,6 @@ type BTreeNode = {
 
 export default defineImplementProblem({
 	name: 'b-tree',
-	category: 'data-structures',
 	description: [
 		'Implement a parameterized B-tree of minimum degree t (t >= 2).',
 		'Expose insert, search, delete, and keys APIs.',

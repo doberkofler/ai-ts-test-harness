@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'two-sum',
-	category: 'algorithms',
 	description: ['Given an integer array and target, return indices of two numbers that add up to target.', 'Return null when no such pair exists.'],
 	signature: 'function twoSum(nums: number[], target: number): [number, number] | null',
 	solution: function twoSum(nums: number[], target: number): [number, number] | null {

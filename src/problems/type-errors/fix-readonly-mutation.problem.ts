@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-readonly-mutation',
-	category: 'type-errors',
 	description: ['Fix mutation of readonly array in Cart.', 'Return a new Cart value without mutating the original input.'],
 	input: [
 		'type Cart = {',

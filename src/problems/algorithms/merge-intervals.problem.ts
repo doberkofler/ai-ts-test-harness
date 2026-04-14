@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'merge-intervals',
-	category: 'algorithms',
 	description: 'Merge overlapping [start, end] intervals and return a new array sorted by start.',
 	signature: 'function mergeIntervals(intervals: [number, number][]): [number, number][]',
 	solution: function mergeIntervals(intervals: [number, number][]): [number, number][] {

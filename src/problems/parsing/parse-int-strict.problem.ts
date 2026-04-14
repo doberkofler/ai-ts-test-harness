@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'parse-int-strict',
-	category: 'parsing',
 	description: [
 		'Parse a base-10 integer from a string.',
 		'Allow optional leading minus and surrounding whitespace.',

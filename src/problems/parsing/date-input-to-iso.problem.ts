@@ -2,7 +2,6 @@ import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
 	name: 'date-input-to-iso',
-	category: 'parsing',
 	description: [
 		'Convert a date string in YYYY-MM-DD format into the same normalized ISO date string.',
 		'Return null for invalid calendar dates or malformed input.',

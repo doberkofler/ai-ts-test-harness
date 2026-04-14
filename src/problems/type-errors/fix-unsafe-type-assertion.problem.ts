@@ -2,7 +2,6 @@ import {defineRefactorProblem} from '#problem-api';
 
 export default defineRefactorProblem({
 	name: 'fix-unsafe-type-assertion',
-	category: 'type-errors',
 	description: 'Replace unsafe type assertion with runtime checks before reading nested fields.',
 	input: ['export function upperUserId(payload: unknown): string {', '\tconst user = payload as {id: string};', '\treturn user.id.toUpperCase();', '}'].join(
 		'\n',
