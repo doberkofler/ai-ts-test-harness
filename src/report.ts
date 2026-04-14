@@ -1,7 +1,32 @@
 import {writeFileSync, readFileSync} from 'node:fs';
 import {parse, resolve} from 'node:path';
+import {z} from 'zod';
 import {type Result, type ResultsFile, type RuntimeConfig} from './types.ts';
 import {STYLES, styleText, formatMs, formatIsoToLocal} from './utils.ts';
+
+const resultSchema = z.object({
+	problem: z.string(),
+	category: z.string(),
+	program: z.string(),
+	passed: z.boolean(),
+	error: z.string().optional(),
+	duration_ms: z.number(),
+});
+
+const resultsFileSchema = z.object({
+	generated_at: z.string(),
+	model: z.string(),
+	ollama_url: z.string(),
+	llm_timeout_secs: z.number(),
+	cooldown_period_secs: z.number().optional(),
+	debug: z.boolean(),
+	selected_categories: z.array(z.string()).optional(),
+	total: z.number(),
+	passed: z.number(),
+	failed: z.number(),
+	pass_rate_percent: z.number(),
+	results: z.array(resultSchema),
+});
 
 export const printSummary = (results: Result[]): void => {
 	const passed = results.filter((r) => r.passed).length;
@@ -370,8 +395,8 @@ tbody tr:hover {
 			<span>Generated: ${formatIsoToLocal(payload.generated_at)}</span>
 			<span>Model: ${payload.model}</span>
 			<span>Categories: ${Array.isArray(payload.selected_categories) && payload.selected_categories.length > 0 ? payload.selected_categories.join(', ') : 'all'}</span>
-			<span>Timeout: ${payload.llm_timeout_ms}ms</span>
-			<span>Cooldown: ${typeof payload.cooldown_ms === 'number' ? payload.cooldown_ms : 0}ms</span>
+			<span>Timeout: ${payload.llm_timeout_secs}s</span>
+			<span>Cooldown: ${typeof payload.cooldown_period_secs === 'number' ? payload.cooldown_period_secs : 0}s</span>
 		</div>
 		<div class="cards">
 			<div class="card"><div class="label">Pass Rate</div><div class="value">${payload.pass_rate_percent}%</div></div>
@@ -526,8 +551,8 @@ export const formatResultsHtmlFile = (results: Result[], config: RuntimeConfig):
 		generated_at: new Date().toISOString(),
 		model: config.model,
 		ollama_url: config.ollamaUrl,
-		llm_timeout_ms: config.timeoutMs,
-		...(typeof config.cooldownMs === 'number' ? {cooldown_ms: config.cooldownMs} : {}),
+		llm_timeout_secs: config.llmTimeoutSecs,
+		...(typeof config.cooldownPeriodSecs === 'number' ? {cooldown_period_secs: config.cooldownPeriodSecs} : {}),
 		debug: config.debug,
 		...(Array.isArray(config.selectedCategories) ? {selected_categories: config.selectedCategories} : {}),
 		total: results.length,
@@ -546,24 +571,50 @@ export const writeResultsHtmlFile = (results: Result[], jsonOutputPath: string, 
 	return resolvedOutputPath;
 };
 
-export const isResultsFile = (data: unknown): data is ResultsFile =>
-	typeof data === 'object' &&
-	data !== null &&
-	'generated_at' in data &&
-	'results' in data &&
-	Array.isArray((data as Record<string, unknown>)['results']) &&
-	'total' in data &&
-	'passed' in data &&
-	'failed' in data &&
-	'pass_rate_percent' in data;
+export const isResultsFile = (data: unknown): data is ResultsFile => resultsFileSchema.safeParse(data).success;
+
+export const parseResultsFile = (jsonContent: string): ResultsFile => {
+	const data: unknown = JSON.parse(jsonContent);
+	const parsed = resultsFileSchema.parse(data);
+
+	const results: Result[] = parsed.results.map((result) =>
+		typeof result.error === 'string'
+			? {
+					problem: result.problem,
+					category: result.category,
+					program: result.program,
+					passed: result.passed,
+					error: result.error,
+					duration_ms: result.duration_ms,
+				}
+			: {
+					problem: result.problem,
+					category: result.category,
+					program: result.program,
+					passed: result.passed,
+					duration_ms: result.duration_ms,
+				},
+	);
+
+	return {
+		generated_at: parsed.generated_at,
+		model: parsed.model,
+		ollama_url: parsed.ollama_url,
+		llm_timeout_secs: parsed.llm_timeout_secs,
+		...(typeof parsed.cooldown_period_secs === 'number' ? {cooldown_period_secs: parsed.cooldown_period_secs} : {}),
+		debug: parsed.debug,
+		...(Array.isArray(parsed.selected_categories) ? {selected_categories: parsed.selected_categories} : {}),
+		total: parsed.total,
+		passed: parsed.passed,
+		failed: parsed.failed,
+		pass_rate_percent: parsed.pass_rate_percent,
+		results,
+	};
+};
 
 export const reportCommand = (options: {output: string; htmlOutput: string | undefined}): void => {
 	const jsonContent = readFileSync(resolve(options.output), 'utf8');
-	const data: unknown = JSON.parse(jsonContent);
-
-	if (!isResultsFile(data)) {
-		throw new Error('Invalid results file format');
-	}
+	const data = parseResultsFile(jsonContent);
 
 	const {results} = data;
 	printSummary(results);
@@ -571,8 +622,8 @@ export const reportCommand = (options: {output: string; htmlOutput: string | und
 	const config: RuntimeConfig = {
 		model: data.model,
 		debug: data.debug,
-		timeoutMs: data.llm_timeout_ms,
-		...(typeof data.cooldown_ms === 'number' ? {cooldownMs: data.cooldown_ms} : {}),
+		llmTimeoutSecs: data.llm_timeout_secs,
+		...(typeof data.cooldown_period_secs === 'number' ? {cooldownPeriodSecs: data.cooldown_period_secs} : {}),
 		ollamaUrl: data.ollama_url,
 		...(Array.isArray(data.selected_categories) ? {selectedCategories: data.selected_categories} : {}),
 	};

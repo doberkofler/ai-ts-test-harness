@@ -76,15 +76,15 @@ export const selectProblems = (problems: Problem[], testName?: string): Problem[
 
 export const printRuntimeConfig = (problems: Problem[], config: RuntimeConfig): void => {
 	const authMode = typeof config.apiKey === 'string' ? 'api-key' : typeof config.oauthToken === 'string' ? 'oauth-token' : 'ollama-default';
-	const cooldownMs = config.cooldownMs ?? 0;
+	const cooldownPeriodSecs = config.cooldownPeriodSecs ?? 0;
 
 	console.log(styleText('AI Test Harness', STYLES.bold));
 	console.log(styleText('----------------', STYLES.dim));
 	console.log(`Model      : ${styleText(config.model, STYLES.cyan)}`);
 	console.log(`Ollama URL : ${config.ollamaUrl}`);
 	console.log(`Auth       : ${authMode}`);
-	console.log(`Timeout    : ${config.timeoutMs}ms (${formatMs(config.timeoutMs)})`);
-	console.log(`Cooldown   : ${cooldownMs}ms (${formatMs(cooldownMs)})`);
+	console.log(`Timeout    : ${config.llmTimeoutSecs}s (${formatMs(config.llmTimeoutSecs * 1000)})`);
+	console.log(`Cooldown   : ${cooldownPeriodSecs}s (${formatMs(cooldownPeriodSecs * 1000)})`);
 	console.log(`Debug      : ${config.debug ? styleText('enabled', STYLES.yellow) : 'disabled'}`);
 	console.log(
 		`Categories : ${Array.isArray(config.selectedCategories) && config.selectedCategories.length > 0 ? config.selectedCategories.join(', ') : 'all'}`,
@@ -100,8 +100,8 @@ export const formatResultsFile = (results: Result[], config: RuntimeConfig): Res
 		generated_at: new Date().toISOString(),
 		model: config.model,
 		ollama_url: config.ollamaUrl,
-		llm_timeout_ms: config.timeoutMs,
-		...(typeof config.cooldownMs === 'number' ? {cooldown_ms: config.cooldownMs} : {}),
+		llm_timeout_secs: config.llmTimeoutSecs,
+		...(typeof config.cooldownPeriodSecs === 'number' ? {cooldown_period_secs: config.cooldownPeriodSecs} : {}),
 		debug: config.debug,
 		...(Array.isArray(config.selectedCategories) ? {selected_categories: config.selectedCategories} : {}),
 		total,
@@ -122,8 +122,8 @@ export const writeResultsFile = (results: Result[], outputPath: string, config: 
 export const runCommand = async (options: {
 	model: string;
 	debug: boolean;
-	llmTimeoutMs: string;
-	cooldownMs: string;
+	llmTimeoutSecs: string;
+	cooldownPeriodSecs: string;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;
@@ -131,14 +131,14 @@ export const runCommand = async (options: {
 	test: string | undefined;
 	category: string | undefined;
 }): Promise<{results: Result[]; outputPath: string; config: RuntimeConfig}> => {
-	const timeoutMs = Number.parseInt(options.llmTimeoutMs, 10);
-	if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-		throw new TypeError(`Invalid --llm-timeout-ms value: ${options.llmTimeoutMs}`);
+	const llmTimeoutSecs = Number.parseInt(options.llmTimeoutSecs, 10);
+	if (!Number.isFinite(llmTimeoutSecs) || llmTimeoutSecs <= 0) {
+		throw new TypeError(`Invalid --llm-timeout value: ${options.llmTimeoutSecs}`);
 	}
 
-	const cooldownMs = Number.parseInt(options.cooldownMs, 10);
-	if (!Number.isFinite(cooldownMs) || cooldownMs < 0) {
-		throw new TypeError(`Invalid --cooldown-ms value: ${options.cooldownMs}`);
+	const cooldownPeriodSecs = Number.parseInt(options.cooldownPeriodSecs, 10);
+	if (!Number.isFinite(cooldownPeriodSecs) || cooldownPeriodSecs < 0) {
+		throw new TypeError(`Invalid --cooldown-period value: ${options.cooldownPeriodSecs}`);
 	}
 
 	if (options.ollamaUrl.length === 0) {
@@ -163,8 +163,8 @@ export const runCommand = async (options: {
 	const runtimeConfig: RuntimeConfig = {
 		model: options.model,
 		debug: options.debug,
-		timeoutMs,
-		cooldownMs,
+		llmTimeoutSecs,
+		cooldownPeriodSecs,
 		ollamaUrl: options.ollamaUrl,
 		...(typeof options.apiKey === 'string' ? {apiKey: options.apiKey} : {}),
 		...(typeof options.oauthToken === 'string' ? {oauthToken: options.oauthToken} : {}),
@@ -203,7 +203,7 @@ export const runCommand = async (options: {
 					...(typeof options.apiKey === 'string' ? {apiKey: options.apiKey} : {}),
 					...(typeof options.oauthToken === 'string' ? {oauthToken: options.oauthToken} : {}),
 					debug: options.debug,
-					timeoutMs,
+					llmTimeoutSecs,
 				});
 			} finally {
 				if (typeof timerId !== 'undefined') {
@@ -217,13 +217,13 @@ export const runCommand = async (options: {
 			console.log(`${status} in ${formatMs(result.duration_ms)}\n`);
 			results.push(result);
 
-			if (cooldownMs > 0 && i < problems.length - 1) {
+			if (cooldownPeriodSecs > 0 && i < problems.length - 1) {
 				if (showLiveTimer) {
 					const cooldownStartedAt = Date.now();
-					process.stdout.write(`Cooldown  : ${formatElapsedClock(cooldownMs)}`);
+					process.stdout.write(`Cooldown  : ${formatElapsedClock(cooldownPeriodSecs * 1000)}`);
 					const cooldownTimerId = setInterval(() => {
 						const elapsed = Date.now() - cooldownStartedAt;
-						const remaining = Math.max(0, cooldownMs - elapsed);
+						const remaining = Math.max(0, cooldownPeriodSecs * 1000 - elapsed);
 						cursorTo(process.stdout, 0);
 						clearLine(process.stdout, 0);
 						process.stdout.write(`Cooldown  : ${formatElapsedClock(remaining)}`);
@@ -231,16 +231,16 @@ export const runCommand = async (options: {
 
 					try {
 						// oxlint-disable-next-line no-await-in-loop
-						await sleep(cooldownMs);
+						await sleep(cooldownPeriodSecs * 1000);
 					} finally {
 						clearInterval(cooldownTimerId);
 						cursorTo(process.stdout, 0);
 						clearLine(process.stdout, 0);
 					}
 				} else {
-					console.log(`Cooldown  : ${formatElapsedClock(cooldownMs)}`);
+					console.log(`Cooldown  : ${formatElapsedClock(cooldownPeriodSecs * 1000)}`);
 					// oxlint-disable-next-line no-await-in-loop
-					await sleep(cooldownMs);
+					await sleep(cooldownPeriodSecs * 1000);
 				}
 			}
 		}

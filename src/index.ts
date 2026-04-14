@@ -1,5 +1,5 @@
 import {Command} from 'commander';
-import {DEFAULT_LLM_TIMEOUT_MS, DEFAULT_OLLAMA_URL} from './generate.ts';
+import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_COOLDOWN_PERIOD_SECS, DEFAULT_OLLAMA_URL, DEFAULT_MODEL} from './config.ts';
 import {runCommand} from './run.ts';
 import {reportCommand} from './report.ts';
 import {validateCommand} from './validate.ts';
@@ -7,8 +7,8 @@ import {validateCommand} from './validate.ts';
 type CliOpts = {
 	model: string;
 	debug: boolean;
-	llmTimeoutMs: string;
-	cooldownMs: string;
+	llmTimeoutSecs: string;
+	cooldownPeriodSecs: string;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;
@@ -19,15 +19,42 @@ type CliOpts = {
 };
 
 const isCliOpts = (data: unknown): data is CliOpts =>
-	typeof data === 'object' && data !== null && 'model' in data && 'debug' in data && 'llmTimeoutMs' in data && 'ollamaUrl' in data && 'output' in data;
+	typeof data === 'object' &&
+	data !== null &&
+	'model' in data &&
+	'debug' in data &&
+	'llmTimeoutSecs' in data &&
+	'cooldownPeriodSecs' in data &&
+	'ollamaUrl' in data &&
+	'output' in data;
+
+const normalizeCliOpts = (data: unknown): CliOpts | undefined => {
+	if (typeof data !== 'object' || data === null) {
+		return undefined;
+	}
+
+	const llmTimeoutValue: unknown = Reflect.get(data, 'llmTimeout');
+	const cooldownPeriodValue: unknown = Reflect.get(data, 'cooldownPeriod');
+	const normalized = {
+		...data,
+		llmTimeoutSecs: llmTimeoutValue,
+		cooldownPeriodSecs: cooldownPeriodValue,
+	};
+
+	if (!isCliOpts(normalized)) {
+		return undefined;
+	}
+
+	return normalized;
+};
 
 const main = async (): Promise<void> => {
 	const program = new Command();
 	program.name('ai-ts-test-harness').description('A TypeScript test harness for AI models');
-	program.option('--model <model>', 'Model to use', 'gemma4:31b-it-q4_K_M');
+	program.option('--model <model>', 'Model to use', DEFAULT_MODEL);
 	program.option('--debug', 'Print LLM request/response for each problem', false);
-	program.option('--llm-timeout-ms <ms>', 'LLM response timeout in milliseconds', String(DEFAULT_LLM_TIMEOUT_MS));
-	program.option('--cooldown-ms <ms>', 'Delay between problems in milliseconds', '10000');
+	program.option('--llm-timeout <seconds>', 'LLM response timeout in seconds', String(DEFAULT_LLM_TIMEOUT_SECS));
+	program.option('--cooldown-period <seconds>', 'Delay between problems in seconds', String(DEFAULT_COOLDOWN_PERIOD_SECS));
 	program.option('--ollama-url <url>', 'Ollama-compatible API base URL', DEFAULT_OLLAMA_URL);
 	program.option('--api-key <key>', 'API key for cloud model authorization');
 	program.option('--oauth-token <token>', 'OAuth token for cloud model authorization');
@@ -43,17 +70,16 @@ const main = async (): Promise<void> => {
 		.description('Run tests')
 		.action(async (_options, command: Command) => {
 			commandExecuted = true;
-			const optsAny = command.optsWithGlobals();
-			if (!isCliOpts(optsAny)) {
-				throw new Error('Invalid CLI options');
+			const opts = normalizeCliOpts(command.optsWithGlobals());
+			if (typeof opts === 'undefined') {
+				throw new TypeError('Invalid CLI options');
 			}
-			const opts = optsAny;
 
 			const runOpts: Parameters<typeof runCommand>[0] = {
 				model: opts.model,
 				debug: opts.debug,
-				llmTimeoutMs: opts.llmTimeoutMs,
-				cooldownMs: opts.cooldownMs,
+				llmTimeoutSecs: opts.llmTimeoutSecs,
+				cooldownPeriodSecs: opts.cooldownPeriodSecs,
 				ollamaUrl: opts.ollamaUrl,
 				...(typeof opts.apiKey === 'string' ? {apiKey: opts.apiKey} : {}),
 				...(typeof opts.oauthToken === 'string' ? {oauthToken: opts.oauthToken} : {}),
@@ -70,11 +96,10 @@ const main = async (): Promise<void> => {
 		.description('Validate problem tests against optional solutions')
 		.action(async (_options, command: Command) => {
 			commandExecuted = true;
-			const optsAny = command.optsWithGlobals();
-			if (!isCliOpts(optsAny)) {
-				throw new Error('Invalid CLI options');
+			const opts = normalizeCliOpts(command.optsWithGlobals());
+			if (typeof opts === 'undefined') {
+				throw new TypeError('Invalid CLI options');
 			}
-			const opts = optsAny;
 
 			await validateCommand({
 				test: opts.test,
@@ -88,11 +113,10 @@ const main = async (): Promise<void> => {
 		.description('Generate reports')
 		.action((_options, command: Command) => {
 			commandExecuted = true;
-			const optsAny = command.optsWithGlobals();
-			if (!isCliOpts(optsAny)) {
-				throw new Error('Invalid CLI options');
+			const opts = normalizeCliOpts(command.optsWithGlobals());
+			if (typeof opts === 'undefined') {
+				throw new TypeError('Invalid CLI options');
 			}
-			const opts = optsAny;
 
 			const reportOpts: Parameters<typeof reportCommand>[0] = {
 				output: opts.output,
@@ -108,17 +132,16 @@ const main = async (): Promise<void> => {
 		}
 
 		// If no command, validate, run tests, then report.
-		const optsAny = command.opts();
-		if (!isCliOpts(optsAny)) {
-			throw new Error('Invalid CLI options');
+		const opts = normalizeCliOpts(command.opts());
+		if (typeof opts === 'undefined') {
+			throw new TypeError('Invalid CLI options');
 		}
-		const opts = optsAny;
 
 		const runOpts: Parameters<typeof runCommand>[0] = {
 			model: opts.model,
 			debug: opts.debug,
-			llmTimeoutMs: opts.llmTimeoutMs,
-			cooldownMs: opts.cooldownMs,
+			llmTimeoutSecs: opts.llmTimeoutSecs,
+			cooldownPeriodSecs: opts.cooldownPeriodSecs,
 			ollamaUrl: opts.ollamaUrl,
 			...(typeof opts.apiKey === 'string' ? {apiKey: opts.apiKey} : {}),
 			...(typeof opts.oauthToken === 'string' ? {oauthToken: opts.oauthToken} : {}),

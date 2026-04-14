@@ -29,7 +29,7 @@ A modern project built with ai-ts-test-harness, emphasizing type safety, perform
 - `--model <model>`: LLM model identifier to query.
 - `--ollama-url <url>`: Ollama-compatible API base URL; default is `http://localhost:11434/v1`.
 - `--debug`: Prints the full prompt and raw response for each LLM call.
-- `--llm-timeout-ms <ms>`: Per-request LLM timeout in milliseconds; default is `300000` (5 minutes).
+- `--llm-timeout <seconds>`: Per-request LLM timeout in seconds; default is `120` (2 minutes).
 - `--test <name>`: Executes only the specified problem by exact name.
 
 The CLI prints the resolved runtime parameters at startup to make debugging runs reproducible.

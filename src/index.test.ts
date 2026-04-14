@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 import {formatResultsFile, parseCategoryFilter, selectProblems, selectProblemsByFilters} from './run.ts';
-import {formatResultsHtmlFile} from './report.ts';
+import {formatResultsHtmlFile, parseResultsFile} from './report.ts';
 import {type Problem, type Result} from './types.ts';
 
 const problems: Problem[] = [
@@ -36,15 +36,15 @@ describe('formatResultsFile', () => {
 		const output = formatResultsFile(results, {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
-			timeoutMs: 5000,
-			cooldownMs: 10_000,
+			llmTimeoutSecs: 5,
+			cooldownPeriodSecs: 10,
 			debug: true,
 		});
 
 		expect(output.model).toBe('test-model');
 		expect(output.ollama_url).toBe('http://localhost:11434/v1');
-		expect(output.llm_timeout_ms).toBe(5000);
-		expect(output.cooldown_ms).toBe(10_000);
+		expect(output.llm_timeout_secs).toBe(5);
+		expect(output.cooldown_period_secs).toBe(10);
 		expect(output.debug).toBe(true);
 		expect(output.selected_categories).toBeUndefined();
 		expect(output.total).toBe(2);
@@ -59,7 +59,7 @@ describe('formatResultsFile', () => {
 		const output = formatResultsFile([], {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
-			timeoutMs: 5000,
+			llmTimeoutSecs: 5,
 			debug: false,
 		});
 
@@ -71,7 +71,7 @@ describe('formatResultsFile', () => {
 		const output = formatResultsFile([], {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
-			timeoutMs: 5000,
+			llmTimeoutSecs: 5,
 			debug: false,
 			apiKey: 'secret-key',
 			oauthToken: 'secret-token',
@@ -92,7 +92,7 @@ describe('formatResultsHtmlFile', () => {
 		const html = formatResultsHtmlFile(results, {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
-			timeoutMs: 5000,
+			llmTimeoutSecs: 5,
 			debug: false,
 		});
 
@@ -111,6 +111,23 @@ describe('formatResultsHtmlFile', () => {
 		expect(html).toContain('max');
 		expect(html).toContain('Generated Program:');
 		expect(html).toContain('return a + b;');
+	});
+});
+
+describe('parseResultsFile', () => {
+	test('parses a valid results payload', () => {
+		const payload = formatResultsFile([{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, duration_ms: 10}], {
+			model: 'test-model',
+			ollamaUrl: 'http://localhost:11434/v1',
+			llmTimeoutSecs: 5,
+			debug: false,
+		});
+
+		expect(parseResultsFile(JSON.stringify(payload))).toEqual(payload);
+	});
+
+	test('throws for invalid results payload shape', () => {
+		expect(() => parseResultsFile(JSON.stringify({generated_at: '2025-01-01T00:00:00.000Z'}))).toThrow();
 	});
 });
 

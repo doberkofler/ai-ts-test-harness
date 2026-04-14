@@ -28,7 +28,7 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 - `--model <model>`: Model name to use via the local Ollama-compatible endpoint.
 - `--ollama-url <url>`: Ollama-compatible API base URL. Default: `http://localhost:11434/v1`.
 - `--debug`: Print the full LLM request and raw response for each problem.
-- `--llm-timeout-ms <ms>`: Timeout for each LLM response in milliseconds. Default: `300000` (5 minutes).
+- `--llm-timeout <seconds>`: Timeout for each LLM response in seconds. Default: `120` (2 minutes).
 - `--output <file>`: JSON file path for saving run results. Default: `results.json`.
 - `--html-output <file>`: Optional HTML report path. If omitted, the CLI writes one next to `--output` using the same filename and `.html` extension.
 - `--test <name>`: Run only one specific problem by exact name (for example, `--test=fizzbuzz`).
@@ -40,7 +40,7 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 - `run`: Queries the configured model and runs generated answers against tests.
 - `report`: Generates reports from an existing JSON results file.
 
-When the harness starts, it prints the effective CLI parameters (`model`, `debug`, `llmTimeoutMs`, `ollamaUrl`) so you can verify runtime settings immediately.
+When the harness starts, it prints the effective CLI parameters (`model`, `debug`, `llmTimeoutSecs`, `ollamaUrl`) so you can verify runtime settings immediately.
 
 After each run, the CLI saves both JSON and HTML reports, and prints a clickable `file://...` link for the HTML report so you can open it directly from your terminal.
 

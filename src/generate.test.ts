@@ -1,5 +1,6 @@
 import {describe, expect, test, vi} from 'vitest';
-import {DEFAULT_LLM_TIMEOUT_MS, DEFAULT_OLLAMA_URL, generate, type GenerateOptions} from './generate.ts';
+import {DEFAULT_OLLAMA_URL} from './config.ts';
+import {generate, type GenerateOptions} from './generate.ts';
 import {type Problem} from './types.ts';
 
 const problem: Problem = {
@@ -27,10 +28,6 @@ const directRefactorProblem: Problem = {
 describe('generate', () => {
 	test('uses expected default ollama endpoint', () => {
 		expect(DEFAULT_OLLAMA_URL).toBe('http://localhost:11434/v1');
-	});
-
-	test('uses a 5 minute default timeout constant', () => {
-		expect(DEFAULT_LLM_TIMEOUT_MS).toBe(300_000);
 	});
 
 	test('strips markdown fences from model output', async () => {
@@ -70,7 +67,7 @@ describe('generate', () => {
 		await expect(
 			generate(problem, {
 				model: 'test-model',
-				timeoutMs: 0,
+				llmTimeoutSecs: 0,
 				createCompletion: async () => {
 					const response = await Promise.resolve({
 						choices: [{message: {content: 'return a + b;'}}],
@@ -78,7 +75,7 @@ describe('generate', () => {
 					return response;
 				},
 			}),
-		).rejects.toThrow('Invalid timeout: 0');
+		).rejects.toThrow('Invalid llm timeout: 0');
 	});
 
 	test('passes timeout to completion call', async () => {
@@ -91,11 +88,11 @@ describe('generate', () => {
 
 		await generate(problem, {
 			model: 'test-model',
-			timeoutMs: 1234,
+			llmTimeoutSecs: 1234,
 			createCompletion,
 		});
 
-		expect(createCompletion).toHaveBeenCalledWith(expect.objectContaining({model: 'test-model'}), {timeout: 1234});
+		expect(createCompletion).toHaveBeenCalledWith(expect.objectContaining({model: 'test-model'}), {timeout: 1_234_000});
 	});
 
 	test('builds direct refactor prompt with input code', async () => {

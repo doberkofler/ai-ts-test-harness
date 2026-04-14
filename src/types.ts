@@ -82,8 +82,8 @@ export type Result = {
 export type RuntimeConfig = {
 	model: string;
 	debug: boolean;
-	timeoutMs: number;
-	cooldownMs?: number;
+	llmTimeoutSecs: number;
+	cooldownPeriodSecs?: number;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;
@@ -94,8 +94,8 @@ export type ResultsFile = {
 	generated_at: string;
 	model: string;
 	ollama_url: string;
-	llm_timeout_ms: number;
-	cooldown_ms?: number;
+	llm_timeout_secs: number;
+	cooldown_period_secs?: number;
 	debug: boolean;
 	selected_categories?: string[];
 	total: number;

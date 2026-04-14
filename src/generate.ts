@@ -1,8 +1,6 @@
 import OpenAI from 'openai';
+import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_OLLAMA_URL} from './config.ts';
 import {type Problem} from './types.ts';
-
-export const DEFAULT_OLLAMA_URL = 'http://localhost:11434/v1';
-export const DEFAULT_LLM_TIMEOUT_MS = 300_000;
 
 const clientsByUrl = new Map<string, OpenAI>();
 
@@ -28,7 +26,7 @@ export type GenerateOptions = {
 	apiKey?: string;
 	oauthToken?: string;
 	debug?: boolean;
-	timeoutMs?: number;
+	llmTimeoutSecs?: number;
 	createCompletion?: CreateCompletion;
 };
 
@@ -54,12 +52,12 @@ const stripFences = (text: string): string =>
 		.replace(/\n?```$/m, '')
 		.trim();
 
-const resolveTimeoutMs = (timeoutMs: number): number => {
-	if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-		throw new TypeError(`Invalid timeout: ${timeoutMs}`);
+const resolveLlmTimeoutSecs = (llmTimeoutSecs: number): number => {
+	if (!Number.isFinite(llmTimeoutSecs) || llmTimeoutSecs <= 0) {
+		throw new TypeError(`Invalid llm timeout: ${llmTimeoutSecs}`);
 	}
 
-	return timeoutMs;
+	return llmTimeoutSecs;
 };
 
 /*
@@ -102,7 +100,8 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 
 	const authKey = options.apiKey ?? options.oauthToken;
 	const completion = options.createCompletion ?? createCompletionForUrl(options.ollamaUrl ?? DEFAULT_OLLAMA_URL, authKey);
-	const timeoutMs = resolveTimeoutMs(options.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS);
+	const llmTimeoutSecs = resolveLlmTimeoutSecs(options.llmTimeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS);
+	const requestTimeoutMs = llmTimeoutSecs * 1000;
 
 	const request: CompletionRequest = {
 		model: options.model,
@@ -115,7 +114,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		],
 	};
 
-	const res = await completion(request, {timeout: timeoutMs});
+	const res = await completion(request, {timeout: requestTimeoutMs});
 
 	// oxlint-disable-next-line oxc/no-optional-chaining, typescript/no-unnecessary-condition
 	const text = res.choices[0]?.message?.content;
