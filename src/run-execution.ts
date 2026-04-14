@@ -1,9 +1,15 @@
 import {setTimeout as sleep} from 'node:timers/promises';
-import {formatElapsedClock} from './core/time-format.ts';
+import {
+	formatCompletedProblemLine,
+	formatCooldownLiveLine,
+	formatCooldownStaticLine,
+	formatProblemStartLine,
+	formatRunFooterLines,
+	formatRunningLiveLine,
+} from './run-progress.ts';
 import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
 import {solveProblem} from './solveProblem.ts';
 import {type Problem, type Result} from './types.ts';
-import {formatMs, STYLES, styleText} from './utils.ts';
 
 export type ExecuteRunOptions = {
 	model: string;
@@ -15,20 +21,38 @@ export type ExecuteRunOptions = {
 	oauthToken?: string;
 };
 
-export const executeProblems = async (problems: Problem[], options: ExecuteRunOptions): Promise<Result[]> => {
+type ExecuteProblemsDeps = {
+	stream?: NodeJS.WriteStream;
+	log?: (message: string) => void;
+	now?: () => number;
+	sleepMs?: (durationMs: number) => Promise<void>;
+	setIntervalFn?: (callback: () => void, delayMs: number) => ReturnType<typeof setInterval>;
+	clearIntervalFn?: (timerId: ReturnType<typeof setInterval>) => void;
+};
+
+export const executeProblems = async (problems: Problem[], options: ExecuteRunOptions, deps: ExecuteProblemsDeps = {}): Promise<Result[]> => {
 	const results: Result[] = [];
+	const stream = deps.stream ?? process.stdout;
+	const log = deps.log ?? console.log;
+	const now = deps.now ?? Date.now;
+	const sleepMs = deps.sleepMs ?? sleep;
+	const setIntervalFn = deps.setIntervalFn ?? setInterval;
+	const clearIntervalFn = deps.clearIntervalFn ?? clearInterval;
+	const startedAtMs = now();
+	const preferUnicode = stream.isTTY;
+	const showLiveTimer = supportsLiveLine(stream) && !options.debug;
 
 	for (const [index, problem] of problems.entries()) {
-		const current = `[${String(index + 1).padStart(2, ' ')}/${problems.length}]`;
-		console.log(`${styleText(current, STYLES.dim)} ${styleText(problem.name, STYLES.bold)}`);
-		const startedAt = Date.now();
+		if (!showLiveTimer) {
+			log(formatProblemStartLine(index, problems.length, problem.name));
+		}
 
-		const showLiveTimer = supportsLiveLine(process.stdout) && !options.debug;
+		const startedAt = now();
 		let timerId: ReturnType<typeof setInterval> | undefined;
 		if (showLiveTimer) {
-			writeLiveLine(process.stdout, `Running   : ${formatElapsedClock(0)}`);
-			timerId = setInterval(() => {
-				replaceLiveLine(process.stdout, `Running   : ${formatElapsedClock(Date.now() - startedAt)}`);
+			writeLiveLine(stream, formatRunningLiveLine(problem.name, 0));
+			timerId = setIntervalFn(() => {
+				replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt));
 			}, 1000);
 		}
 
@@ -45,38 +69,51 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			});
 		} finally {
 			if (typeof timerId !== 'undefined') {
-				clearInterval(timerId);
-				clearLiveLine(process.stdout);
+				clearIntervalFn(timerId);
+				clearLiveLine(stream);
 			}
 		}
 
-		const status = result.passed ? styleText('PASS', STYLES.green) : styleText('FAIL', STYLES.red);
-		console.log(`${status} in ${formatMs(result.duration_ms)}\n`);
+		log(
+			formatCompletedProblemLine({
+				index,
+				total: problems.length,
+				name: problem.name,
+				passed: result.passed,
+				durationMs: result.duration_ms,
+				preferUnicode,
+			}),
+		);
 		results.push(result);
 
 		if (options.cooldownPeriodSecs > 0 && index < problems.length - 1) {
 			if (showLiveTimer) {
-				const cooldownStartedAt = Date.now();
-				writeLiveLine(process.stdout, `Cooldown  : ${formatElapsedClock(options.cooldownPeriodSecs * 1000)}`);
-				const cooldownTimerId = setInterval(() => {
-					const elapsed = Date.now() - cooldownStartedAt;
+				const cooldownStartedAt = now();
+				writeLiveLine(stream, formatCooldownLiveLine(options.cooldownPeriodSecs * 1000));
+				const cooldownTimerId = setIntervalFn(() => {
+					const elapsed = now() - cooldownStartedAt;
 					const remaining = Math.max(0, options.cooldownPeriodSecs * 1000 - elapsed);
-					replaceLiveLine(process.stdout, `Cooldown  : ${formatElapsedClock(remaining)}`);
+					replaceLiveLine(stream, formatCooldownLiveLine(remaining));
 				}, 1000);
 
 				try {
 					// oxlint-disable-next-line no-await-in-loop
-					await sleep(options.cooldownPeriodSecs * 1000);
+					await sleepMs(options.cooldownPeriodSecs * 1000);
 				} finally {
-					clearInterval(cooldownTimerId);
-					clearLiveLine(process.stdout);
+					clearIntervalFn(cooldownTimerId);
+					clearLiveLine(stream);
 				}
 			} else {
-				console.log(`Cooldown  : ${formatElapsedClock(options.cooldownPeriodSecs * 1000)}`);
+				log(formatCooldownStaticLine(options.cooldownPeriodSecs * 1000));
 				// oxlint-disable-next-line no-await-in-loop
-				await sleep(options.cooldownPeriodSecs * 1000);
+				await sleepMs(options.cooldownPeriodSecs * 1000);
 			}
 		}
+	}
+
+	log('');
+	for (const footerLine of formatRunFooterLines(results, startedAtMs, now())) {
+		log(footerLine);
 	}
 
 	return results;

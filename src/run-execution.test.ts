@@ -25,18 +25,34 @@ describe('executeProblems', () => {
 	});
 
 	test('executes each selected problem and forwards runtime options', async () => {
+		const log = vi.fn<(message: string) => void>();
 		solveProblemMock
 			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, duration_ms: 10})
 			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: false, error: 'boom', duration_ms: 12});
 
-		const results = await executeProblems([makeProblem('one'), makeProblem('two')], {
-			model: 'model-a',
-			debug: true,
-			llmTimeoutSecs: 75,
-			cooldownPeriodSecs: 0,
-			ollamaUrl: 'http://localhost:11434/v1',
-			oauthToken: 'oauth-token',
-		});
+		const results = await executeProblems(
+			[makeProblem('one'), makeProblem('two')],
+			{
+				model: 'model-a',
+				debug: true,
+				llmTimeoutSecs: 75,
+				cooldownPeriodSecs: 0,
+				ollamaUrl: 'http://localhost:11434/v1',
+				oauthToken: 'oauth-token',
+			},
+			{
+				log,
+				now: ((): (() => number) => {
+					const values = [1000, 1010, 1025, 1050, 1062, 1100];
+					let index = 0;
+					return (): number => {
+						const value = values.at(index) ?? 1100;
+						index += 1;
+						return value;
+					};
+				})(),
+			},
+		);
 
 		expect(results).toHaveLength(2);
 		expect(solveProblemMock).toHaveBeenCalledTimes(2);
@@ -45,5 +61,36 @@ describe('executeProblems', () => {
 			expect.objectContaining({name: 'one'}),
 			expect.objectContaining({model: 'model-a', llmTimeoutSecs: 75, oauthToken: 'oauth-token'}),
 		);
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('[ 1/2] one'));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('PASS [ 1/2] one (10ms)'));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('FAIL [ 2/2] two (12ms)'));
+		expect(log).toHaveBeenCalledWith('Run Summary');
+		expect(log).toHaveBeenCalledWith('Duration   : 50ms');
+	});
+
+	test('waits for cooldown between problems', async () => {
+		const log = vi.fn<(message: string) => void>();
+		const sleepMs = vi.fn<(durationMs: number) => Promise<void>>().mockResolvedValue();
+		solveProblemMock
+			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, duration_ms: 10})
+			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, duration_ms: 12});
+
+		await executeProblems(
+			[makeProblem('one'), makeProblem('two')],
+			{
+				model: 'model-a',
+				debug: false,
+				llmTimeoutSecs: 75,
+				cooldownPeriodSecs: 3,
+				ollamaUrl: 'http://localhost:11434/v1',
+			},
+			{
+				log,
+				sleepMs,
+			},
+		);
+
+		expect(sleepMs).toHaveBeenCalledExactlyOnceWith(3000);
+		expect(log).toHaveBeenCalledWith('Cooldown 00:00:03');
 	});
 });

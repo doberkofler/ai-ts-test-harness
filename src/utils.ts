@@ -15,7 +15,15 @@ export const formatMs = (durationMs: number): string => {
 		return `${durationMs}ms`;
 	}
 
-	return `${(durationMs / 1000).toFixed(2)}s`;
+	if (durationMs < 60_000) {
+		return `${Math.round(durationMs / 1000)}s`;
+	}
+
+	if (durationMs < 3_600_000) {
+		return `${Math.round(durationMs / 60_000)}m`;
+	}
+
+	return `${Math.round(durationMs / 3_600_000)}h`;
 };
 
 export const formatIsoToLocal = (iso: string): string => {

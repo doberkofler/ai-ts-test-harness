@@ -30,8 +30,8 @@ describe('printRuntimeConfig', () => {
 		});
 
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('AI Test Harness'));
-		expect(logSpy).toHaveBeenCalledWith('Auth       : api-key');
-		expect(logSpy).toHaveBeenCalledWith('Categories : logic');
+		expect(logSpy).toHaveBeenCalledWith('Auth:       api-key');
+		expect(logSpy).toHaveBeenCalledWith('Categories: logic');
 		expect(loggedLines).toBeGreaterThan(0);
 		logSpy.mockRestore();
 	});
