@@ -173,7 +173,7 @@ export const validateCommand = async (options: ValidateCommandOptions): Promise<
 		}
 
 		tableRow.status = issueMessages.length === 0 ? 'passed' : 'failed';
-		tableRow.details = issueMessages.length === 0 ? 'Provided and negative checks passed' : issueMessages.join('; ');
+		tableRow.details = issueMessages.length === 0 ? '' : issueMessages.join('; ');
 
 		log(
 			formatCompletedProblemLine({
