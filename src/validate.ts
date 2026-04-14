@@ -1,9 +1,10 @@
 import {loadProblems} from './load-problems.ts';
+import {startVitest} from 'vitest/node';
 import {parseCategoryFilter, selectProblemsByFilters} from './core/problem-selection.ts';
 import {parseFunctionNameFromSignature} from './core/signature.ts';
 import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
 import {formatCompletedProblemLine, formatProblemStartLine, formatRunningLiveLine} from './run-progress.ts';
-import {runProblem} from './runner.ts';
+import {closeVitestRunner, runProblem} from './runner.ts';
 import {type Problem} from './types.ts';
 
 const createInvalidSolution = (problem: Problem): string => {
@@ -97,95 +98,108 @@ export const validateCommand = async (options: ValidateCommandOptions): Promise<
 	const preferUnicode = stream.isTTY;
 	const showLiveTimer = supportsLiveLine(stream) && !options.debug;
 
-	const allProblems = (options.loadProblemsFn ?? loadProblems)('./src/problems');
-	const selectedCategories = parseCategoryFilter(options.category);
-	const selectedProblems = selectProblemsByFilters(allProblems, options.test, selectedCategories);
-	const solvedProblems = selectedProblems.filter(
-		(problem): problem is Problem & {solution: NonNullable<Problem['solution']>} => typeof problem.solution === 'function',
-	);
-	const solvedCount = solvedProblems.length;
-	const validationTable: ValidationTableRow[] = selectedProblems.map((problem) => ({
-		problem: problem.name,
-		category: problem.category,
-		kind: getProblemKind(problem),
-		status: hasSolution(problem) ? 'passed' : 'missing-solution',
-		details: hasSolution(problem) ? 'Validation pending' : 'No solution provided yet',
-	}));
-
-	let checks = 0;
-	const failures: string[] = [];
-
-	for (const [index, problem] of solvedProblems.entries()) {
-		if (!showLiveTimer) {
-			log(formatProblemStartLine(index, solvedProblems.length, problem.name));
-		}
-
-		const startedAtMs = now();
-		let timerId: ReturnType<typeof setInterval> | undefined;
-		if (showLiveTimer) {
-			writeLiveLine(stream, formatRunningLiveLine(problem.name, 0));
-			timerId = setIntervalFn(() => {
-				replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAtMs));
-			}, 1000);
-		}
-
-		const solution = createProvidedSolution(problem);
-		const tableRow = validationTable.find((row) => row.problem === problem.name);
-		if (typeof tableRow === 'undefined') {
-			throw new TypeError(`Unable to find validation row for problem "${problem.name}"`);
-		}
-
-		const issueMessages: string[] = [];
-
-		let totalDurationMs = 0;
-		try {
-			checks += 1;
-			// oxlint-disable-next-line no-await-in-loop
-			const solutionResult = await (options.runProblemFn ?? runProblem)(problem, solution, {debug: options.debug});
-			totalDurationMs += solutionResult.duration_ms;
-			if (!solutionResult.passed) {
-				const issue = `provided solution failed tests (${solutionResult.error ?? 'unknown error'})`;
-				failures.push(formatFailure(problem.name, issue));
-				issueMessages.push(issue);
-			}
-
-			checks += 1;
-			// oxlint-disable-next-line no-await-in-loop
-			const invalidResult = await (options.runProblemFn ?? runProblem)(problem, createInvalidSolution(problem), {debug: options.debug});
-			totalDurationMs += invalidResult.duration_ms;
-			if (invalidResult.passed) {
-				const issue = 'tests accepted an intentionally invalid solution';
-				failures.push(formatFailure(problem.name, issue));
-				issueMessages.push(issue);
-			}
-		} finally {
-			if (typeof timerId !== 'undefined') {
-				clearIntervalFn(timerId);
-				clearLiveLine(stream);
-			}
-		}
-
-		tableRow.status = issueMessages.length === 0 ? 'passed' : 'failed';
-		tableRow.details = issueMessages.length === 0 ? 'Provided and negative checks passed' : issueMessages.join('; ');
-
-		log(
-			formatCompletedProblemLine({
-				index,
-				total: solvedProblems.length,
-				name: problem.name,
-				passed: issueMessages.length === 0,
-				durationMs: Math.max(totalDurationMs, now() - startedAtMs),
-				preferUnicode,
-			}),
+	try {
+		const allProblems = (options.loadProblemsFn ?? loadProblems)('./src/problems');
+		const selectedCategories = parseCategoryFilter(options.category);
+		const selectedProblems = selectProblemsByFilters(allProblems, options.test, selectedCategories);
+		const solvedProblems = selectedProblems.filter(
+			(problem): problem is Problem & {solution: NonNullable<Problem['solution']>} => typeof problem.solution === 'function',
 		);
+		const solvedCount = solvedProblems.length;
+		const validationTable: ValidationTableRow[] = selectedProblems.map((problem) => ({
+			problem: problem.name,
+			category: problem.category,
+			kind: getProblemKind(problem),
+			status: hasSolution(problem) ? 'passed' : 'missing-solution',
+			details: hasSolution(problem) ? 'Validation pending' : 'No solution provided yet',
+		}));
+
+		let checks = 0;
+		const failures: string[] = [];
+
+		for (const [index, problem] of solvedProblems.entries()) {
+			if (!showLiveTimer) {
+				log(formatProblemStartLine(index, solvedProblems.length, problem.name));
+			}
+
+			const startedAtMs = now();
+			let timerId: ReturnType<typeof setInterval> | undefined;
+			if (showLiveTimer) {
+				writeLiveLine(stream, formatRunningLiveLine(problem.name, 0));
+				timerId = setIntervalFn(() => {
+					replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAtMs));
+				}, 1000);
+			}
+
+			const solution = createProvidedSolution(problem);
+			const tableRow = validationTable.find((row) => row.problem === problem.name);
+			if (typeof tableRow === 'undefined') {
+				throw new TypeError(`Unable to find validation row for problem "${problem.name}"`);
+			}
+
+			const issueMessages: string[] = [];
+
+			let totalDurationMs = 0;
+			try {
+				checks += 1;
+				// oxlint-disable-next-line no-await-in-loop
+				const solutionResult = await (options.runProblemFn ?? runProblem)(problem, solution, {
+					debug: options.debug,
+					startVitest,
+				});
+				totalDurationMs += solutionResult.duration_ms;
+				if (!solutionResult.passed) {
+					const issue = `provided solution failed tests (${solutionResult.error ?? 'unknown error'})`;
+					failures.push(formatFailure(problem.name, issue));
+					issueMessages.push(issue);
+				}
+
+				// oxlint-disable-next-line no-await-in-loop
+				await closeVitestRunner();
+
+				checks += 1;
+				// oxlint-disable-next-line no-await-in-loop
+				const invalidResult = await (options.runProblemFn ?? runProblem)(problem, createInvalidSolution(problem), {
+					debug: options.debug,
+					startVitest,
+				});
+				totalDurationMs += invalidResult.duration_ms;
+				if (invalidResult.passed) {
+					const issue = 'tests accepted an intentionally invalid solution';
+					failures.push(formatFailure(problem.name, issue));
+					issueMessages.push(issue);
+				}
+			} finally {
+				if (typeof timerId !== 'undefined') {
+					clearIntervalFn(timerId);
+					clearLiveLine(stream);
+				}
+			}
+
+			tableRow.status = issueMessages.length === 0 ? 'passed' : 'failed';
+			tableRow.details = issueMessages.length === 0 ? 'Provided and negative checks passed' : issueMessages.join('; ');
+
+			log(
+				formatCompletedProblemLine({
+					index,
+					total: solvedProblems.length,
+					name: problem.name,
+					passed: issueMessages.length === 0,
+					durationMs: Math.max(totalDurationMs, now() - startedAtMs),
+					preferUnicode,
+				}),
+			);
+		}
+
+		printValidationTable(validationTable);
+
+		if (failures.length > 0) {
+			throw new Error(`Problem validation failed:\n${failures.join('\n')}`);
+		}
+
+		process.exitCode = 0;
+		console.log(`Validation passed for ${solvedCount}/${selectedProblems.length} problems with solutions (${checks} checks).`);
+	} finally {
+		await closeVitestRunner();
 	}
-
-	printValidationTable(validationTable);
-
-	if (failures.length > 0) {
-		throw new Error(`Problem validation failed:\n${failures.join('\n')}`);
-	}
-
-	process.exitCode = 0;
-	console.log(`Validation passed for ${solvedCount}/${selectedProblems.length} problems with solutions (${checks} checks).`);
 };
