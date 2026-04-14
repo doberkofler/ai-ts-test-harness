@@ -1,4 +1,5 @@
 import {STYLES, styleText} from './utils.ts';
+import {formatMs} from './core/time-format.ts';
 import {type Problem, type RuntimeConfig} from './types.ts';
 
 export const printRuntimeConfig = (problems: Problem[], config: RuntimeConfig): void => {
@@ -10,8 +11,8 @@ export const printRuntimeConfig = (problems: Problem[], config: RuntimeConfig): 
 	console.log(`Model:      ${styleText(config.model, STYLES.cyan)}`);
 	console.log(`Ollama URL: ${config.ollamaUrl}`);
 	console.log(`Auth:       ${authMode}`);
-	console.log(`Timeout:    ${config.llmTimeoutSecs}s`);
-	console.log(`Cooldown:   ${cooldownPeriodSecs}s`);
+	console.log(`Timeout:    ${formatMs(config.llmTimeoutSecs * 1000)}`);
+	console.log(`Cooldown:   ${formatMs(cooldownPeriodSecs * 1000)}`);
 	console.log(`Debug:      ${config.debug ? styleText('enabled', STYLES.yellow) : 'disabled'}`);
 	console.log(`Categories: ${Array.isArray(config.selectedCategories) && config.selectedCategories.length > 0 ? config.selectedCategories.join(', ') : 'all'}`);
 	console.log(`Problems:   ${problems.length}\n`);

@@ -1,6 +1,6 @@
 import {summarizeResults} from './core/results-summary.ts';
-import {formatClockTime, formatElapsedClock} from './core/time-format.ts';
-import {formatMs, STYLES, styleText} from './utils.ts';
+import {formatMs, formatClockTime} from './core/time-format.ts';
+import {STYLES, styleText} from './utils.ts';
 
 type CompletedProblemLineInput = {
 	index: number;
@@ -17,11 +17,11 @@ export const formatProblemStartLine = (index: number, total: number, name: strin
 	`${styleText(formatStep(index, total), STYLES.dim)} ${styleText(name, STYLES.bold)}`;
 
 export const formatRunningLiveLine = (name: string, elapsedMs: number): string =>
-	`Running ${styleText(name, STYLES.bold)} ${styleText(formatElapsedClock(elapsedMs), STYLES.dim)}`;
+	`Running ${styleText(name, STYLES.bold)} ${styleText(formatMs(elapsedMs), STYLES.dim)}`;
 
-export const formatCooldownLiveLine = (remainingMs: number): string => `Cooldown ${styleText(formatElapsedClock(remainingMs), STYLES.dim)}`;
+export const formatCooldownLiveLine = (remainingMs: number): string => `Cooldown ${styleText(formatMs(remainingMs), STYLES.dim)}`;
 
-export const formatCooldownStaticLine = (durationMs: number): string => `Cooldown ${formatElapsedClock(durationMs)}`;
+export const formatCooldownStaticLine = (durationMs: number): string => `Cooldown ${formatMs(durationMs)}`;
 
 export const formatCompletedProblemLine = (input: CompletedProblemLineInput): string => {
 	const statusSymbol = input.preferUnicode ? (input.passed ? '✓' : '✗') : input.passed ? 'PASS' : 'FAIL';

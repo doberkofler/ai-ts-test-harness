@@ -3,7 +3,8 @@ import {parse, resolve} from 'node:path';
 import {z} from 'zod';
 import {summarizeResults} from './core/results-summary.ts';
 import {type Result, type ResultsFile, type RuntimeConfig} from './types.ts';
-import {STYLES, styleText, formatMs, formatIsoToLocal} from './utils.ts';
+import {STYLES, styleText} from './utils.ts';
+import {formatMs, formatIsoToLocal} from './core/time-format.ts';
 
 const resultSchema = z.object({
 	problem: z.string(),

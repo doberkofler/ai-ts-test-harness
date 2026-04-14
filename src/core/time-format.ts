@@ -12,3 +12,28 @@ export const formatElapsedClock = (durationMs: number): string => {
 	const second = String(totalSeconds % 60).padStart(2, '0');
 	return `${hour}:${minute}:${second}`;
 };
+
+export const formatMs = (durationMs: number): string => {
+	if (durationMs < 1000) {
+		return `${durationMs}ms`;
+	}
+
+	if (durationMs < 60_000) {
+		return `${Math.round(durationMs / 1000)}s`;
+	}
+
+	if (durationMs < 3_600_000) {
+		return `${Math.round(durationMs / 60_000)}m`;
+	}
+
+	return `${Math.round(durationMs / 3_600_000)}h`;
+};
+
+export const formatIsoToLocal = (iso: string): string => {
+	const parsed = new Date(iso);
+	if (Number.isNaN(parsed.getTime())) {
+		return iso;
+	}
+
+	return parsed.toLocaleString();
+};

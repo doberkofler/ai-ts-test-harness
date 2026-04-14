@@ -9,28 +9,3 @@ export const STYLES = {
 } as const;
 
 export const styleText = (text: string, style: string): string => (process.stdout.isTTY ? `${style}${text}${STYLES.reset}` : text);
-
-export const formatMs = (durationMs: number): string => {
-	if (durationMs < 1000) {
-		return `${durationMs}ms`;
-	}
-
-	if (durationMs < 60_000) {
-		return `${Math.round(durationMs / 1000)}s`;
-	}
-
-	if (durationMs < 3_600_000) {
-		return `${Math.round(durationMs / 60_000)}m`;
-	}
-
-	return `${Math.round(durationMs / 3_600_000)}h`;
-};
-
-export const formatIsoToLocal = (iso: string): string => {
-	const parsed = new Date(iso);
-	if (Number.isNaN(parsed.getTime())) {
-		return iso;
-	}
-
-	return parsed.toLocaleString();
-};

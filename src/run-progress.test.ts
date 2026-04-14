@@ -11,9 +11,9 @@ import {
 describe('run progress formatting', () => {
 	test('formats problem start and live lines', () => {
 		expect(formatProblemStartLine(0, 3, 'sum')).toContain('[ 1/3] sum');
-		expect(formatRunningLiveLine('sum', 4200)).toContain('Running sum 00:00:04');
-		expect(formatCooldownLiveLine(3000)).toBe('Cooldown 00:00:03');
-		expect(formatCooldownStaticLine(2000)).toBe('Cooldown 00:00:02');
+		expect(formatRunningLiveLine('sum', 4200)).toContain('Running sum 4s');
+		expect(formatCooldownLiveLine(3000)).toBe('Cooldown 3s');
+		expect(formatCooldownStaticLine(2000)).toBe('Cooldown 2s');
 	});
 
 	test('formats completed lines for unicode and ascii modes', () => {

@@ -91,6 +91,6 @@ describe('executeProblems', () => {
 		);
 
 		expect(sleepMs).toHaveBeenCalledExactlyOnceWith(3000);
-		expect(log).toHaveBeenCalledWith('Cooldown 00:00:03');
+		expect(log).toHaveBeenCalledWith('Cooldown 3s');
 	});
 });
