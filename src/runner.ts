@@ -1,13 +1,10 @@
 import {writeFileSync, unlinkSync} from 'node:fs';
-import {basename, join} from 'node:path';
-import {createVitest, type CliOptions, type Vitest} from 'vitest/node';
+import {join} from 'node:path';
+import {type CliOptions, startVitest} from 'vitest/node';
 import {parseFunctionNameFromSignature} from './core/signature.ts';
 import {type Problem, type Result} from './types.ts';
 
 const TIMEOUT_MS = 5000;
-
-let persistentVitest: Vitest | undefined;
-let persistentVitestRoot: string | undefined;
 
 type VitestTaskLike = {
 	result?: {errors?: unknown[]};
@@ -22,15 +19,6 @@ type VitestRunLike = {
 		getCountOfFailedTests: () => number;
 	};
 	close: () => Promise<void>;
-};
-
-type VitestRunResultLike = {
-	testModules: {
-		ok: () => boolean;
-		state: () => string;
-		moduleId: string;
-	}[];
-	unhandledErrors: unknown[];
 };
 
 type StartVitestLike = (mode: 'test', cliFilters?: string[], options?: CliOptions) => Promise<VitestRunLike>;
@@ -144,33 +132,6 @@ const getVitestFailureOutput = (runnerInstance: VitestRunLike): string => {
 	return 'Vitest run failed';
 };
 
-const getVitestFailureOutputForModules = (runnerInstance: VitestRunLike, runResult: VitestRunResultLike, targetFile: string): string => {
-	const messages = new Set<string>();
-
-	for (const unhandledError of runResult.unhandledErrors) {
-		messages.add(getErrorOutput(unhandledError));
-	}
-
-	const failedFiles = runnerInstance.state.getFiles([targetFile]);
-	for (const failedFile of failedFiles) {
-		for (const error of getErrorsFromTask(failedFile)) {
-			messages.add(getErrorOutput(error));
-		}
-	}
-
-	if (messages.size > 0) {
-		return [...messages].join('\n\n');
-	}
-
-	const failedModuleIds = runResult.testModules.map((testModule) => testModule.moduleId);
-	if (failedModuleIds.length > 0) {
-		const failedModuleNames = failedModuleIds.map((moduleId) => basename(moduleId));
-		return `Failed test modules: ${failedModuleNames.join(', ')}`;
-	}
-
-	return 'Vitest run failed';
-};
-
 const withMutedOutput = async <T>(run: () => Promise<T>): Promise<T> => {
 	const originalStdoutWrite = process.stdout.write.bind(process.stdout);
 	const originalStderrWrite = process.stderr.write.bind(process.stderr);
@@ -219,96 +180,6 @@ const buildResultFromRunner = (problem: Problem, program: string, startedAtMs: n
 		passed: true,
 		duration_ms: Date.now() - startedAtMs,
 	};
-};
-
-const buildResultFromRunResult = (
-	problem: Problem,
-	program: string,
-	startedAtMs: number,
-	runnerInstance: VitestRunLike,
-	runResult: VitestRunResultLike,
-	targetFile: string,
-): Result => {
-	const targetedFiles = runnerInstance.state.getFiles([targetFile]);
-	if (targetedFiles.length === 0 && runResult.testModules.length === 0) {
-		return {
-			problem: problem.name,
-			category: problem.category,
-			program,
-			passed: false,
-			error: 'No tests were executed by Vitest',
-			duration_ms: Date.now() - startedAtMs,
-		};
-	}
-
-	const hasTaskErrors = targetedFiles.some((task) => getErrorsFromTask(task).length > 0);
-	if (hasTaskErrors || runResult.unhandledErrors.length > 0) {
-		return {
-			problem: problem.name,
-			category: problem.category,
-			program,
-			passed: false,
-			error: getVitestFailureOutputForModules(runnerInstance, runResult, targetFile),
-			duration_ms: Date.now() - startedAtMs,
-		};
-	}
-
-	return {
-		problem: problem.name,
-		category: problem.category,
-		program,
-		passed: true,
-		duration_ms: Date.now() - startedAtMs,
-	};
-};
-
-const createPersistentVitest = async (root: string, debug: boolean): Promise<Vitest> => {
-	if (persistentVitest && persistentVitestRoot === root) {
-		return persistentVitest;
-	}
-
-	if (persistentVitest && persistentVitestRoot !== root) {
-		try {
-			await persistentVitest.close();
-		} catch {
-			/* ignore */
-		}
-		persistentVitest = undefined;
-		persistentVitestRoot = undefined;
-	}
-
-	const createRunner = async (): Promise<Vitest> => {
-		const runner = await createVitest('test', {
-			run: false,
-			watch: true,
-			silent: true,
-			color: false,
-			testTimeout: TIMEOUT_MS,
-			reporters: ['dot'],
-			root,
-		});
-		await runner.standalone();
-		return runner;
-	};
-
-	persistentVitest = debug ? await createRunner() : await withMutedOutput(createRunner);
-	persistentVitestRoot = root;
-	return persistentVitest;
-};
-
-export const closeVitestRunner = async (): Promise<void> => {
-	if (!persistentVitest) {
-		return;
-	}
-
-	try {
-		await persistentVitest.close();
-	} catch {
-		/* ignore */
-	} finally {
-		persistentVitest = undefined;
-		persistentVitestRoot = undefined;
-	}
 };
 
 /*
@@ -438,50 +309,26 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 	writeFileSync(tmpFile, program, 'utf8');
 
 	const start = Date.now();
+	const runVitest = options.startVitest ?? startVitest;
+	let runnerInstance: VitestRunLike | undefined;
 
 	try {
-		if (options.startVitest) {
-			const startVitestFn = options.startVitest;
-			const runVitestOnce = async (): Promise<VitestRunLike> => {
-				const runner = await startVitestFn('test', [tmpFile], {
-					run: true,
-					watch: false,
-					silent: true,
-					color: false,
-					testTimeout: TIMEOUT_MS,
-					reporters: ['dot'],
-					root,
-				});
-				return runner;
-			};
-
-			let runnerInstance: VitestRunLike | undefined;
-			try {
-				runnerInstance = options.debug === true ? await runVitestOnce() : await withMutedOutput(runVitestOnce);
-				return buildResultFromRunner(problem, program, start, runnerInstance);
-			} finally {
-				if (runnerInstance) {
-					try {
-						await runnerInstance.close();
-					} catch {
-						/* ignore */
-					}
-				}
-			}
-		}
-
-		const runner = await createPersistentVitest(root, options.debug === true);
-		const runTests = async (): Promise<VitestRunResultLike> => {
-			runner.invalidateFile(tmpFile);
-			runner.clearSpecificationsCache(tmpFile);
-			const runResult = await runner.start([tmpFile]);
-			await runner.waitForTestRunEnd();
-			return runResult;
+		const runVitestOnce = async (): Promise<VitestRunLike> => {
+			const runner = await runVitest('test', [tmpFile], {
+				run: true,
+				watch: false,
+				silent: true,
+				color: false,
+				testTimeout: TIMEOUT_MS,
+				reporters: ['dot'],
+				root,
+			});
+			return runner;
 		};
 
-		const runResult = await (options.debug === true ? runTests() : withMutedOutput(runTests));
+		runnerInstance = options.debug === true ? await runVitestOnce() : await withMutedOutput(runVitestOnce);
 
-		return buildResultFromRunResult(problem, program, start, runner, runResult, tmpFile);
+		return buildResultFromRunner(problem, program, start, runnerInstance);
 	} catch (error) {
 		const errorText = getErrorOutput(error);
 		return {
@@ -493,6 +340,14 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 			duration_ms: Date.now() - start,
 		};
 	} finally {
+		if (runnerInstance) {
+			try {
+				await runnerInstance.close();
+			} catch {
+				/* ignore */
+			}
+		}
+
 		try {
 			unlinkSync(tmpFile);
 		} catch {
