@@ -146,6 +146,18 @@ export const linter = defineConfig({
 	},
 	overrides: [
 		{
+			files: ['src/problems/**/*.problem.ts'],
+			rules: {
+				'eslint/no-bitwise': 'off',
+				'eslint/prefer-numeric-literals': 'off',
+				'unicorn/consistent-function-scoping': 'off',
+				'unicorn/number-literal-case': 'off',
+				'unicorn/numeric-separators-style': 'off',
+				'unicorn/prefer-code-point': 'off',
+				'unicorn/prefer-math-trunc': 'off',
+			},
+		},
+		{
 			files: ['tests/e2e/**/*.e2e-test.ts', '**/*.e2e-test.ts'],
 			rules: {
 				'vitest/prefer-importing-vitest-globals': 'off',

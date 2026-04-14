@@ -15,6 +15,17 @@ export default defineRefactorProblem({
 		'}',
 	].join('\n'),
 	entry: 'getConfig',
+	solution: () =>
+		[
+			'type Config = {',
+			'\thost: string;',
+			'\tport: number;',
+			'};',
+			'',
+			'export function getConfig(): Config {',
+			"\treturn {host: 'localhost', port: 3000};",
+			'}',
+		].join('\n'),
 	tests: ({assert, transformed, code}) => {
 		assert.deepStrictEqual(transformed(), {host: 'localhost', port: 3000});
 		assert.doesNotMatch(code.result, /\bextra\b/, 'extra property must be removed');

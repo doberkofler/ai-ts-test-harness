@@ -6,6 +6,10 @@ export default defineRefactorProblem({
 	description: ["Fix missing required property 'age' in returned User object.", 'Keep name and include a numeric age default.'],
 	input: ['type User = {', '\tname: string;', '\tage: number;', '};', '', 'export function createUser(): User {', "\treturn {name: 'Alice'};", '}'].join('\n'),
 	entry: 'createUser',
+	solution: () =>
+		['type User = {', '\tname: string;', '\tage: number;', '};', '', 'export function createUser(): User {', "\treturn {name: 'Alice', age: 30};", '}'].join(
+			'\n',
+		),
 	tests: ({assert, transformed, code}) => {
 		const user = transformed();
 		if (typeof user !== 'object' || user === null) {

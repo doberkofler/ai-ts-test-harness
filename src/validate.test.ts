@@ -34,6 +34,20 @@ const refactorProblem: Problem = {
 	},
 };
 
+const missingSolutionProblem: Problem = {
+	name: 'no-solution-yet',
+	category: 'pending',
+	description: 'Problem without a provided solution',
+	signature: 'function noSolutionYet(): number',
+	tests: ({assert, implementation}) => {
+		if (typeof implementation !== 'function') {
+			throw new TypeError('expected implementation to be callable');
+		}
+
+		assert.strictEqual(Reflect.apply(implementation, undefined, []), 42);
+	},
+};
+
 describe('validateCommand', () => {
 	test('runs provided solutions and negative checks', async () => {
 		const logSpy = vi.spyOn(console, 'log');
@@ -62,12 +76,14 @@ describe('validateCommand', () => {
 			test: undefined,
 			category: undefined,
 			debug: false,
-			loadProblemsFn: () => [implementProblem, refactorProblem],
+			loadProblemsFn: () => [implementProblem, refactorProblem, missingSolutionProblem],
 			runProblemFn,
 		});
 
 		expect(runProblemFn).toHaveBeenCalledTimes(4);
-		expect(logSpy).toHaveBeenCalledWith('Validation passed for 2/2 problems with solutions (4 checks).');
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('no-solution-yet'));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('missing-solution'));
+		expect(logSpy).toHaveBeenCalledWith('Validation passed for 2/3 problems with solutions (4 checks).');
 		logSpy.mockRestore();
 	});
 

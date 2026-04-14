@@ -6,6 +6,7 @@ export default defineRefactorProblem({
 	description: ["Fix Property 'toUppercase' does not exist on type 'string'.", 'Preserve behavior and function signature.'],
 	input: ['export function shout(message: string): string {', '\treturn message.toUppercase();', '}'].join('\n'),
 	entry: 'shout',
+	solution: () => ['export function shout(message: string): string {', '\treturn message.toUpperCase();', '}'].join('\n'),
 	tests: ({assert, transformed, code}) => {
 		assert.strictEqual(transformed('hello'), 'HELLO');
 		assert.strictEqual(transformed(''), '');

@@ -7,6 +7,7 @@ export default defineRefactorProblem({
 		'Refactor the given TypeScript function declaration into a const arrow function expression. Preserve the parameter list, type annotations, and body exactly.',
 	input: ['function multiply(a: number, b: number): number {', '\treturn a * b;', '}'].join('\n'),
 	entry: 'multiply',
+	solution: () => ['const multiply = (a: number, b: number): number => {', '\treturn a * b;', '};'].join('\n'),
 	tests: ({assert, original, transformed, code}) => {
 		assert.strictEqual(transformed(3, 4), original(3, 4));
 		assert.strictEqual(transformed(-2, 5), original(-2, 5));

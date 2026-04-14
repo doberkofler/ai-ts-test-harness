@@ -1,28 +1,5 @@
 import {defineRefactorProblem} from '#problem-api';
 
-const extractIdFromFetchInput = (input: Parameters<typeof fetch>[0]): string => {
-	if (typeof input === 'string') {
-		return input.split('/').at(-1) ?? '';
-	}
-
-	if (input instanceof URL) {
-		return input.pathname.split('/').at(-1) ?? '';
-	}
-
-	return input.url.split('/').at(-1) ?? '';
-};
-
-const okFetch: typeof fetch = async (input) => {
-	const payload = {id: extractIdFromFetchInput(input), source: 'ok'};
-	const response = await Promise.resolve(Response.json(payload));
-	return response;
-};
-
-const failingFetch: typeof fetch = async () => {
-	await Promise.resolve();
-	throw new Error('network down');
-};
-
 export default defineRefactorProblem({
 	name: 'promises-to-async',
 	category: 'refactor',
@@ -36,7 +13,41 @@ export default defineRefactorProblem({
 		'}',
 	].join('\n'),
 	entry: 'fetchUser',
+	solution: () =>
+		[
+			'async function fetchUser(id: string): Promise<User> {',
+			'\ttry {',
+			['\t\tconst res = await fetch(`/api/users/', String.fromCodePoint(36), '{id}`);'].join(''),
+			'\t\treturn await res.json();',
+			'\t} catch (err) {',
+			['\t\tthrow new Error(`fetch failed: ', String.fromCodePoint(36), '{err}`);'].join(''),
+			'\t}',
+			'}',
+		].join('\n'),
 	tests: async ({assert, original, transformed, code}) => {
+		const extractIdFromFetchInput = (input: Parameters<typeof fetch>[0]): string => {
+			if (typeof input === 'string') {
+				return input.split('/').at(-1) ?? '';
+			}
+
+			if (input instanceof URL) {
+				return input.pathname.split('/').at(-1) ?? '';
+			}
+
+			return input.url.split('/').at(-1) ?? '';
+		};
+
+		const okFetch: typeof fetch = async (input) => {
+			const payload = {id: extractIdFromFetchInput(input), source: 'ok'};
+			const response = await Promise.resolve(Response.json(payload));
+			return response;
+		};
+
+		const failingFetch: typeof fetch = async () => {
+			await Promise.resolve();
+			throw new Error('network down');
+		};
+
 		const originalFetch = globalThis.fetch;
 
 		try {

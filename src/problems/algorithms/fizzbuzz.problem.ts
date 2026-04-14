@@ -5,6 +5,21 @@ export default defineImplementProblem({
 	category: 'logic',
 	description: 'Given a number n, return "Fizz" if divisible by 3, "Buzz" if divisible by 5, "FizzBuzz" if both, otherwise the number as a string.',
 	signature: 'function fizzbuzz(n: number): string',
+	solution: function fizzbuzz(n: number): string {
+		if (n % 15 === 0) {
+			return 'FizzBuzz';
+		}
+
+		if (n % 3 === 0) {
+			return 'Fizz';
+		}
+
+		if (n % 5 === 0) {
+			return 'Buzz';
+		}
+
+		return String(n);
+	},
 	tests: ({assert, implementation}) => {
 		assert.strictEqual(implementation(1), '1');
 		assert.strictEqual(implementation(3), 'Fizz');

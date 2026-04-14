@@ -9,6 +9,16 @@ export default defineImplementProblem({
 		'If the string is >= width, return it unchanged.',
 	],
 	signature: 'function centerText(text: string, width: number): string',
+	solution: function centerText(text: string, width: number): string {
+		if (text.length >= width) {
+			return text;
+		}
+
+		const totalPadding = width - text.length;
+		const leftPadding = Math.floor(totalPadding / 2);
+		const rightPadding = totalPadding - leftPadding;
+		return `${' '.repeat(leftPadding)}${text}${' '.repeat(rightPadding)}`;
+	},
 	tests: ({assert, implementation}) => {
 		assert.strictEqual(implementation('hi', 6), '  hi  ');
 		assert.strictEqual(implementation('hello', 9), '  hello  ');

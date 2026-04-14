@@ -15,6 +15,16 @@ export default defineRefactorProblem({
 		'}',
 	].join('\n'),
 	entry: 'addItem',
+	solution: () =>
+		[
+			'type Cart = {',
+			'\treadonly items: readonly string[];',
+			'};',
+			'',
+			'export function addItem(cart: Cart, item: string): Cart {',
+			'\treturn {items: [...cart.items, item]};',
+			'}',
+		].join('\n'),
 	tests: ({assert, transformed, code}) => {
 		const originalCart = {items: Object.freeze(['apple'])};
 		const result = transformed(originalCart, 'banana');

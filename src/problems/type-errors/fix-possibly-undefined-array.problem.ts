@@ -6,6 +6,15 @@ export default defineRefactorProblem({
 	description: ["Fix 'Object is possibly undefined' when reading first array element.", 'Throw an error for empty arrays.'],
 	input: ['export function firstUpper(items: string[]): string {', '\treturn items[0].toUpperCase();', '}'].join('\n'),
 	entry: 'firstUpper',
+	solution: () =>
+		[
+			'export function firstUpper(items: string[]): string {',
+			'\tif (items.length === 0) {',
+			"\t\tthrow new Error('items must not be empty');",
+			'\t}',
+			'\treturn items[0].toUpperCase();',
+			'}',
+		].join('\n'),
 	tests: ({assert, transformed, code}) => {
 		assert.strictEqual(transformed(['hello', 'world']), 'HELLO');
 		assert.throws(() => transformed([]));

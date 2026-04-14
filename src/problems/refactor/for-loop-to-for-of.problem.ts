@@ -15,6 +15,16 @@ export default defineRefactorProblem({
 		'}',
 	].join('\n'),
 	entry: 'sumAll',
+	solution: () =>
+		[
+			'function sumAll(numbers: number[]): number {',
+			'\tlet total = 0;',
+			'\tfor (const number of numbers) {',
+			'\t\ttotal += number;',
+			'\t}',
+			'\treturn total;',
+			'}',
+		].join('\n'),
 	tests: ({assert, original, transformed, code}) => {
 		assert.strictEqual(transformed([1, 2, 3, 4]), original([1, 2, 3, 4]));
 		assert.strictEqual(transformed([10, -5, 4]), original([10, -5, 4]));

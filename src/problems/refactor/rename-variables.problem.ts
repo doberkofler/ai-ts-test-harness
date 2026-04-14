@@ -9,6 +9,14 @@ export default defineRefactorProblem({
 		'\n',
 	),
 	entry: 'computeDiscount',
+	solution: () =>
+		[
+			'function computeDiscount(amount: number, discountPercent: number): number {',
+			'\tconst discountAmount = amount * (discountPercent / 100);',
+			'\tconst discountedTotal = amount - discountAmount;',
+			'\treturn discountedTotal;',
+			'}',
+		].join('\n'),
 	tests: ({assert, original, transformed, code}) => {
 		assert.strictEqual(transformed(100, 10), original(100, 10));
 		assert.strictEqual(transformed(49.99, 12.5), original(49.99, 12.5));
