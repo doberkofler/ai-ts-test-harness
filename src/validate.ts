@@ -1,16 +1,8 @@
 import {loadProblems} from './load-problems.ts';
-import {parseCategoryFilter, selectProblemsByFilters} from './run.ts';
+import {parseCategoryFilter, selectProblemsByFilters} from './core/problem-selection.ts';
+import {parseFunctionNameFromSignature} from './core/signature.ts';
 import {runProblem} from './runner.ts';
 import {type Problem} from './types.ts';
-
-const parseFunctionNameFromSignature = (signature: string): string => {
-	const match = /function\s+([A-Za-z_$][\w$]*)\s*\(/.exec(signature);
-	if (!match || typeof match[1] !== 'string') {
-		throw new TypeError(`Unable to extract function name from signature: ${signature}`);
-	}
-
-	return match[1];
-};
 
 const createInvalidSolution = (problem: Problem): string => {
 	if (problem.kind === 'direct-refactor') {
@@ -37,13 +29,15 @@ const createProvidedSolution = (problem: Problem): string => {
 	return problem.solution.toString();
 };
 
-export const validateCommand = async (options: {
+export type ValidateCommandOptions = {
 	test: string | undefined;
 	category: string | undefined;
 	debug: boolean;
 	loadProblemsFn?: typeof loadProblems;
 	runProblemFn?: typeof runProblem;
-}): Promise<void> => {
+};
+
+export const validateCommand = async (options: ValidateCommandOptions): Promise<void> => {
 	const allProblems = (options.loadProblemsFn ?? loadProblems)('./src/problems');
 	const selectedCategories = parseCategoryFilter(options.category);
 	const selectedProblems = selectProblemsByFilters(allProblems, options.test, selectedCategories);

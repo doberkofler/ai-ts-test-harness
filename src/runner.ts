@@ -1,6 +1,7 @@
 import {writeFileSync, unlinkSync} from 'node:fs';
 import {join} from 'node:path';
 import {type CliOptions, startVitest} from 'vitest/node';
+import {parseFunctionNameFromSignature} from './core/signature.ts';
 import {type Problem, type Result} from './types.ts';
 
 const TIMEOUT_MS = 5000;
@@ -29,15 +30,6 @@ export type RunProblemOptions = {
 };
 
 const sanitizeForFileName = (value: string): string => value.replaceAll(/[^\w-]/g, '_');
-
-const parseFunctionNameFromSignature = (signature: string): string => {
-	const match = /function\s+([A-Za-z_$][\w$]*)\s*\(/.exec(signature);
-	if (!match || typeof match[1] !== 'string') {
-		throw new TypeError(`Unable to extract function name from signature: ${signature}`);
-	}
-
-	return match[1];
-};
 
 const indentBlock = (text: string, indent: string): string =>
 	text

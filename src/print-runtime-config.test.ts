@@ -1,0 +1,38 @@
+import {describe, expect, test, vi} from 'vitest';
+import {printRuntimeConfig} from './print-runtime-config.ts';
+import {type Problem} from './types.ts';
+
+const makeProblem = (name: string, category = 'logic'): Problem => ({
+	name,
+	category,
+	description: ['test problem'],
+	signature: `function ${name}(value: number): number`,
+	tests: ({assert}): void => {
+		assert.strictEqual(true, true);
+	},
+});
+
+describe('printRuntimeConfig', () => {
+	test('prints runtime summary with category filter and auth mode', () => {
+		let loggedLines = 0;
+		const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
+			loggedLines += 1;
+		});
+
+		printRuntimeConfig([makeProblem('one')], {
+			model: 'model-a',
+			debug: true,
+			llmTimeoutSecs: 60,
+			cooldownPeriodSecs: 5,
+			ollamaUrl: 'http://localhost:11434/v1',
+			apiKey: 'secret',
+			selectedCategories: ['logic'],
+		});
+
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('AI Test Harness'));
+		expect(logSpy).toHaveBeenCalledWith('Auth       : api-key');
+		expect(logSpy).toHaveBeenCalledWith('Categories : logic');
+		expect(loggedLines).toBeGreaterThan(0);
+		logSpy.mockRestore();
+	});
+});

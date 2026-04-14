@@ -1,5 +1,5 @@
 import {describe, expect, test} from 'vitest';
-import {formatResultsFile, parseCategoryFilter, selectProblems, selectProblemsByFilters} from './run.ts';
+import {buildExecuteRunOptions, buildRuntimeConfig, formatResultsFile, parseCategoryFilter, selectProblems, selectProblemsByFilters} from './run.ts';
 import {formatResultsHtmlFile, parseResultsFile} from './report.ts';
 import {type Problem, type Result} from './types.ts';
 
@@ -79,6 +79,58 @@ describe('formatResultsFile', () => {
 
 		expect(output).not.toHaveProperty('api_key');
 		expect(output).not.toHaveProperty('oauth_token');
+	});
+});
+
+describe('run context builders', () => {
+	test('buildRuntimeConfig keeps selected categories and auth settings', () => {
+		const config = buildRuntimeConfig(
+			{
+				model: 'test-model',
+				debug: true,
+				llmTimeoutSecs: 90,
+				cooldownPeriodSecs: 3,
+				ollamaUrl: 'http://localhost:11434/v1',
+				apiKey: 'secret',
+				output: 'results.json',
+				test: 'fizzbuzz',
+				category: 'logic',
+			},
+			['logic'],
+		);
+
+		expect(config).toEqual({
+			model: 'test-model',
+			debug: true,
+			llmTimeoutSecs: 90,
+			cooldownPeriodSecs: 3,
+			ollamaUrl: 'http://localhost:11434/v1',
+			apiKey: 'secret',
+			selectedCategories: ['logic'],
+		});
+	});
+
+	test('buildExecuteRunOptions contains only execution options', () => {
+		const executeOptions = buildExecuteRunOptions({
+			model: 'test-model',
+			debug: false,
+			llmTimeoutSecs: 90,
+			cooldownPeriodSecs: 0,
+			ollamaUrl: 'http://localhost:11434/v1',
+			oauthToken: 'oauth-token',
+			output: 'results.json',
+			test: undefined,
+			category: undefined,
+		});
+
+		expect(executeOptions).toEqual({
+			model: 'test-model',
+			debug: false,
+			llmTimeoutSecs: 90,
+			cooldownPeriodSecs: 0,
+			ollamaUrl: 'http://localhost:11434/v1',
+			oauthToken: 'oauth-token',
+		});
 	});
 });
 

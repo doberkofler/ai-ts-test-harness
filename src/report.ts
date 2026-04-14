@@ -1,6 +1,7 @@
 import {writeFileSync, readFileSync} from 'node:fs';
 import {parse, resolve} from 'node:path';
 import {z} from 'zod';
+import {summarizeResults} from './core/results-summary.ts';
 import {type Result, type ResultsFile, type RuntimeConfig} from './types.ts';
 import {STYLES, styleText, formatMs, formatIsoToLocal} from './utils.ts';
 
@@ -29,10 +30,7 @@ const resultsFileSchema = z.object({
 });
 
 export const printSummary = (results: Result[]): void => {
-	const passed = results.filter((r) => r.passed).length;
-	const total = results.length;
-	const failed = total - passed;
-	const rate = total === 0 ? 0 : Math.round((passed / total) * 100);
+	const summary = summarizeResults(results);
 
 	console.log(styleText('Results', STYLES.bold));
 	console.log(styleText('─'.repeat(64), STYLES.dim));
@@ -45,7 +43,7 @@ export const printSummary = (results: Result[]): void => {
 		}
 	}
 	console.log(styleText('─'.repeat(64), STYLES.dim));
-	console.log(`Pass@1: ${styleText(`${passed}/${total}`, STYLES.bold)} (${rate}%)  Failed: ${failed}\n`);
+	console.log(`Pass@1: ${styleText(`${summary.passed}/${summary.total}`, STYLES.bold)} (${summary.passRatePercent}%)  Failed: ${summary.failed}\n`);
 };
 
 export const deriveHtmlOutputPath = (jsonOutputPath: string): string => {
@@ -547,6 +545,8 @@ render();
 };
 
 export const formatResultsHtmlFile = (results: Result[], config: RuntimeConfig): string => {
+	const summary = summarizeResults(results);
+
 	const payload: ResultsFile = {
 		generated_at: new Date().toISOString(),
 		model: config.model,
@@ -555,10 +555,10 @@ export const formatResultsHtmlFile = (results: Result[], config: RuntimeConfig):
 		...(typeof config.cooldownPeriodSecs === 'number' ? {cooldown_period_secs: config.cooldownPeriodSecs} : {}),
 		debug: config.debug,
 		...(Array.isArray(config.selectedCategories) ? {selected_categories: config.selectedCategories} : {}),
-		total: results.length,
-		passed: results.filter((r) => r.passed).length,
-		failed: results.filter((r) => !r.passed).length,
-		pass_rate_percent: results.length === 0 ? 0 : Math.round((results.filter((r) => r.passed).length / results.length) * 100),
+		total: summary.total,
+		passed: summary.passed,
+		failed: summary.failed,
+		pass_rate_percent: summary.passRatePercent,
 		results,
 	};
 	return renderResultsHtml(payload);
@@ -612,7 +612,12 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 	};
 };
 
-export const reportCommand = (options: {output: string; htmlOutput: string | undefined}): void => {
+export type ReportCommandOptions = {
+	output: string;
+	htmlOutput: string | undefined;
+};
+
+export const reportCommand = (options: ReportCommandOptions): void => {
 	const jsonContent = readFileSync(resolve(options.output), 'utf8');
 	const data = parseResultsFile(jsonContent);
 
