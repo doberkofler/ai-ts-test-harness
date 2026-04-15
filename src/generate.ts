@@ -3,9 +3,27 @@ import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_OLLAMA_URL} from './config.ts';
 import {type Problem} from './types.ts';
 
 const clientsByUrl = new Map<string, OpenAI>();
+const DEBUG_SECTION_RULE = '='.repeat(72);
+const DEBUG_CONTENT_RULE = '-'.repeat(72);
 
 type ChatCompletionResponse = {
-	choices: {message?: {content?: string | null}}[];
+	choices: {
+		message?: {
+			content?: string | null;
+			reasoning?: string | null;
+			reasoning_content?: string | null;
+		};
+	}[];
+};
+
+type ChatCompletionChunk = {
+	choices: {
+		delta?: {
+			content?: string | null;
+			reasoning?: string | null;
+			reasoning_content?: string | null;
+		};
+	}[];
 };
 
 type CompletionRequest = {
@@ -20,6 +38,8 @@ type CompletionOptions = {
 
 type CreateCompletion = (request: CompletionRequest, options: CompletionOptions) => Promise<ChatCompletionResponse>;
 
+type CreateCompletionStream = (request: CompletionRequest, options: CompletionOptions) => AsyncIterable<ChatCompletionChunk>;
+
 export type GenerateOptions = {
 	model: string;
 	ollamaUrl?: string;
@@ -28,6 +48,7 @@ export type GenerateOptions = {
 	debug?: boolean;
 	llmTimeoutSecs?: number;
 	createCompletion?: CreateCompletion;
+	createCompletionStream?: CreateCompletionStream;
 };
 
 const createCompletionForUrl = (ollamaUrl: string, authKey?: string): CreateCompletion => {
@@ -40,6 +61,21 @@ const createCompletionForUrl = (ollamaUrl: string, authKey?: string): CreateComp
 	return async (request, options) => {
 		const response = await client.chat.completions.create(request, {timeout: options.timeout});
 		return response;
+	};
+};
+
+const createCompletionStreamForUrl = (ollamaUrl: string, authKey?: string): CreateCompletionStream => {
+	const clientKey = `${ollamaUrl}|${authKey ?? 'ollama'}`;
+	const client = clientsByUrl.get(clientKey) ?? new OpenAI({baseURL: ollamaUrl, apiKey: authKey ?? 'ollama', maxRetries: 0});
+	if (!clientsByUrl.has(clientKey)) {
+		clientsByUrl.set(clientKey, client);
+	}
+
+	return async function* streamCompletionGenerator(request, options) {
+		const stream = await client.chat.completions.create({...request, stream: true}, {timeout: options.timeout});
+		for await (const chunk of stream) {
+			yield chunk;
+		}
 	};
 };
 
@@ -58,6 +94,78 @@ const resolveLlmTimeoutSecs = (llmTimeoutSecs: number): number => {
 	}
 
 	return llmTimeoutSecs;
+};
+
+const extractModelThinking = (message: {reasoning?: string | null; reasoning_content?: string | null} | undefined): string | undefined => {
+	if (message && typeof message.reasoning === 'string' && message.reasoning.trim().length > 0) {
+		return message.reasoning;
+	}
+
+	if (message && typeof message.reasoning_content === 'string' && message.reasoning_content.trim().length > 0) {
+		return message.reasoning_content;
+	}
+
+	return undefined;
+};
+
+const createLiveLineLogger = (header: string): {push: (text: string) => void; flush: () => void} => {
+	let started = false;
+	let buffer = '';
+
+	const ensureStarted = (): void => {
+		if (started) {
+			return;
+		}
+
+		started = true;
+		console.log(`\n${DEBUG_SECTION_RULE}`);
+		console.log(`[debug] ${header}`);
+		console.log(DEBUG_CONTENT_RULE);
+	};
+
+	return {
+		push: (text) => {
+			if (text.length === 0) {
+				return;
+			}
+
+			ensureStarted();
+			buffer += text;
+
+			let newlineIndex = buffer.indexOf('\n');
+			while (newlineIndex >= 0) {
+				const line = buffer.slice(0, newlineIndex);
+				console.log(line);
+				buffer = buffer.slice(newlineIndex + 1);
+				newlineIndex = buffer.indexOf('\n');
+			}
+		},
+		flush: () => {
+			if (!started || buffer.length === 0) {
+				if (started) {
+					console.log(DEBUG_SECTION_RULE);
+				}
+				return;
+			}
+
+			console.log(buffer);
+			console.log(DEBUG_SECTION_RULE);
+			buffer = '';
+		},
+	};
+};
+
+const printDebugBlock = (header: string, body: string, metadata?: readonly string[]): void => {
+	console.log(`\n${DEBUG_SECTION_RULE}`);
+	console.log(`[debug] ${header}`);
+	if (metadata) {
+		for (const line of metadata) {
+			console.log(`[debug] ${line}`);
+		}
+	}
+	console.log(DEBUG_CONTENT_RULE);
+	console.log(body);
+	console.log(DEBUG_SECTION_RULE);
 };
 
 /*
@@ -94,12 +202,14 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 				].join('\n');
 
 	if (options.debug === true) {
-		console.log('\n[debug] LLM request');
-		console.log(prompt);
+		printDebugBlock('LLM request', prompt, [`problem: ${problem.name}`, `model: ${options.model}`]);
 	}
 
 	const authKey = options.apiKey ?? options.oauthToken;
-	const completion = options.createCompletion ?? createCompletionForUrl(options.ollamaUrl ?? DEFAULT_OLLAMA_URL, authKey);
+	const ollamaUrl = options.ollamaUrl ?? DEFAULT_OLLAMA_URL;
+	const completion = options.createCompletion ?? createCompletionForUrl(ollamaUrl, authKey);
+	const completionStream =
+		options.createCompletionStream ?? (options.createCompletion === undefined ? createCompletionStreamForUrl(ollamaUrl, authKey) : undefined);
 	const llmTimeoutSecs = resolveLlmTimeoutSecs(options.llmTimeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS);
 	const requestTimeoutMs = llmTimeoutSecs * 1000;
 
@@ -114,17 +224,58 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		],
 	};
 
+	if (options.debug === true && completionStream !== undefined) {
+		const thinkingLogger = createLiveLineLogger('LLM thinking (stream)');
+		const responseLogger = createLiveLineLogger('LLM response (stream)');
+		let generatedCode = '';
+
+		for await (const chunk of completionStream(request, {timeout: requestTimeoutMs})) {
+			const [firstChoice] = chunk.choices;
+			const delta = firstChoice && 'delta' in firstChoice ? firstChoice.delta : undefined;
+
+			const thinkingDelta =
+				delta && typeof delta.reasoning === 'string'
+					? delta.reasoning
+					: delta && typeof delta.reasoning_content === 'string'
+						? delta.reasoning_content
+						: undefined;
+			if (typeof thinkingDelta === 'string') {
+				thinkingLogger.push(thinkingDelta);
+			}
+
+			const responseDelta = delta && typeof delta.content === 'string' ? delta.content : undefined;
+			if (typeof responseDelta === 'string') {
+				responseLogger.push(responseDelta);
+				generatedCode += responseDelta;
+			}
+		}
+
+		thinkingLogger.flush();
+		responseLogger.flush();
+
+		if (generatedCode.length === 0) {
+			throw new TypeError(`Empty response for problem: ${problem.name}`);
+		}
+
+		return stripFences(generatedCode);
+	}
+
 	const res = await completion(request, {timeout: requestTimeoutMs});
 
-	// oxlint-disable-next-line oxc/no-optional-chaining, typescript/no-unnecessary-condition
-	const text = res.choices[0]?.message?.content;
+	const [firstChoice] = res.choices;
+	const message = firstChoice && 'message' in firstChoice ? firstChoice.message : undefined;
+	const text = message && 'content' in message ? message.content : undefined;
 	if (typeof text !== 'string') {
 		throw new TypeError(`Empty response for problem: ${problem.name}`);
 	}
 
 	if (options.debug === true) {
-		console.log('\n[debug] LLM response');
-		console.log(text);
+		const modelThinking = extractModelThinking(message);
+		if (typeof modelThinking === 'string') {
+			printDebugBlock('LLM thinking', modelThinking, [`problem: ${problem.name}`]);
+		}
+
+		printDebugBlock('LLM response', text, [`problem: ${problem.name}`]);
 	}
 
 	return stripFences(text);

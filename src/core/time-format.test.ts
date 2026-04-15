@@ -28,6 +28,15 @@ describe('formatMs', () => {
 		expect(formatMs(999)).toBe('999ms');
 	});
 
+	test('uses timer style for live progress durations', () => {
+		expect(formatMs(420, {style: 'timer'})).toBe('0s');
+		expect(formatMs(4200, {style: 'timer'})).toBe('4s');
+		expect(formatMs(60_000, {style: 'timer'})).toBe('1m');
+		expect(formatMs(61_000, {style: 'timer'})).toBe('1m 1s');
+		expect(formatMs(3_600_000, {style: 'timer'})).toBe('1h');
+		expect(formatMs(3_661_000, {style: 'timer'})).toBe('1h 1m 1s');
+	});
+
 	test('uses rounded seconds for second-scale durations', () => {
 		expect(formatMs(1000)).toBe('1s');
 		expect(formatMs(1499)).toBe('1s');

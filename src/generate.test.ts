@@ -25,6 +25,9 @@ const directRefactorProblem: Problem = {
 	},
 };
 
+const readLoggedOutput = (calls: readonly unknown[][]): string =>
+	calls.map(([firstArg]) => (typeof firstArg === 'string' ? firstArg : String(firstArg))).join('\n');
+
 describe('generate', () => {
 	test('uses expected default ollama endpoint', () => {
 		expect(DEFAULT_OLLAMA_URL).toBe('http://localhost:11434/v1');
@@ -58,8 +61,56 @@ describe('generate', () => {
 			},
 		});
 
-		expect(logSpy).toHaveBeenCalledWith('\n[debug] LLM request');
-		expect(logSpy).toHaveBeenCalledWith('\n[debug] LLM response');
+		const output = readLoggedOutput(logSpy.mock.calls);
+		expect(output).toContain('[debug] LLM request');
+		expect(output).toContain('[debug] LLM response');
+		logSpy.mockRestore();
+	});
+
+	test('logs model thinking when available in debug mode', async () => {
+		const logSpy = vi.spyOn(console, 'log');
+
+		await generate(problem, {
+			model: 'test-model',
+			debug: true,
+			createCompletion: async () => {
+				const response = await Promise.resolve({
+					choices: [{message: {content: 'return a + b;', reasoning_content: 'I will add both inputs and return the result.'}}],
+				});
+				return response;
+			},
+		});
+
+		const output = readLoggedOutput(logSpy.mock.calls);
+		expect(output).toContain('[debug] LLM thinking');
+		expect(output).toContain('I will add both inputs and return the result.');
+		logSpy.mockRestore();
+	});
+
+	test('streams thinking and response line by line in debug mode', async () => {
+		const logSpy = vi.spyOn(console, 'log');
+
+		await generate(problem, {
+			model: 'test-model',
+			debug: true,
+			async *createCompletionStream() {
+				await Promise.resolve();
+				yield {choices: [{delta: {reasoning_content: 'planning line 1\nplanning'}}]};
+				yield {choices: [{delta: {reasoning_content: ' line 2\n'}}]};
+				yield {choices: [{delta: {content: 'return a'}}]};
+				yield {choices: [{delta: {content: ' + b;\nconst result = a + b;'}}]};
+				yield {choices: [{delta: {content: '\nreturn result;'}}]};
+			},
+		});
+
+		const output = readLoggedOutput(logSpy.mock.calls);
+		expect(output).toContain('[debug] LLM thinking (stream)');
+		expect(output).toContain('planning line 1');
+		expect(output).toContain('planning line 2');
+		expect(output).toContain('[debug] LLM response (stream)');
+		expect(output).toContain('return a + b;');
+		expect(output).toContain('const result = a + b;');
+		expect(output).toContain('return result;');
 		logSpy.mockRestore();
 	});
 

@@ -17,11 +17,11 @@ export const formatProblemStartLine = (index: number, total: number, name: strin
 	`${styleText(formatStep(index, total), STYLES.dim)} ${styleText(name, STYLES.bold)}`;
 
 export const formatRunningLiveLine = (name: string, elapsedMs: number): string =>
-	`Running ${styleText(name, STYLES.bold)} ${styleText(formatMs(elapsedMs), STYLES.dim)}`;
+	`Running ${styleText(name, STYLES.bold)} ${styleText(formatMs(elapsedMs, {style: 'timer'}), STYLES.dim)}`;
 
-export const formatCooldownLiveLine = (remainingMs: number): string => `Cooldown ${styleText(formatMs(remainingMs), STYLES.dim)}`;
+export const formatCooldownLiveLine = (remainingMs: number): string => `Cooldown ${styleText(formatMs(remainingMs, {style: 'timer'}), STYLES.dim)}`;
 
-export const formatCooldownStaticLine = (durationMs: number): string => `Cooldown ${formatMs(durationMs)}`;
+export const formatCooldownStaticLine = (durationMs: number): string => `Cooldown ${formatMs(durationMs, {style: 'timer'})}`;
 
 export const formatCompletedProblemLine = (input: CompletedProblemLineInput): string => {
 	const statusSymbol = input.preferUnicode ? (input.passed ? '✓' : '✗') : input.passed ? 'PASS' : 'FAIL';
