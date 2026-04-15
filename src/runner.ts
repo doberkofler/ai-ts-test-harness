@@ -148,13 +148,13 @@ const withMutedOutput = async <T>(run: () => Promise<T>): Promise<T> => {
 	}
 };
 
-const buildResultFromRunner = (problem: Problem, program: string, startedAtMs: number, runnerInstance: VitestRunLike): Result => {
+const buildResultFromRunner = (problem: Problem, resultProgram: string, startedAtMs: number, runnerInstance: VitestRunLike): Result => {
 	const executedFiles = runnerInstance.state.getFiles();
 	if (executedFiles.length === 0) {
 		return {
 			problem: problem.name,
 			category: problem.category,
-			program,
+			program: resultProgram,
 			passed: false,
 			error: 'No tests were executed by Vitest',
 			duration_ms: Date.now() - startedAtMs,
@@ -166,7 +166,7 @@ const buildResultFromRunner = (problem: Problem, program: string, startedAtMs: n
 		return {
 			problem: problem.name,
 			category: problem.category,
-			program,
+			program: resultProgram,
 			passed: false,
 			error: getVitestFailureOutput(runnerInstance),
 			duration_ms: Date.now() - startedAtMs,
@@ -176,7 +176,7 @@ const buildResultFromRunner = (problem: Problem, program: string, startedAtMs: n
 	return {
 		problem: problem.name,
 		category: problem.category,
-		program,
+		program: resultProgram,
 		passed: true,
 		duration_ms: Date.now() - startedAtMs,
 	};
@@ -328,13 +328,13 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 
 		runnerInstance = options.debug === true ? await runVitestOnce() : await withMutedOutput(runVitestOnce);
 
-		return buildResultFromRunner(problem, program, start, runnerInstance);
+		return buildResultFromRunner(problem, generatedCode, start, runnerInstance);
 	} catch (error) {
 		const errorText = getErrorOutput(error);
 		return {
 			problem: problem.name,
 			category: problem.category,
-			program,
+			program: generatedCode,
 			passed: false,
 			error: errorText,
 			duration_ms: Date.now() - start,

@@ -102,10 +102,10 @@ export type SystemInfo = {
 export type ResultsFile = {
 	generated_at: string;
 	model: string;
-	ollama_url: string;
-	llm_timeout_secs: number;
+	ollama_url?: string;
+	llm_timeout_secs?: number;
 	cooldown_period_secs?: number;
-	debug: boolean;
+	debug?: boolean;
 	selected_categories?: string[];
 	system_info?: SystemInfo;
 	total: number;

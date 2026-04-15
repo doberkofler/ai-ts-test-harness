@@ -18,10 +18,10 @@ const resultSchema = z.object({
 const resultsFileSchema = z.object({
 	generated_at: z.string(),
 	model: z.string(),
-	ollama_url: z.string(),
-	llm_timeout_secs: z.number(),
+	ollama_url: z.string().optional(),
+	llm_timeout_secs: z.number().optional(),
 	cooldown_period_secs: z.number().optional(),
-	debug: z.boolean(),
+	debug: z.boolean().optional(),
 	selected_categories: z.array(z.string()).optional(),
 	system_info: z
 		.object({
@@ -410,7 +410,7 @@ tbody tr:hover {
 			<span>Generated: ${formatIsoToLocal(payload.generated_at)}</span>
 			<span>Model: ${payload.model}</span>
 			<span>Categories: ${Array.isArray(payload.selected_categories) && payload.selected_categories.length > 0 ? payload.selected_categories.join(', ') : 'all'}</span>
-			<span>Timeout: ${payload.llm_timeout_secs}s</span>
+			<span>Timeout: ${typeof payload.llm_timeout_secs === 'number' ? payload.llm_timeout_secs : 'n/a'}${typeof payload.llm_timeout_secs === 'number' ? 's' : ''}</span>
 			<span>Cooldown: ${typeof payload.cooldown_period_secs === 'number' ? payload.cooldown_period_secs : 0}s</span>
 			${hardwareInfo}
 		</div>
@@ -636,10 +636,10 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 	return {
 		generated_at: parsed.generated_at,
 		model: parsed.model,
-		ollama_url: parsed.ollama_url,
-		llm_timeout_secs: parsed.llm_timeout_secs,
+		...(typeof parsed.ollama_url === 'string' ? {ollama_url: parsed.ollama_url} : {}),
+		...(typeof parsed.llm_timeout_secs === 'number' ? {llm_timeout_secs: parsed.llm_timeout_secs} : {}),
 		...(typeof parsed.cooldown_period_secs === 'number' ? {cooldown_period_secs: parsed.cooldown_period_secs} : {}),
-		debug: parsed.debug,
+		...(typeof parsed.debug === 'boolean' ? {debug: parsed.debug} : {}),
 		...(Array.isArray(parsed.selected_categories) ? {selected_categories: parsed.selected_categories} : {}),
 		...(typeof systemInfo === 'undefined' ? {} : {system_info: systemInfo}),
 		total: parsed.total,

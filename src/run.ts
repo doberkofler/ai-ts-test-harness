@@ -45,12 +45,6 @@ export const formatResultsFile = (results: Result[], config: RuntimeConfig): Res
 	return {
 		generated_at: new Date().toISOString(),
 		model: config.model,
-		ollama_url: config.ollamaUrl,
-		llm_timeout_secs: config.llmTimeoutSecs,
-		...(typeof config.cooldownPeriodSecs === 'number' ? {cooldown_period_secs: config.cooldownPeriodSecs} : {}),
-		debug: config.debug,
-		...(Array.isArray(config.selectedCategories) ? {selected_categories: config.selectedCategories} : {}),
-		...(config.systemInfo ? {system_info: config.systemInfo} : {}),
 		total: summary.total,
 		passed: summary.passed,
 		failed: summary.failed,
