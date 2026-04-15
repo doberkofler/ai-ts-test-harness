@@ -31,7 +31,7 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 - `--llm-timeout <seconds>`: Timeout for each LLM response in seconds. Default: `120` (2 minutes).
 - `--output <file>`: JSON file path for saving run results. Default: `results.json`.
 - `--html-output <file>`: Optional HTML report path. If omitted, the CLI writes one next to `--output` using the same filename and `.html` extension.
-- `--test <name>`: Run only one specific problem by exact name (for example, `--test=fizzbuzz`).
+- `--test <name>`: Run only one specific problem by exact name (for example, `--test=boolean-expression-evaluator`).
 - `--category <list>`: Run only problems in the listed categories (comma-separated, for example, `--category=algorithms,refactor`).
 
 ### CLI Commands
@@ -98,7 +98,7 @@ Problems are executed in ascending alphabetical order by relative path under `sr
 
 - The problem `name` is derived from the filename (without `.problem.ts`).
 - The exported `name` value must match the filename exactly.
-- Example: `src/problems/logic/fizzbuzz.problem.ts` -> `name: 'fizzbuzz'`.
+- Example: `src/problems/logic/boolean-expression-evaluator.problem.ts` -> `name: 'boolean-expression-evaluator'`.
 
 ### Module Shape
 
@@ -131,16 +131,27 @@ Shared required fields:
 import {defineImplementProblem} from '#problem-api';
 
 export default defineImplementProblem({
-  name: 'add',
-  description: 'Return the sum of two numbers.',
-  solution: function add(a: number, b: number): number {
-    return a + b;
+  name: 'integer-break-max-product',
+  description: 'Split n into at least two positive integers and return the maximum possible product.',
+  solution: function integerBreakMaxProduct(n: number): number {
+    if (n <= 3) {
+      return n - 1;
+    }
+
+    let product = 1;
+    let remaining = n;
+    while (remaining > 4) {
+      product *= 3;
+      remaining -= 3;
+    }
+
+    return product * remaining;
   },
-  signature: 'function add(a: number, b: number): number',
+
+  signature: 'function integerBreakMaxProduct(n: number): number',
 	 tests: ({assert, implementation}) => {
-	 	const add = implementation as (a: number, b: number) => number;
-	 	assert.strictEqual(add(1, 2), 3);
-	 	assert.strictEqual(add(-1, 1), 0);
+	 	assert.strictEqual(implementation(2), 1);
+	 	assert.strictEqual(implementation(10), 36);
 	 },
 });
 ```
