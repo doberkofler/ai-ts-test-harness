@@ -93,5 +93,4 @@ yarn.lock
 # ---------------------------
 # Custom
 # ---------------------------
-results.json
-results.html
+results/*.html
