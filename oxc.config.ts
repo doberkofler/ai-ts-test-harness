@@ -4,6 +4,8 @@ import {configs as regexpConfigs} from 'eslint-plugin-regexp';
 /** Filter out core ESLint rules bundled into eslint-plugin-regexp recommended config */
 const regexpPluginRules = Object.fromEntries(Object.entries(regexpConfigs.recommended.rules).filter(([key]) => key.startsWith('regexp/')));
 
+const regexpRulesDisabled = Object.fromEntries(Object.keys(regexpPluginRules).map((key) => [key, 'off']));
+
 const commonIgnore = ['**/.*', 'node_modules/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**', 'public/**', '**/*.md', '**/*.json'];
 
 export const linter = defineConfig({
@@ -24,6 +26,7 @@ export const linter = defineConfig({
 	},
 	rules: {
 		...regexpPluginRules,
+		'regexp/use-ignore-case': 'off',
 		'eslint/complexity': 'off', // TODO: consider enabling
 		'eslint/curly': ['error', 'all'],
 		'eslint/id-length': 'off',
@@ -148,6 +151,7 @@ export const linter = defineConfig({
 		{
 			files: ['src/problems/**/*.problem.ts'],
 			rules: {
+				...regexpRulesDisabled,
 				'eslint/no-bitwise': 'off',
 				'eslint/prefer-numeric-literals': 'off',
 				'unicorn/consistent-function-scoping': 'off',
