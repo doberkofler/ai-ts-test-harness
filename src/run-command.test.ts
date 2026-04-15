@@ -1,6 +1,7 @@
 import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {gunzipSync} from 'node:zlib';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import {parseResultsFile} from './report.ts';
 import {type Problem, type Result} from './types.ts';
@@ -90,5 +91,27 @@ describe('runCommand', () => {
 
 		expect(loadProblemsMock).not.toHaveBeenCalled();
 		expect(executeProblemsMock).not.toHaveBeenCalled();
+	});
+
+	test('writes compressed JSON when output is a directory', async () => {
+		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic')]);
+		executeProblemsMock.mockResolvedValue([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}]);
+
+		const runResult = await runCommand({
+			model: 'test-model',
+			debug: false,
+			llmTimeoutSecs: '90',
+			cooldownPeriodSecs: '1',
+			ollamaUrl: 'http://localhost:11434/v1',
+			output: tempDir,
+			test: undefined,
+			category: 'logic',
+		});
+
+		expect(runResult.outputPath.endsWith('.json.gz')).toBe(true);
+		const uncompressed = gunzipSync(readFileSync(runResult.outputPath)).toString('utf8');
+		const content = parseResultsFile(uncompressed);
+		expect(content.total).toBe(1);
+		expect(content.passed).toBe(1);
 	});
 });

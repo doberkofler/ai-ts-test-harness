@@ -46,6 +46,16 @@ const indentBlock = (text: string, indent: string): string =>
 		.map((line) => `${indent}${line}`)
 		.join('\n');
 
+const IDENTIFIER_PATTERN = /^[a-z_$][\w$]*$/i;
+
+const ensureIdentifier = (value: string, sourceLabel: string): string => {
+	if (!IDENTIFIER_PATTERN.test(value)) {
+		throw new TypeError(`Invalid function identifier from ${sourceLabel}: ${value}`);
+	}
+
+	return value;
+};
+
 const sanitizeErrorText = (value: string): string => {
 	const withoutAnsiEscapeCodes = value.replaceAll(String.fromCodePoint(27), '').replaceAll(/\[(?:\d{1,3};)*\d{1,3}m/g, '');
 
@@ -187,47 +197,26 @@ const buildResultFromRunner = (problem: Problem, resultProgram: string, startedA
  * runs it with Vitest's Node API, and returns pass/fail.
  */
 export const runProblem = async (problem: Problem, generatedCode: string, options: RunProblemOptions = {}): Promise<Result> => {
+	const implementationEntry =
+		problem.kind === 'direct-refactor' ? undefined : ensureIdentifier(parseFunctionNameFromSignature(problem.signature), 'problem signature');
+	const refactorEntry = problem.kind === 'direct-refactor' ? ensureIdentifier(problem.entry, 'problem entry') : undefined;
+
 	const implementFunctionSupport =
 		problem.kind === 'direct-refactor'
 			? []
 			: [
-					`import ts from 'typescript';`,
-					``,
-					`const generatedSource = ${JSON.stringify(generatedCode)};`,
-					`const implementationEntry = ${JSON.stringify(parseFunctionNameFromSignature(problem.signature))};`,
-					``,
-					`const evaluateFunction = (source: string, functionName: string): ((...args: readonly unknown[]) => unknown) => {`,
-					`\tconst wrappedSource = [`,
-					`\t\tsource,`,
-					`\t\t\`\`,`,
-					`\t\t\`module.exports = {__extracted: typeof \${functionName} !== 'undefined' ? \${functionName} : undefined};\`,`,
-					`\t].join('\\n');`,
-					``,
-					`\tconst transpiled = ts.transpileModule(wrappedSource, {`,
-					`\t\tcompilerOptions: {`,
-					`\t\t\ttarget: ts.ScriptTarget.ES2022,`,
-					`\t\t\tmodule: ts.ModuleKind.CommonJS,`,
-					`\t\t},`,
-					`\t}).outputText;`,
-					``,
-					`\tconst moduleLike: {exports: Record<string, unknown>} = {exports: {}};`,
-					`\tconst executeTranspiled = new Function('module', 'exports', transpiled) as (module: {exports: Record<string, unknown>}, exports: Record<string, unknown>) => void;`,
-					`\texecuteTranspiled(moduleLike, moduleLike.exports);`,
-					`\tconst extracted = moduleLike.exports.__extracted;`,
-					``,
-					`\tif (typeof extracted === 'undefined') {`,
-					`\t\tthrow new TypeError(\`Missing function in generated code: \${functionName}\`);`,
-					`\t}`,
-					``,
-					`\tif (typeof extracted !== 'function') {`,
-					`\t\tthrow new TypeError(\`Generated symbol is not callable: \${functionName}\`);`,
-					`\t}`,
-					``,
-					`\treturn extracted;`,
-					`};`,
-					``,
-					`const implementation = evaluateFunction(generatedSource, implementationEntry);`,
-					`const code = {result: generatedSource};`,
+					generatedCode,
+					`const implementation = (() => {`,
+					`	const extracted = typeof ${implementationEntry} !== 'undefined' ? ${implementationEntry} : undefined;`,
+					`	if (typeof extracted === 'undefined') {`,
+					`		throw new TypeError('Missing function in generated code: ${implementationEntry}');`,
+					`	}`,
+					`	if (typeof extracted !== 'function') {`,
+					`		throw new TypeError('Generated symbol is not callable: ${implementationEntry}');`,
+					`	}`,
+					`	return extracted as ((...args: readonly unknown[]) => unknown);`,
+					`})();`,
+					`const code = {result: ${JSON.stringify(generatedCode)}};`,
 					``,
 				];
 
@@ -238,36 +227,36 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 					``,
 					`const input = ${JSON.stringify(problem.input)};`,
 					`const result = ${JSON.stringify(generatedCode)};`,
-					`const entry = ${JSON.stringify(problem.entry)};`,
+					`const entry = ${JSON.stringify(refactorEntry)};`,
 					``,
 					`const evaluateRefactorFunction = (source: string, functionName: string): ((...args: readonly unknown[]) => unknown) => {`,
-					`\tconst wrappedSource = [`,
-					`\t\tsource,`,
-					`\t\t\`\`,`,
-					`\t\t\`module.exports = {__extracted: typeof \${functionName} !== 'undefined' ? \${functionName} : undefined};\`,`,
-					`\t].join('\\n');`,
+					`	const wrappedSource = [`,
+					`		source,`,
+					`		\`\`,`,
+					`		\`module.exports = {__extracted: typeof \${functionName} !== 'undefined' ? \${functionName} : undefined};\`,`,
+					`	].join('\\n');`,
 					``,
-					`\tconst transpiled = ts.transpileModule(wrappedSource, {`,
-					`\t\tcompilerOptions: {`,
-					`\t\t\ttarget: ts.ScriptTarget.ES2022,`,
-					`\t\t\tmodule: ts.ModuleKind.CommonJS,`,
-					`\t\t},`,
-					`\t}).outputText;`,
+					`	const transpiled = ts.transpileModule(wrappedSource, {`,
+					`		compilerOptions: {`,
+					`			target: ts.ScriptTarget.ES2022,`,
+					`			module: ts.ModuleKind.CommonJS,`,
+					`		},`,
+					`	}).outputText;`,
 					``,
-					`\tconst moduleLike: {exports: Record<string, unknown>} = {exports: {}};`,
-					`\tconst executeTranspiled = new Function('module', 'exports', transpiled) as (module: {exports: Record<string, unknown>}, exports: Record<string, unknown>) => void;`,
-					`\texecuteTranspiled(moduleLike, moduleLike.exports);`,
-					`\tconst extracted = moduleLike.exports.__extracted;`,
+					`	const moduleLike: {exports: Record<string, unknown>} = {exports: {}};`,
+					`	const executeTranspiled = new Function('module', 'exports', transpiled) as (module: {exports: Record<string, unknown>}, exports: Record<string, unknown>) => void;`,
+					`	executeTranspiled(moduleLike, moduleLike.exports);`,
+					`	const extracted = moduleLike.exports.__extracted;`,
 					``,
-					`\tif (typeof extracted === 'undefined') {`,
-					`\t\tthrow new TypeError(\`Missing function in transformed code: \${functionName}\`);`,
-					`\t}`,
+					`	if (typeof extracted === 'undefined') {`,
+					`		throw new TypeError(\`Missing function in transformed code: \${functionName}\`);`,
+					`	}`,
 					``,
-					`\tif (typeof extracted !== 'function') {`,
-					`\t\tthrow new TypeError(\`Transformed symbol is not callable: \${functionName}\`);`,
-					`\t}`,
+					`	if (typeof extracted !== 'function') {`,
+					`		throw new TypeError(\`Transformed symbol is not callable: \${functionName}\`);`,
+					`	}`,
 					``,
-					`\treturn extracted;`,
+					`	return extracted;`,
 					`};`,
 					``,
 					`const original = evaluateRefactorFunction(input, entry);`,
@@ -289,7 +278,6 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 		``,
 		...implementFunctionSupport,
 		...directRefactorSupport,
-		...(problem.kind === 'direct-refactor' ? [] : [generatedCode]),
 		functionBasedTests,
 		``,
 		`describe(${JSON.stringify(problem.name)}, () => {`,

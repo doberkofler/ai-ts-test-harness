@@ -101,6 +101,7 @@ describe('runProblem', () => {
 				const content = readFileSync(generatedPath, 'utf8');
 				expect(content).toContain("import {describe, test} from 'vitest';");
 				expect(content).toContain("import assert from 'node:assert';");
+				expect(content).not.toContain("import ts from 'typescript';");
 				expect(content).toContain('assert.strictEqual(implementation(1, 2), 3);');
 
 				return createVitestMock(
@@ -297,7 +298,7 @@ describe('runProblem', () => {
 				generatedPath = maybePath;
 
 				const content = readFileSync(generatedPath, 'utf8');
-				expect(content).toContain('const implementation = evaluateFunction(generatedSource, implementationEntry);');
+				expect(content).toContain('const implementation = (() => {');
 				expect(content).toContain('return __problemTests({assert, implementation, code});');
 
 				return createVitestMock({

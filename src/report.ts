@@ -1,5 +1,6 @@
 import {readdirSync, readFileSync, statSync, writeFileSync} from 'node:fs';
 import {join, parse, resolve} from 'node:path';
+import {gunzipSync} from 'node:zlib';
 import {z} from 'zod';
 import {summarizeResults} from './core/results-summary.ts';
 import {type Result, type ResultsFile, type RuntimeConfig} from './types.ts';
@@ -58,8 +59,13 @@ export const printSummary = (results: Result[]): void => {
 
 export const deriveHtmlOutputPath = (jsonOutputPath: string): string => {
 	const resolvedJsonOutputPath = resolve(jsonOutputPath);
-	const {dir, name} = parse(resolvedJsonOutputPath);
-	return resolve(dir, `${name}.html`);
+	const lowerCased = resolvedJsonOutputPath.toLowerCase();
+	const withoutExtension = lowerCased.endsWith('.json.gz')
+		? resolvedJsonOutputPath.slice(0, -'.json.gz'.length)
+		: lowerCased.endsWith('.json')
+			? resolvedJsonOutputPath.slice(0, -'.json'.length)
+			: resolvedJsonOutputPath;
+	return `${withoutExtension}.html`;
 };
 
 export const renderResultsHtml = (payload: ResultsFile): string => {
@@ -661,7 +667,10 @@ type RunReportEntry = {
 	payload: ResultsFile;
 };
 
-const isJsonFilePath = (pathValue: string): boolean => pathValue.toLowerCase().endsWith('.json');
+const isResultsFilePath = (pathValue: string): boolean => {
+	const lowerCased = pathValue.toLowerCase();
+	return lowerCased.endsWith('.json') || lowerCased.endsWith('.json.gz');
+};
 
 const collectJsonFiles = (pathValue: string): string[] => {
 	const resolvedPath = resolve(pathValue);
@@ -669,20 +678,20 @@ const collectJsonFiles = (pathValue: string): string[] => {
 
 	if (stats.isDirectory()) {
 		return readdirSync(resolvedPath)
-			.filter((entry) => entry.toLowerCase().endsWith('.json'))
+			.filter((entry) => isResultsFilePath(entry))
 			.map((entry) => resolve(join(resolvedPath, entry)))
 			.sort();
 	}
 
-	if (!stats.isFile() || !isJsonFilePath(resolvedPath)) {
-		throw new TypeError(`--output must point to a .json file or a directory: ${pathValue}`);
+	if (!stats.isFile() || !isResultsFilePath(resolvedPath)) {
+		throw new TypeError(`--output must point to a .json/.json.gz file or a directory: ${pathValue}`);
 	}
 
 	return [resolvedPath];
 };
 
 const readRunPayload = (jsonPath: string): ResultsFile => {
-	const jsonContent = readFileSync(jsonPath, 'utf8');
+	const jsonContent = jsonPath.toLowerCase().endsWith('.gz') ? gunzipSync(readFileSync(jsonPath)).toString('utf8') : readFileSync(jsonPath, 'utf8');
 	return parseResultsFile(jsonContent);
 };
 
@@ -830,11 +839,11 @@ const writeIndexHtml = (entries: RunReportEntry[], outputDir: string): string =>
 export const reportCommand = (options: ReportCommandOptions): void => {
 	const jsonPaths = collectJsonFiles(options.output);
 	if (jsonPaths.length === 0) {
-		throw new TypeError(`No JSON result files found in ${resolve(options.output)}`);
+		throw new TypeError(`No .json/.json.gz result files found in ${resolve(options.output)}`);
 	}
 
 	if (jsonPaths.length > 1 && typeof options.htmlOutput === 'string') {
-		throw new TypeError('--html-output can only be used when --output points to a single .json file');
+		throw new TypeError('--html-output can only be used when --output points to a single .json/.json.gz file');
 	}
 
 	const runEntries: RunReportEntry[] = [];
@@ -850,7 +859,7 @@ export const reportCommand = (options: ReportCommandOptions): void => {
 		printSummary(latest.payload.results);
 	}
 	if (typeof latest === 'undefined') {
-		throw new TypeError(`No JSON result files found in ${resolve(options.output)}`);
+		throw new TypeError(`No .json/.json.gz result files found in ${resolve(options.output)}`);
 	}
 
 	const outputDir = resolve(parse(latest.jsonPath).dir);

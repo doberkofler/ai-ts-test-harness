@@ -1,5 +1,6 @@
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {join, resolve} from 'node:path';
+import {gzipSync} from 'node:zlib';
 import {loadProblems} from './load-problems.ts';
 import {summarizeResults} from './core/results-summary.ts';
 import {parseCategoryFilter, selectProblems, selectProblemsByFilters} from './core/problem-selection.ts';
@@ -53,10 +54,20 @@ export const formatResultsFile = (results: Result[], config: RuntimeConfig): Res
 	};
 };
 
+const isResultsOutputFilePath = (value: string): boolean => {
+	const lowerCased = value.toLowerCase();
+	return lowerCased.endsWith('.json') || lowerCased.endsWith('.json.gz');
+};
+
 export const writeResultsFile = (results: Result[], outputPath: string, config: RuntimeConfig): string => {
 	const resolvedOutputPath = resolve(outputPath);
 	const payload = formatResultsFile(results, config);
-	writeFileSync(resolvedOutputPath, `${JSON.stringify(payload, undefined, 2)}\n`, 'utf8');
+	const serializedPayload = `${JSON.stringify(payload, undefined, 2)}\n`;
+	if (resolvedOutputPath.toLowerCase().endsWith('.gz')) {
+		writeFileSync(resolvedOutputPath, gzipSync(serializedPayload));
+	} else {
+		writeFileSync(resolvedOutputPath, serializedPayload, 'utf8');
+	}
 	return resolvedOutputPath;
 };
 
@@ -84,7 +95,7 @@ export const runCommandWithContext = async (context: RunContext): Promise<{resul
 
 	const {output} = context.parsedOptions;
 	let outputPath = output;
-	if (!output.endsWith('.json')) {
+	if (!isResultsOutputFilePath(output)) {
 		mkdirSync(output, {recursive: true});
 
 		const now = new Date();
@@ -97,7 +108,7 @@ export const runCommandWithContext = async (context: RunContext): Promise<{resul
 		const timestamp = `${yyyy}${mm}${dd}-${hh}${min}${ss}`;
 
 		const safeModelName = context.runtimeConfig.model.replaceAll(/[^a-z0-9.-]/gi, '_');
-		outputPath = join(output, `run_${timestamp}_${safeModelName}.json`);
+		outputPath = join(output, `run_${timestamp}_${safeModelName}.json.gz`);
 	} else {
 		const dir = resolve(output, '..');
 		mkdirSync(dir, {recursive: true});
