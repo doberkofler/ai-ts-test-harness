@@ -36,6 +36,7 @@ type CompletionRequest = {
 
 type CompletionOptions = {
 	timeout: number;
+	signal?: AbortSignal;
 };
 
 type CreateCompletion = (request: CompletionRequest, options: CompletionOptions) => Promise<ChatCompletionResponse>;
@@ -63,7 +64,7 @@ const createCompletionForUrl = (ollamaUrl: string, authKey?: string): CreateComp
 	}
 
 	return async (request, options) => {
-		const response = await client.chat.completions.create(request, {timeout: options.timeout});
+		const response = await client.chat.completions.create(request, {timeout: options.timeout, signal: options.signal});
 		return response;
 	};
 };
@@ -76,7 +77,7 @@ const createCompletionStreamForUrl = (ollamaUrl: string, authKey?: string): Crea
 	}
 
 	return async function* streamCompletionGenerator(request, options) {
-		const stream = await client.chat.completions.create({...request, stream: true}, {timeout: options.timeout});
+		const stream = await client.chat.completions.create({...request, stream: true}, {timeout: options.timeout, signal: options.signal});
 		for await (const chunk of stream) {
 			yield chunk;
 		}
@@ -334,7 +335,11 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		let responsePhaseProbe = '';
 
 		try {
-			for await (const chunk of completionStream(request, {timeout: remainingTimeoutMs()})) {
+			for await (const chunk of completionStream(request, {timeout: remainingTimeoutMs(), signal: AbortSignal.timeout(remainingTimeoutMs())})) {
+				if (Date.now() > deadlineMs) {
+					throw new Error(TIMEOUT_ERROR_MESSAGE, {cause: new Error('Request exceeded configured timeout window')});
+				}
+
 				const [firstChoice] = chunk.choices;
 				const delta = firstChoice ? firstChoice.delta : undefined;
 
@@ -372,6 +377,10 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 					markResponseChars(responseDelta.length);
 				}
 			}
+
+			if (Date.now() > deadlineMs) {
+				throw new Error(TIMEOUT_ERROR_MESSAGE, {cause: new Error('Request exceeded configured timeout window')});
+			}
 		} catch (error) {
 			if (isTimeoutLikeError(error)) {
 				normalizeTimeoutError(error);
@@ -381,8 +390,8 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 				throw error;
 			}
 
-			const fallbackResponse = await completion(request, {timeout: remainingTimeoutMs()}).catch((fallbackError: unknown) =>
-				normalizeTimeoutError(fallbackError),
+			const fallbackResponse = await completion(request, {timeout: remainingTimeoutMs(), signal: AbortSignal.timeout(remainingTimeoutMs())}).catch(
+				(fallbackError: unknown) => normalizeTimeoutError(fallbackError),
 			);
 
 			const [fallbackChoice] = fallbackResponse.choices;
@@ -429,7 +438,9 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		return stripFences(generatedCode);
 	}
 
-	const res = await completion(request, {timeout: remainingTimeoutMs()}).catch((error: unknown) => normalizeTimeoutError(error));
+	const res = await completion(request, {timeout: remainingTimeoutMs(), signal: AbortSignal.timeout(remainingTimeoutMs())}).catch((error: unknown) =>
+		normalizeTimeoutError(error),
+	);
 
 	const [firstChoice] = res.choices;
 	const message = firstChoice && 'message' in firstChoice ? firstChoice.message : undefined;

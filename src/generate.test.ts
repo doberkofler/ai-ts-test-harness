@@ -143,7 +143,10 @@ describe('generate', () => {
 			createCompletion,
 		});
 
-		expect(createCompletion).toHaveBeenCalledWith(expect.objectContaining({model: 'test-model'}), {timeout: 1_234_000});
+		expect(createCompletion).toHaveBeenCalledWith(
+			expect.objectContaining({model: 'test-model'}),
+			expect.objectContaining({timeout: 1_234_000, signal: expect.any(AbortSignal)}),
+		);
 	});
 
 	test('builds direct refactor prompt with input code', async () => {
