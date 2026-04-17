@@ -91,7 +91,8 @@ describe('executeProblems', () => {
 		);
 
 		expect(solveProblemMock).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({name: 'two'}), expect.anything());
-		expect(log).toHaveBeenCalledWith(expect.stringContaining('[ 1/2] one (resumed)'));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('PASS [ 1/2] one (10ms)'));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('(resumed)'));
 		expect(results).toEqual([resumedResult, expect.objectContaining({problem: 'two'})]);
 	});
 

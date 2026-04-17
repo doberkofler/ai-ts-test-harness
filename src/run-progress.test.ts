@@ -6,7 +6,6 @@ import {
 	formatProblemStartLine,
 	formatRunFooterLines,
 	formatRunningLiveLine,
-	formatSkippedProblemLine,
 } from './run-progress.ts';
 
 describe('run progress formatting', () => {
@@ -44,9 +43,6 @@ describe('run progress formatting', () => {
 
 		expect(passLine).toContain('✓ [ 1/2] sum (4ms)');
 		expect(failLine).toContain('FAIL [ 2/2] fizzbuzz (12ms)');
-
-		const skippedLine = formatSkippedProblemLine({index: 0, total: 2, name: 'sum', preferUnicode: false});
-		expect(skippedLine).toContain('SKIP [ 1/2] sum (resumed)');
 	});
 
 	test('formats footer summary lines', () => {

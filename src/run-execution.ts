@@ -1,4 +1,5 @@
 import {setTimeout as sleep} from 'node:timers/promises';
+import {STYLES, styleText} from './utils.ts';
 import {
 	formatCompletedProblemLine,
 	formatCooldownLiveLine,
@@ -6,7 +7,6 @@ import {
 	formatProblemStartLine,
 	formatRunFooterLines,
 	formatRunningLiveLine,
-	formatSkippedProblemLine,
 } from './run-progress.ts';
 import {type RunPhase} from './run-phase.ts';
 import {type RunTransferStats} from './run-transfer.ts';
@@ -47,17 +47,20 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 	const startedAtMs = now();
 	const preferUnicode = stream.isTTY;
 	const showLiveTimer = supportsLiveLine(stream) && !options.debug;
-	const completedProblemNames = new Set(initialResults.map((result) => result.problem));
+	const completedProblemResults = new Map(initialResults.map((result) => [result.problem, result]));
 
 	for (const [index, problem] of problems.entries()) {
-		if (completedProblemNames.has(problem.name)) {
+		const completedResult = completedProblemResults.get(problem.name);
+		if (completedResult) {
 			log(
-				formatSkippedProblemLine({
+				`${formatCompletedProblemLine({
 					index,
 					total: problems.length,
 					name: problem.name,
+					passed: completedResult.passed,
+					durationMs: completedResult.duration_ms,
 					preferUnicode,
-				}),
+				})} ${styleText('(resumed)', STYLES.dim)}`,
 			);
 			continue;
 		}
@@ -118,13 +121,13 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			}),
 		);
 		results.push(result);
-		completedProblemNames.add(problem.name);
+		completedProblemResults.set(problem.name, result);
 		if (typeof onProblemComplete === 'function') {
 			// oxlint-disable-next-line no-await-in-loop
 			await onProblemComplete([...results]);
 		}
 
-		const hasRemainingUnfinishedProblem = problems.slice(index + 1).some((remainingProblem) => !completedProblemNames.has(remainingProblem.name));
+		const hasRemainingUnfinishedProblem = problems.slice(index + 1).some((remainingProblem) => !completedProblemResults.has(remainingProblem.name));
 		if (options.cooldownPeriodSecs > 0 && hasRemainingUnfinishedProblem) {
 			if (showLiveTimer) {
 				const cooldownStartedAt = now();

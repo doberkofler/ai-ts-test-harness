@@ -1,0 +1,187 @@
+{
+  "generated_at": "2026-04-17T19:58:27.102Z",
+  "model": "gemma4:31b",
+  "ollama_url": "http://localhost:11434/v1",
+  "llm_timeout_secs": 600,
+  "system_info": {
+    "hostname": "Dieters-MacBook-Pro-M5.local",
+    "os": "darwin 26.4.1 (arm64)",
+    "cpu": "Apple M5 Max (18 cores)",
+    "ram_gb": 64,
+    "gpu": "Apple Apple M5 Max"
+  },
+  "results": [
+    {
+      "problem": "a-star-grid-shortest-path",
+      "category": "algorithms",
+      "program": "function aStarGridShortestPath(grid: number[][], start: readonly [number, number], end: readonly [number, number]): number | null {\n  const rows = grid.length;\n  if (rows === 0) return null;\n  const cols = grid[0].length;\n  if (cols === 0) return null;\n\n  const [startR, startC] = start;\n  const [endR, endC] = end;\n\n  if (startR < 0 || startR >= rows || startC < 0 || startC >= cols ||\n      endR < 0 || endR >= rows || endC < 0 || endC >= cols) {\n    return null;\n  }\n\n  if (grid[startR][startC] === 1 || grid[endR][endC] === 1) {\n    return null;\n  }\n\n  class MinHeap {\n    data: [number, number, number, number][] = [];\n    push(val: [number, number, number, number]) {\n      this.data.push(val);\n      let idx = this.data.length - 1;\n      while (idx > 0) {\n        let p = (idx - 1) >> 1;\n        if (this.data[p][0] <= this.data[idx][0]) break;\n        [this.data[p], this.data[idx]] = [this.data[idx], this.data[p]];\n        idx = p;\n      }\n    }\n    pop() {\n      if (this.data.length === 0) return null;\n      const res = this.data[0];\n      const last = this.data.pop()!;\n      if (this.data.length > 0) {\n        this.data[0] = last;\n        let idx = 0;\n        while (true) {\n          let l = (idx << 1) + 1, r = (idx << 1) + 2, s = idx;\n          if (l < this.data.length && this.data[l][0] < this.data[s][0]) s = l;\n          if (r < this.data.length && this.data[r][0] < this.data[s][0]) s = r;\n          if (s === idx) break;\n          [this.data[s], this.data[idx]] = [this.data[idx], this.data[s]];\n          idx = s;\n        }\n      }\n      return res;\n    }\n    size() { return this.data.length; }\n  }\n\n  const h = (r: number, c: number) => Math.abs(r - endR) + Math.abs(c - endC);\n  const dist = Array.from({ length: rows }, () => Array(cols).fill(Infinity));\n  const pq = new MinHeap();\n\n  dist[startR][startC] = 0;\n  pq.push([h(startR, startC), 0, startR, startC]);\n\n  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n\n  while (pq.size() > 0) {\n    const node = pq.pop();\n    if (!node) break;\n    const [f, g, r, c] = node;\n\n    if (r === endR && c === endC) return g;\n    if (g > dist[r][c]) continue;\n\n    for (const [dr, dc] of dirs) {\n      const nr = r + dr;\n      const nc = c + dc;\n\n      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc] === 0) {\n        const newG = g + 1;\n        if (newG < dist[nr][nc]) {\n          dist[nr][nc] = newG;\n          pq.push([newG + h(nr, nc), newG, nr, nc]);\n        }\n      }\n    }\n  }\n\n  return null;\n}",
+      "passed": true,
+      "duration_ms": 339559
+    },
+    {
+      "problem": "binary-search-boundary",
+      "category": "algorithms",
+      "program": "function binarySearchBoundary(values: number[], target: number): number {\n  let low = 0;\n  let high = values.length - 1;\n  let result = -1;\n\n  while (low <= high) {\n    const mid = Math.floor(low + (high - low) / 2);\n\n    if (values[mid] === target) {\n      result = mid;\n      high = mid - 1;\n    } else if (values[mid] < target) {\n      low = mid + 1;\n    } else {\n      high = mid - 1;\n    }\n  }\n\n  return result;\n}",
+      "passed": true,
+      "duration_ms": 30973
+    },
+    {
+      "problem": "binary-search-first-last-position",
+      "category": "algorithms",
+      "program": "function binarySearchFirstLastPosition(values: number[], target: number): [number, number] {\n  const findBound = (isFirst: boolean): number => {\n    let low = 0;\n    let high = values.length - 1;\n    let result = -1;\n\n    while (low <= high) {\n      const mid = Math.floor(low + (high - low) / 2);\n      if (values[mid] === target) {\n        result = mid;\n        if (isFirst) {\n          high = mid - 1;\n        } else {\n          low = mid + 1;\n        }\n      } else if (values[mid] < target) {\n        low = mid + 1;\n      } else {\n        high = mid - 1;\n      }\n    }\n    return result;\n  };\n\n  const firstIndex = findBound(true);\n  if (firstIndex === -1) return [-1, -1];\n  const lastIndex = findBound(false);\n\n  return [firstIndex, lastIndex];\n}",
+      "passed": true,
+      "duration_ms": 38180
+    },
+    {
+      "problem": "dijkstra-shortest-path",
+      "category": "algorithms",
+      "program": "function dijkstraShortestPath(nodeCount: number, edges: readonly (readonly [number, number, number])[], start: number, end: number): number | null {\n  const adj: [number, number][][] = Array.from({ length: nodeCount }, () => []);\n  for (const [u, v, w] of edges) {\n    adj[u].push([v, w]);\n  }\n\n  const distances = new Float64Array(nodeCount).fill(Infinity);\n  distances[start] = 0;\n\n  const pq: [number, number][] = [];\n  const push = (val: [number, number]) => {\n    pq.push(val);\n    let idx = pq.length - 1;\n    while (idx > 0) {\n      let parent = (idx - 1) >> 1;\n      if (pq[idx][0] >= pq[parent][0]) break;\n      [pq[idx], pq[parent]] = [pq[parent], pq[idx]];\n      idx = parent;\n    }\n  };\n\n  const pop = (): [number, number] | undefined => {\n    if (pq.length === 0) return undefined;\n    const top = pq[0];\n    const bottom = pq.pop()!;\n    if (pq.length > 0) {\n      pq[0] = bottom;\n      let idx = 0;\n      while (true) {\n        let left = (idx << 1) + 1;\n        let right = (idx << 1) + 2;\n        let smallest = idx;\n        if (left < pq.length && pq[left][0] < pq[smallest][0]) smallest = left;\n        if (right < pq.length && pq[right][0] < pq[smallest][0]) smallest = right;\n        if (smallest === idx) break;\n        [pq[idx], pq[smallest]] = [pq[smallest], pq[idx]];\n        idx = smallest;\n      }\n    }\n    return top;\n  };\n\n  push([0, start]);\n\n  while (pq.length > 0) {\n    const current = pop();\n    if (!current) break;\n    const [d, u] = current;\n\n    if (d > distances[u]) continue;\n    if (u === end) return d;\n\n    for (const [v, weight] of adj[u]) {\n      if (distances[u] + weight < distances[v]) {\n        distances[v] = distances[u] + weight;\n        push([distances[v], v]);\n      }\n    }\n  }\n\n  return distances[end] === Infinity ? null : distances[end];\n}",
+      "passed": true,
+      "duration_ms": 188503
+    },
+    {
+      "problem": "fft-bigint-multiply-digit-arrays",
+      "category": "algorithms",
+      "program": "function fftBigintMultiplyDigitArrays(a: number[], b: number[]): number[] {\n  // Trim leading zeros and handle empty inputs\n  const trim = (arr: number[]) => {\n    let start = 0;\n    while (start < arr.length - 1 && arr[start] === 0) start++;\n    return start === 0 ? [...arr] : arr.slice(start);\n  };\n\n  let aTrimmed = trim(a.length === 0 ? [0] : a);\n  let bTrimmed = trim(b.length === 0 ? [0] : b);\n\n  if ((aTrimmed.length === 1 && aTrimmed[0] === 0) || (bTrimmed.length === 1 && bTrimmed[0] === 0)) {\n    return [0];\n  }\n\n  // Reverse to little-endian for polynomial multiplication\n  const revA = [...aTrimmed].reverse();\n  const revB = [...bTrimmed].reverse();\n\n  let n = 1;\n  while (n < revA.length + revB.length) n <<= 1;\n\n  const reA = new Float64Array(n);\n  const imA = new Float64Array(n);\n  const reB = new Float64Array(n);\n  const imB = new Float64Array(n);\n\n  for (let i = 0; i < revA.length; i++) reA[i] = revA[i];\n  for (let i = 0; i < revB.length; i++) reB[i] = revB[i];\n\n  function fft(re: Float64Array, im: Float64Array, invert: boolean) {\n    for (let i = 1, j = 0; i < n; i++) {\n      let bit = n >> 1;\n      for (; j & bit; bit >>= 1) j ^= bit;\n      j ^= bit;\n      if (i < j) {\n        [re[i], re[j]] = [re[j], re[i]];\n        [im[i], im[j]] = [im[j], im[i]];\n      }\n    }\n\n    for (let len = 2; len <= n; len <<= 1) {\n      const ang = (2 * Math.PI / len) * (invert ? -1 : 1);\n      const wlenRe = Math.cos(ang);\n      const wlenIm = Math.sin(ang);\n      for (let i = 0; i < n; i += len) {\n        let wRe = 1, wIm = 0;\n        for (let j = 0; j < len / 2; j++) {\n          const uRe = re[i + j], uIm = im[i + j];\n          const vRe = re[i + j + len / 2] * wRe - im[i + j + len / 2] * wIm;\n          const vIm = re[i + j + len / 2] * wIm + im[i + j + len / 2] * wRe;\n          re[i + j] = uRe + vRe;\n          im[i + j] = uIm + vIm;\n          re[i + j + len / 2] = uRe - vRe;\n          im[i + j + len / 2] = uIm - vIm;\n          const nextWRe = wRe * wlenRe - wIm * wlenIm;\n          wIm = wRe * wlenIm + wIm * wlenRe;\n          wRe = nextWRe;\n        }\n      }\n    }\n\n    if (invert) {\n      for (let i = 0; i < n; i++) {\n        re[i] /= n;\n        im[i] /= n;\n      }\n    }\n  }\n\n  fft(reA, imA, false);\n  fft(reB, imB, false);\n\n  const reC = new Float64Array(n);\n  const imC = new Float64Array(n);\n  for (let i = 0; i < n; i++) {\n    reC[i] = reA[i] * reB[i] - imA[i] * imB[i];\n    imC[i] = reA[i] * imB[i] + imA[i] * reB[i];\n  }\n\n  fft(reC, imC, true);\n\n  const result: number[] = [];\n  let carry = 0;\n  for (let i = 0; i < n; i++) {\n    const val = Math.round(reC[i]) + carry;\n    result.push(val % 10);\n    carry = Math.floor(val / 10);\n  }\n  while (carry) {\n    result.push(carry % 10);\n    carry = Math.floor(carry / 10);\n  }\n\n  while (result.length > 1 && result[result.length - 1] === 0) {\n    result.pop();\n  }\n\n  return result.reverse();\n}",
+      "passed": true,
+      "duration_ms": 527882
+    },
+    {
+      "problem": "fibonacci",
+      "category": "algorithms",
+      "program": "function fibonacci(n: number): number {\n  if (n <= 0) return 0;\n  if (n === 1) return 1;\n\n  let a = 0;\n  let b = 1;\n\n  for (let i = 2; i <= n; i++) {\n    const temp = a + b;\n    a = b;\n    b = temp;\n  }\n\n  return b;\n}",
+      "passed": true,
+      "duration_ms": 31705
+    },
+    {
+      "problem": "group-anagrams",
+      "category": "algorithms",
+      "program": "function groupAnagrams(words: string[]): string[][] {\n  const groups = new Map<string, string[]>();\n\n  for (const word of words) {\n    const sorted = word.split('').sort().join('');\n    if (!groups.has(sorted)) {\n      groups.set(sorted, []);\n    }\n    groups.get(sorted)!.push(word);\n  }\n\n  return Array.from(groups.values());\n}",
+      "passed": true,
+      "duration_ms": 28921
+    },
+    {
+      "problem": "longest-common-subsequence",
+      "category": "algorithms",
+      "program": "function longestCommonSubsequence(a: string, b: string): number {\n  const m = a.length;\n  const n = b.length;\n  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));\n\n  for (let i = 1; i <= m; i++) {\n    for (let j = 1; j <= n; j++) {\n      if (a[i - 1] === b[j - 1]) {\n        dp[i][j] = dp[i - 1][j - 1] + 1;\n      } else {\n        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);\n      }\n    }\n  }\n\n  return dp[m][n];\n}",
+      "passed": true,
+      "duration_ms": 31716
+    },
+    {
+      "problem": "longest-substring-no-repeat",
+      "category": "algorithms",
+      "program": "function longestSubstringNoRepeat(input: string): number {\n  let maxLength = 0;\n  let start = 0;\n  const charMap = new Map<string, number>();\n\n  for (let end = 0; end < input.length; end++) {\n    const char = input[end];\n    if (charMap.has(char)) {\n      start = Math.max(start, charMap.get(char)! + 1);\n    }\n    charMap.set(char, end);\n    maxLength = Math.max(maxLength, end - start + 1);\n  }\n\n  return maxLength;\n}",
+      "passed": true,
+      "duration_ms": 32679
+    },
+    {
+      "problem": "lru-cache",
+      "category": "algorithms",
+      "program": "function lruCache(capacity: number, operations: readonly (readonly ['get' | 'put', number, number?])[]): (number | null)[] {\n  const cache = new Map<number, number>();\n  const results: (number | null)[] = [];\n\n  for (const op of operations) {\n    const [type, key, value] = op;\n\n    if (type === 'get') {\n      if (cache.has(key)) {\n        const val = cache.get(key)!;\n        cache.delete(key);\n        cache.set(key, val);\n        results.push(val);\n      } else {\n        results.push(null);\n      }\n    } else if (type === 'put') {\n      if (cache.has(key)) {\n        cache.delete(key);\n      }\n      cache.set(key, value!);\n      if (cache.size > capacity) {\n        const firstKey = cache.keys().next().value;\n        cache.delete(firstKey);\n      }\n      results.push(null);\n    }\n  }\n\n  return results;\n}",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    null,\n    null,\n    1,\n    null,\n-   -1,\n    null,\n+   null,\n+   null,\n-   -1,\n    3,\n    4\n  ]",
+      "duration_ms": 57523
+    },
+    {
+      "problem": "merge-intervals",
+      "category": "algorithms",
+      "program": "function mergeIntervals(intervals: [number, number][]): [number, number][] {\n  if (intervals.length <= 1) return [...intervals];\n\n  const sorted = [...intervals].sort((a, b) => a[0] - b[0]);\n  const merged: [number, number][] = [];\n\n  let currentInterval = sorted[0];\n  merged.push(currentInterval);\n\n  for (let i = 1; i < sorted.length; i++) {\n    const nextInterval = sorted[i];\n\n    if (nextInterval[0] <= currentInterval[1]) {\n      currentInterval[1] = Math.max(currentInterval[1], nextInterval[1]);\n    } else {\n      currentInterval = nextInterval;\n      merged.push(currentInterval);\n    }\n  }\n\n  return merged;\n}",
+      "passed": true,
+      "duration_ms": 24584
+    },
+    {
+      "problem": "merge-sort-linked-list",
+      "category": "algorithms",
+      "program": "function mergeSortLinkedList(head: {value: number; next: any} | null): {value: number; next: any} | null {\n  if (!head || !head.next) {\n    return head;\n  }\n\n  // Split the list into two halves\n  let slow = head;\n  let fast = head.next;\n\n  while (fast && fast.next) {\n    slow = slow.next;\n    fast = fast.next.next;\n  }\n\n  const mid = slow.next;\n  slow.next = null;\n\n  // Recursively sort both halves\n  const left = mergeSortLinkedList(head);\n  const right = mergeSortLinkedList(mid);\n\n  // Merge the sorted halves\n  return merge(left, right);\n}\n\nfunction merge(l1: {value: number; next: any} | null, l2: {value: number; next: any} | null): {value: number; next: any} | null {\n  const dummy = { value: 0, next: null as any };\n  let current = dummy;\n\n  while (l1 && l2) {\n    if (l1.value <= l2.value) {\n      current.next = l1;\n      l1 = l1.next;\n    } else {\n      current.next = l2;\n      l2 = l2.next;\n    }\n    current = current.next;\n  }\n\n  current.next = l1 || l2;\n  return dummy.next;\n}",
+      "passed": true,
+      "duration_ms": 50145
+    },
+    {
+      "problem": "min-stack",
+      "category": "algorithms",
+      "program": "function minStack(operations: readonly (readonly ['push' | 'pop' | 'top' | 'getMin', number?])[]): (number | null)[] {\n  const stack: number[] = [];\n  const minStack: number[] = [];\n  const results: (number | null)[] = [];\n\n  for (const [op, val] of operations) {\n    switch (op) {\n      case 'push':\n        if (val !== undefined) {\n          stack.push(val);\n          const currentMin = minStack.length === 0 ? val : Math.min(val, minStack[minStack.length - 1]);\n          minStack.push(currentMin);\n        }\n        break;\n      case 'pop':\n        stack.pop();\n        minStack.pop();\n        break;\n      case 'top':\n        results.push(stack.length === 0 ? null : stack[stack.length - 1]);\n        break;\n      case 'getMin':\n        results.push(minStack.length === 0 ? null : minStack[minStack.length - 1]);\n        break;\n    }\n  }\n\n  return results;\n}",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n-   null,\n-   null,\n-   null,\n    -3,\n-   -3,\n    0,\n    -2\n  ]",
+      "duration_ms": 76584
+    },
+    {
+      "problem": "number-of-islands",
+      "category": "algorithms",
+      "program": "function numberOfIslands(grid: string[][]): number {\n  if (!grid || grid.length === 0) return 0;\n\n  const rows = grid.length;\n  const cols = grid[0].length;\n  let count = 0;\n\n  const dfs = (r: number, c: number) => {\n    if (r < 0 || c < 0 || r >= rows || c >= cols || grid[r][c] === '0') {\n      return;\n    }\n\n    grid[r][c] = '0';\n\n    dfs(r + 1, c);\n    dfs(r - 1, c);\n    dfs(r, c + 1);\n    dfs(r, c - 1);\n  };\n\n  for (let r = 0; r < rows; r++) {\n    for (let c = 0; c < cols; c++) {\n      if (grid[r][c] === '1') {\n        count++;\n        dfs(r, c);\n      }\n    }\n  }\n\n  return count;\n}",
+      "passed": true,
+      "duration_ms": 42719
+    },
+    {
+      "problem": "product-of-array-except-self",
+      "category": "algorithms",
+      "program": "function productOfArrayExceptSelf(values: number[]): number[] {\n  const n = values.length;\n  if (n === 0) return [];\n  \n  const result: number[] = new Array(n).fill(1);\n\n  let leftProduct = 1;\n  for (let i = 0; i < n; i++) {\n    result[i] = leftProduct;\n    leftProduct *= values[i];\n  }\n\n  let rightProduct = 1;\n  for (let i = n - 1; i >= 0; i--) {\n    result[i] *= rightProduct;\n    rightProduct *= values[i];\n  }\n\n  return result;\n}",
+      "passed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   -0,\n    0,\n-   0,\n    9,\n+   -0,\n    0,\n-   0\n  ]",
+      "duration_ms": 47270
+    },
+    {
+      "problem": "quickselect-kth-smallest",
+      "category": "algorithms",
+      "program": "function quickselectKthSmallest(values: number[], k: number): number {\n  const nums = [...values];\n  const targetIndex = k - 1;\n\n  function partition(left: number, right: number): number {\n    const pivot = nums[right];\n    let i = left;\n    for (let j = left; j < right; j++) {\n      if (nums[j] < pivot) {\n        [nums[i], nums[j]] = [nums[j], nums[i]];\n        i++;\n      }\n    }\n    [nums[i], nums[right]] = [nums[right], nums[i]];\n    return i;\n  }\n\n  let left = 0;\n  let right = nums.length - 1;\n\n  while (left <= right) {\n    const pivotIndex = partition(left, right);\n    if (pivotIndex === targetIndex) {\n      return nums[pivotIndex];\n    } else if (pivotIndex < targetIndex) {\n      left = pivotIndex + 1;\n    } else {\n      right = pivotIndex - 1;\n    }\n  }\n\n  throw new Error(\"Index out of bounds\");\n}",
+      "passed": false,
+      "error": "The input did not match the regular expression /k out of range/i. Input:\n\n'Error: Index out of bounds'",
+      "duration_ms": 71683
+    },
+    {
+      "problem": "quicksort",
+      "category": "algorithms",
+      "program": "function quicksort(arr: number[]): number[] {\n  if (arr.length <= 1) {\n    return [...arr];\n  }\n\n  const pivot = arr[Math.floor(arr.length / 2)];\n  const left = arr.filter(x => x < pivot);\n  const middle = arr.filter(x => x === pivot);\n  const right = arr.filter(x => x > pivot);\n\n  return [...quicksort(left), ...middle, ...quicksort(right)];\n}",
+      "passed": true,
+      "duration_ms": 24354
+    },
+    {
+      "problem": "top-k-frequent",
+      "category": "algorithms",
+      "program": "function topKFrequent(values: number[], k: number): number[] {\n  const freqMap = new Map<number, number>();\n  for (const val of values) {\n    freqMap.set(val, (freqMap.get(val) || 0) + 1);\n  }\n\n  return Array.from(freqMap.entries())\n    .sort((a, b) => b[1] - a[1])\n    .slice(0, k)\n    .map(([val]) => val);\n}",
+      "passed": true,
+      "duration_ms": 25838
+    },
+    {
+      "problem": "toy-rsa-bigint",
+      "category": "algorithms",
+      "program": "function toyRsaBigint(p: bigint, q: bigint, e: bigint, message: bigint): {publicKey: {n: bigint; e: bigint}; privateKey: {n: bigint; d: bigint}; cipher: bigint; decrypted: bigint} {\n  const n = p * q;\n  const phi = (p - 1n) * (q - 1n);\n\n  const modInverse = (a: bigint, m: bigint): bigint => {\n    let m0 = m;\n    let y = 0n, x = 1n;\n    if (m === 1n) return 0n;\n    while (a > 1n) {\n      if (m === 0n) break;\n      let q = a / m;\n      let t = m;\n      m = a % m;\n      a = t;\n      t = y;\n      y = x - q * y;\n      x = t;\n    }\n    if (x < 0n) x += m0;\n    return x;\n  };\n\n  const power = (base: bigint, exp: bigint, mod: bigint): bigint => {\n    let res = 1n;\n    base = base % mod;\n    while (exp > 0n) {\n      if (exp % 2n === 1n) res = (res * base) % mod;\n      base = (base * base) % mod;\n      exp = exp / 2n;\n    }\n    return res;\n  };\n\n  const d = modInverse(e, phi);\n  const cipher = power(message, e, n);\n  const decrypted = power(cipher, d, n);\n\n  return {\n    publicKey: { n, e },\n    privateKey: { n, d },\n    cipher,\n    decrypted\n  };\n}",
+      "passed": true,
+      "duration_ms": 86799
+    },
+    {
+      "problem": "two-sum",
+      "category": "algorithms",
+      "program": "function twoSum(nums: number[], target: number): [number, number] | null {\n  const map = new Map<number, number>();\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n    if (map.has(complement)) {\n      return [map.get(complement)!, i];\n    }\n    map.set(nums[i], i);\n  }\n  return null;\n}",
+      "passed": true,
+      "duration_ms": 21745
+    },
+    {
+      "problem": "union-find-connected-components-online",
+      "category": "algorithms",
+      "program": "function unionFindConnectedComponentsOnline(n: number, operations: readonly (readonly [number, number])[]): number[] {\n  const parent = new Int32Array(n);\n  for (let i = 0; i < n; i++) {\n    parent[i] = i;\n  }\n\n  const find = (i: number): number => {\n    let root = i;\n    while (parent[root] !== root) {\n      root = parent[root];\n    }\n    while (parent[i] !== root) {\n      const next = parent[i];\n      parent[i] = root;\n      i = next;\n    }\n    return root;\n  };\n\n  let components = n;\n  const result: number[] = [];\n\n  for (const [u, v] of operations) {\n    const rootU = find(u);\n    const rootV = find(v);\n    if (rootU !== rootV) {\n      parent[rootU] = rootV;\n      components--;\n    }\n    result.push(components);\n  }\n\n  return result;\n}",
+      "passed": true,
+      "duration_ms": 52061
+    },
+    {
+      "problem": "valid-parentheses",
+      "category": "algorithms",
+      "program": "function validParentheses(input: string): boolean {\n  const stack: string[] = [];\n  const pairs: { [key: string]: string } = {\n    ')': '(',\n    ']': '[',\n    '}': '{',\n  };\n\n  for (const char of input) {\n    if (char === '(' || char === '[' || char === '{') {\n      stack.push(char);\n    } else if (char === ')' || char === ']' || char === '}') {\n      if (stack.length === 0 || stack.pop() !== pairs[char]) {\n        return false;\n      }\n    }\n  }\n\n  return stack.length === 0;\n}",
+      "passed": true,
+      "duration_ms": 24988
+    },
+    {
+      "problem": "integer-break-max-product",
+      "category": "arithmetic",
+      "program": "function integerBreakMaxProduct(n: number): number {\n  if (n === 2) return 1;\n  if (n === 3) return 2;\n\n  let product = 1;\n  while (n > 4) {\n    product *= 3;\n    n -= 3;\n  }\n  return product * n;\n}",
+      "passed": true,
+      "duration_ms": 98078
+    },
+    {
+      "problem": "avl-tree-insert-rebalance",
+      "category": "data-structures",
+      "program": "function avlTreeInsertRebalance(values: number[]): {value: number; height: number; left: any; right: any} | null {\n  type AVLNode = {\n    value: number;\n    height: number;\n    left: AVLNode | null;\n    right: AVLNode | null;\n  };\n\n  function getHeight(node: AVLNode | null): number {\n    return node ? node.height : 0;\n  }\n\n  function updateHeight(node: AVLNode): void {\n    node.height = 1 + Math.max(getHeight(node.left), getHeight(node.right));\n  }\n\n  function getBalance(node: AVLNode | null): number {\n    return node ? getHeight(node.left) - getHeight(node.right) : 0;\n  }\n\n  function rotateRight(y: AVLNode): AVLNode {\n    const x = y.left!;\n    const T2 = x.right;\n    x.right = y;\n    y.left = T2;\n    updateHeight(y);\n    updateHeight(x);\n    return x;\n  }\n\n  function rotateLeft(x: AVLNode): AVLNode {\n    const y = x.right!;\n    const T2 = y.left;\n    y.left = x;\n    x.right = T2;\n    updateHeight(x);\n    updateHeight(y);\n    return y;\n  }\n\n  function insert(node: AVLNode | null, value: number): AVLNode {\n    if (!node) {\n      return { value, height: 1, left: null, right: null };\n    }\n\n    if (value < node.value) {\n      node.left = insert(node.left, value);\n    } else if (value > node.value) {\n      node.right = insert(node.right, value);\n    } else {\n      return node; // Ignore duplicates\n    }\n\n    updateHeight(node);\n    const balance = getBalance(node);\n\n    // Left Left Case\n    if (balance > 1 && value < (node.left as AVLNode).value) {\n      return rotateRight(node);\n    }\n    // Right Right Case\n    if (balance < -1 && value > (node.right as AVLNode).value) {\n      return rotateLeft(node);\n    }\n    // Left Right Case\n    if (balance > 1 && value > (node.left as AVLNode).value) {\n      node.left = rotateLeft(node.left as AVLNode);\n      return rotateRight(node);\n    }\n    // Right Left Case\n    if (balance < -1 && value < (node.right as AVLNode).value) {\n      node.right = rotateRight(node.right as AVLNode);\n      return rotateLeft(node);\n    }\n\n    return node;\n  }\n\n  let root: AVLNode | null = null;\n  for (const val of values) {\n    root = insert(root, val);\n  }\n  return root;\n}",
+      "passed": true,
+      "duration_ms": 258680
+    }
+  ]
+}

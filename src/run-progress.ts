@@ -13,13 +13,6 @@ type CompletedProblemLineInput = {
 	preferUnicode: boolean;
 };
 
-type SkippedProblemLineInput = {
-	index: number;
-	total: number;
-	name: string;
-	preferUnicode: boolean;
-};
-
 const formatStep = (index: number, total: number): string => `[${String(index + 1).padStart(2, ' ')}/${total}]`;
 
 const formatCompactCount = (value: number): string => {
@@ -72,11 +65,6 @@ export const formatCompletedProblemLine = (input: CompletedProblemLineInput): st
 	const statusSymbol = input.preferUnicode ? (input.passed ? '✓' : '✗') : input.passed ? 'PASS' : 'FAIL';
 	const statusStyle = input.passed ? STYLES.green : STYLES.red;
 	return `${styleText(statusSymbol, statusStyle)} ${styleText(formatStep(input.index, input.total), STYLES.dim)} ${styleText(input.name, STYLES.bold)} ${styleText(`(${formatMs(input.durationMs)})`, STYLES.dim)}`;
-};
-
-export const formatSkippedProblemLine = (input: SkippedProblemLineInput): string => {
-	const statusLabel = input.preferUnicode ? '↺' : 'SKIP';
-	return `${styleText(statusLabel, STYLES.dim)} ${styleText(formatStep(input.index, input.total), STYLES.dim)} ${styleText(input.name, STYLES.bold)} ${styleText('(resumed)', STYLES.dim)}`;
 };
 
 export const formatRunFooterLines = (results: readonly {passed: boolean}[], startedAtMs: number, endedAtMs: number): string[] => {
