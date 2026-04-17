@@ -42,11 +42,12 @@ describe('formatResultsFile', () => {
 		});
 
 		expect(output.model).toBe('test-model');
-		expect(output).not.toHaveProperty('ollama_url');
-		expect(output).not.toHaveProperty('llm_timeout_secs');
-		expect(output).not.toHaveProperty('cooldown_period_secs');
-		expect(output).not.toHaveProperty('debug');
+		expect(output.ollama_url).toBe('http://localhost:11434/v1');
+		expect(output.llm_timeout_secs).toBe(5);
+		expect(output.cooldown_period_secs).toBe(10);
+		expect(output.debug).toBe(true);
 		expect(output).not.toHaveProperty('selected_categories');
+		expect(output).not.toHaveProperty('planned_problem_names');
 		expect(output).not.toHaveProperty('system_info');
 		expect(output.total).toBe(2);
 		expect(output.passed).toBe(1);

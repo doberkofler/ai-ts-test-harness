@@ -6,6 +6,7 @@ import {
 	formatProblemStartLine,
 	formatRunFooterLines,
 	formatRunningLiveLine,
+	formatSkippedProblemLine,
 } from './run-progress.ts';
 import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
 import {solveProblem} from './solveProblem.ts';
@@ -28,10 +29,13 @@ type ExecuteProblemsDeps = {
 	sleepMs?: (durationMs: number) => Promise<void>;
 	setIntervalFn?: (callback: () => void, delayMs: number) => ReturnType<typeof setInterval>;
 	clearIntervalFn?: (timerId: ReturnType<typeof setInterval>) => void;
+	initialResults?: Result[];
+	onProblemComplete?: (results: Result[]) => void | Promise<void>;
 };
 
 export const executeProblems = async (problems: Problem[], options: ExecuteRunOptions, deps: ExecuteProblemsDeps = {}): Promise<Result[]> => {
-	const results: Result[] = [];
+	const {initialResults = [], onProblemComplete} = deps;
+	const results: Result[] = [...initialResults];
 	const stream = deps.stream ?? process.stdout;
 	const log = deps.log ?? console.log;
 	const now = deps.now ?? Date.now;
@@ -41,8 +45,21 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 	const startedAtMs = now();
 	const preferUnicode = stream.isTTY;
 	const showLiveTimer = supportsLiveLine(stream) && !options.debug;
+	const completedProblemNames = new Set(initialResults.map((result) => result.problem));
 
 	for (const [index, problem] of problems.entries()) {
+		if (completedProblemNames.has(problem.name)) {
+			log(
+				formatSkippedProblemLine({
+					index,
+					total: problems.length,
+					name: problem.name,
+					preferUnicode,
+				}),
+			);
+			continue;
+		}
+
 		if (!showLiveTimer) {
 			log(formatProblemStartLine(index, problems.length, problem.name));
 		}
@@ -85,8 +102,14 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			}),
 		);
 		results.push(result);
+		completedProblemNames.add(problem.name);
+		if (typeof onProblemComplete === 'function') {
+			// oxlint-disable-next-line no-await-in-loop
+			await onProblemComplete([...results]);
+		}
 
-		if (options.cooldownPeriodSecs > 0 && index < problems.length - 1) {
+		const hasRemainingUnfinishedProblem = problems.slice(index + 1).some((remainingProblem) => !completedProblemNames.has(remainingProblem.name));
+		if (options.cooldownPeriodSecs > 0 && hasRemainingUnfinishedProblem) {
 			if (showLiveTimer) {
 				const cooldownStartedAt = now();
 				writeLiveLine(stream, formatCooldownLiveLine(options.cooldownPeriodSecs * 1000));

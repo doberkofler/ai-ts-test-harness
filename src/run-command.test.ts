@@ -1,13 +1,15 @@
-import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {gunzipSync} from 'node:zlib';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import {parseResultsFile} from './report.ts';
 import {type Problem, type Result} from './types.ts';
+import {formatResultsFile} from './results-file.ts';
 
 const loadProblemsMock = vi.fn<() => Problem[]>();
 const executeProblemsMock = vi.fn<() => Promise<Result[]>>();
+const getSystemInfoMock = vi.fn<() => Promise<{hostname: string; os: string; cpu: string; ram_gb: number; gpu: string}>>();
 
 vi.mock(import('./load-problems.ts'), () => ({
 	loadProblems: loadProblemsMock,
@@ -15,6 +17,10 @@ vi.mock(import('./load-problems.ts'), () => ({
 
 vi.mock(import('./run-execution.ts'), () => ({
 	executeProblems: executeProblemsMock,
+}));
+
+vi.mock(import('./system-info.ts'), () => ({
+	getSystemInfo: getSystemInfoMock,
 }));
 
 const {runCommand} = await import('./run.ts');
@@ -36,6 +42,14 @@ describe('runCommand', () => {
 		tempDir = mkdtempSync(join(tmpdir(), 'run-command-'));
 		loadProblemsMock.mockReset();
 		executeProblemsMock.mockReset();
+		getSystemInfoMock.mockReset();
+		getSystemInfoMock.mockResolvedValue({
+			hostname: 'host-a',
+			os: 'darwin 24.0.0 (arm64)',
+			cpu: 'CPU',
+			ram_gb: 64,
+			gpu: 'GPU',
+		});
 	});
 
 	afterEach(() => {
@@ -63,6 +77,7 @@ describe('runCommand', () => {
 		expect(executeProblemsMock).toHaveBeenCalledWith(
 			[expect.objectContaining({name: 'fizzbuzz', category: 'logic'})],
 			expect.objectContaining({llmTimeoutSecs: 90, cooldownPeriodSecs: 1}),
+			expect.objectContaining({initialResults: []}),
 		);
 		expect(runResult.config.llmTimeoutSecs).toBe(90);
 		expect(runResult.config.cooldownPeriodSecs).toBe(1);
@@ -113,5 +128,57 @@ describe('runCommand', () => {
 		const content = parseResultsFile(uncompressed);
 		expect(content.total).toBe(1);
 		expect(content.passed).toBe(1);
+	});
+
+	test('resumes from matching open json in output directory', async () => {
+		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic'), makeProblem('add', 'logic')]);
+
+		const openPath = join(tempDir, 'run_20260101-000000_test-model.json');
+		const resumedPayload = formatResultsFile([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}], {
+			model: 'test-model',
+			debug: false,
+			llmTimeoutSecs: 90,
+			cooldownPeriodSecs: 1,
+			ollamaUrl: 'http://localhost:11434/v1',
+			selectedCategories: ['logic'],
+			plannedProblemNames: ['fizzbuzz', 'add'],
+			systemInfo: {
+				hostname: 'host-a',
+				os: 'darwin 24.0.0 (arm64)',
+				cpu: 'CPU',
+				ram_gb: 64,
+				gpu: 'GPU',
+			},
+		});
+		resumedPayload.total = 2;
+		resumedPayload.passed = 1;
+		resumedPayload.failed = 1;
+		resumedPayload.pass_rate_percent = 50;
+		writeFileSync(openPath, `${JSON.stringify(resumedPayload, undefined, 2)}\n`, 'utf8');
+
+		executeProblemsMock.mockResolvedValue([
+			{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5},
+			{problem: 'add', category: 'logic', program: 'code2', passed: true, duration_ms: 6},
+		]);
+
+		const runResult = await runCommand({
+			model: 'test-model',
+			debug: false,
+			llmTimeoutSecs: '90',
+			cooldownPeriodSecs: '1',
+			ollamaUrl: 'http://localhost:11434/v1',
+			output: tempDir,
+			test: undefined,
+			category: 'logic',
+		});
+
+		expect(executeProblemsMock).toHaveBeenCalledWith(
+			expect.any(Array),
+			expect.any(Object),
+			expect.objectContaining({
+				initialResults: [expect.objectContaining({problem: 'fizzbuzz'})],
+			}),
+		);
+		expect(runResult.outputPath).toBe(`${openPath}.gz`);
 	});
 });

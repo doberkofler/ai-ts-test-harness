@@ -88,6 +88,7 @@ export type RuntimeConfig = {
 	apiKey?: string;
 	oauthToken?: string;
 	selectedCategories?: string[];
+	plannedProblemNames?: string[];
 	systemInfo?: SystemInfo;
 };
 
@@ -107,6 +108,7 @@ export type ResultsFile = {
 	cooldown_period_secs?: number;
 	debug?: boolean;
 	selected_categories?: string[];
+	planned_problem_names?: string[];
 	system_info?: SystemInfo;
 	total: number;
 	passed: number;
