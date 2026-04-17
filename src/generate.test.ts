@@ -246,4 +246,70 @@ describe('generate', () => {
 		expect(result).toBe('return a + b;');
 		expect(phases).toEqual(['thinking', 'running']);
 	});
+
+	test('uses remaining timeout budget for fallback completion', async () => {
+		const nowSpy = vi.spyOn(Date, 'now');
+		let nowMs = 1000;
+		nowSpy.mockImplementation(() => nowMs);
+		const phases: string[] = [];
+
+		let streamTimeoutArg = -1;
+		const completionTimeoutArgs: number[] = [];
+
+		const result = await generate(problem, {
+			model: 'test-model',
+			llmTimeoutSecs: 1,
+			onPhaseChange: (phase) => {
+				phases.push(phase);
+			},
+			createCompletion: async (_request, options) => {
+				completionTimeoutArgs.push(options.timeout);
+				const response = await Promise.resolve({
+					choices: [{message: {content: 'return a + b;'}}],
+				});
+				return response;
+			},
+			async *createCompletionStream(_request, options) {
+				streamTimeoutArg = options.timeout;
+				yield {choices: []};
+				nowMs = 1600;
+				await Promise.resolve();
+				throw new Error('stream unsupported by provider');
+			},
+		});
+
+		expect(result).toBe('return a + b;');
+		expect(streamTimeoutArg).toBe(1000);
+		expect(completionTimeoutArgs).toEqual([400]);
+		expect(phases).toEqual(['thinking', 'running']);
+		nowSpy.mockRestore();
+	});
+
+	test('does not fallback when stream times out', async () => {
+		const createCompletion = vi.fn<() => Promise<{choices: {message: {content: string}}[]}>>(async () => {
+			const response = await Promise.resolve({
+				choices: [{message: {content: 'return a + b;'}}],
+			});
+			return response;
+		});
+		const phases: string[] = [];
+
+		await expect(
+			generate(problem, {
+				model: 'test-model',
+				onPhaseChange: (phase) => {
+					phases.push(phase);
+				},
+				createCompletion,
+				async *createCompletionStream() {
+					await Promise.resolve();
+					yield {choices: []};
+					throw new Error('Request timed out.');
+				},
+			}),
+		).rejects.toThrow('Request timed out.');
+
+		expect(createCompletion).not.toHaveBeenCalled();
+		expect(phases).toContain('thinking');
+	});
 });

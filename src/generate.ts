@@ -98,6 +98,55 @@ const resolveLlmTimeoutSecs = (llmTimeoutSecs: number): number => {
 	return llmTimeoutSecs;
 };
 
+const TIMEOUT_ERROR_MESSAGE = 'Request timed out.';
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+
+const readErrorStringField = (error: unknown, field: 'name' | 'code' | 'type' | 'message'): string | undefined => {
+	if (!isRecord(error)) {
+		return undefined;
+	}
+
+	const raw = error[field];
+	return typeof raw === 'string' ? raw : undefined;
+};
+
+const isTimeoutLikeError = (error: unknown): boolean => {
+	const message = readErrorStringField(error, 'message') ?? (error instanceof Error ? error.message : String(error));
+	const name = readErrorStringField(error, 'name') ?? (error instanceof Error ? error.name : undefined);
+	const code = readErrorStringField(error, 'code');
+	const type = readErrorStringField(error, 'type');
+
+	if (typeof code === 'string' && /timed?out|abort/i.test(code)) {
+		return true;
+	}
+
+	if (typeof type === 'string' && /timed?out|abort/i.test(type)) {
+		return true;
+	}
+
+	if (typeof name === 'string' && /timeout|abort/i.test(name)) {
+		return true;
+	}
+
+	return /timed?\s*out|abort/i.test(message);
+};
+
+const isStreamingUnsupportedError = (error: unknown): boolean => {
+	const message = readErrorStringField(error, 'message') ?? (error instanceof Error ? error.message : String(error));
+	const mentionsStream = /stream/i.test(message);
+	const mentionsUnsupported = /unsupported|not\s+supported|not\s+support|disabled/i.test(message);
+	return mentionsStream && mentionsUnsupported;
+};
+
+const normalizeTimeoutError = (error: unknown): never => {
+	if (isTimeoutLikeError(error)) {
+		throw new Error(TIMEOUT_ERROR_MESSAGE, {cause: error});
+	}
+
+	throw error;
+};
+
 const extractModelThinking = (message: {reasoning?: string | null; reasoning_content?: string | null} | undefined): string | undefined => {
 	if (message && typeof message.reasoning === 'string' && message.reasoning.trim().length > 0) {
 		return message.reasoning;
@@ -222,6 +271,15 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		options.createCompletionStream ?? (options.createCompletion === undefined ? createCompletionStreamForUrl(ollamaUrl, authKey) : undefined);
 	const llmTimeoutSecs = resolveLlmTimeoutSecs(options.llmTimeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS);
 	const requestTimeoutMs = llmTimeoutSecs * 1000;
+	const deadlineMs = Date.now() + requestTimeoutMs;
+	const remainingTimeoutMs = (): number => {
+		const remaining = deadlineMs - Date.now();
+		if (remaining <= 0) {
+			throw new Error(TIMEOUT_ERROR_MESSAGE, {cause: new Error('Request exceeded configured timeout window')});
+		}
+
+		return remaining;
+	};
 
 	const request: CompletionRequest = {
 		model: options.model,
@@ -248,7 +306,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		let markedRunning = false;
 
 		try {
-			for await (const chunk of completionStream(request, {timeout: requestTimeoutMs})) {
+			for await (const chunk of completionStream(request, {timeout: remainingTimeoutMs()})) {
 				const [firstChoice] = chunk.choices;
 				const delta = firstChoice ? firstChoice.delta : undefined;
 
@@ -275,14 +333,25 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 					generatedCode += responseDelta;
 				}
 			}
-		} catch {
+		} catch (error) {
+			if (isTimeoutLikeError(error)) {
+				normalizeTimeoutError(error);
+			}
+
+			if (!isStreamingUnsupportedError(error)) {
+				throw error;
+			}
+
 			setPhase('running');
-			const fallbackResponse = await completion(request, {timeout: requestTimeoutMs});
+			const fallbackResponse = await completion(request, {timeout: remainingTimeoutMs()}).catch((fallbackError: unknown) =>
+				normalizeTimeoutError(fallbackError),
+			);
+
 			const [fallbackChoice] = fallbackResponse.choices;
 			const fallbackMessage = fallbackChoice && 'message' in fallbackChoice ? fallbackChoice.message : undefined;
 			const fallbackText = fallbackMessage && 'content' in fallbackMessage ? fallbackMessage.content : undefined;
 			if (typeof fallbackText !== 'string') {
-				throw new TypeError(`Empty response for problem: ${problem.name}`);
+				throw new TypeError(`Empty response for problem: ${problem.name}`, {cause: error});
 			}
 
 			if (options.debug === true) {
@@ -317,7 +386,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 	}
 
 	setPhase('running');
-	const res = await completion(request, {timeout: requestTimeoutMs});
+	const res = await completion(request, {timeout: remainingTimeoutMs()}).catch((error: unknown) => normalizeTimeoutError(error));
 
 	const [firstChoice] = res.choices;
 	const message = firstChoice && 'message' in firstChoice ? firstChoice.message : undefined;
