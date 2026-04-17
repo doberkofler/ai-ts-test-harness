@@ -13,6 +13,8 @@ describe('run progress formatting', () => {
 	test('formats problem start and live lines', () => {
 		expect(formatProblemStartLine(0, 3, 'sum')).toContain('[ 1/3] sum');
 		expect(formatRunningLiveLine('sum', 4200)).toContain('Running sum 4s');
+		expect(formatRunningLiveLine('sum', 4200, 'thinking')).toContain('Thinking sum 4s');
+		expect(formatRunningLiveLine('sum', 4200, 'testing')).toContain('Testing sum 4s');
 		expect(formatRunningLiveLine('sum', 61_000)).toContain('Running sum 1m 1s');
 		expect(formatCooldownLiveLine(3000)).toBe('Cooldown 3s');
 		expect(formatCooldownLiveLine(420)).toBe('Cooldown 0s');

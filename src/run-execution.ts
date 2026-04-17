@@ -8,6 +8,7 @@ import {
 	formatRunningLiveLine,
 	formatSkippedProblemLine,
 } from './run-progress.ts';
+import {type RunPhase} from './run-phase.ts';
 import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
 import {solveProblem} from './solveProblem.ts';
 import {type Problem, type Result} from './types.ts';
@@ -65,11 +66,12 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 		}
 
 		const startedAt = now();
+		let currentPhase: RunPhase = 'thinking';
 		let timerId: ReturnType<typeof setInterval> | undefined;
 		if (showLiveTimer) {
-			writeLiveLine(stream, formatRunningLiveLine(problem.name, 0));
+			writeLiveLine(stream, formatRunningLiveLine(problem.name, 0, currentPhase));
 			timerId = setIntervalFn(() => {
-				replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt));
+				replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt, currentPhase));
 			}, 1000);
 		}
 
@@ -83,6 +85,12 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 				...(typeof options.oauthToken === 'string' ? {oauthToken: options.oauthToken} : {}),
 				debug: options.debug,
 				llmTimeoutSecs: options.llmTimeoutSecs,
+				onPhaseChange: (phase) => {
+					currentPhase = phase;
+					if (showLiveTimer) {
+						replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt, currentPhase));
+					}
+				},
 			});
 		} finally {
 			if (typeof timerId !== 'undefined') {

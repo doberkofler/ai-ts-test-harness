@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_OLLAMA_URL} from './config.ts';
+import {type RunPhase} from './run-phase.ts';
 import {type Problem} from './types.ts';
 
 const clientsByUrl = new Map<string, OpenAI>();
@@ -47,6 +48,7 @@ export type GenerateOptions = {
 	oauthToken?: string;
 	debug?: boolean;
 	llmTimeoutSecs?: number;
+	onPhaseChange?: (phase: RunPhase) => void;
 	createCompletion?: CreateCompletion;
 	createCompletionStream?: CreateCompletionStream;
 };
@@ -174,6 +176,14 @@ const printDebugBlock = (header: string, body: string, metadata?: readonly strin
  * for direct-refactor problems this is transformed source code.
  */
 export const generate = async (problem: Problem, options: GenerateOptions): Promise<string> => {
+	const setPhase = (phase: RunPhase): void => {
+		if (typeof options.onPhaseChange === 'function') {
+			options.onPhaseChange(phase);
+		}
+	};
+
+	setPhase('thinking');
+
 	const description = Array.isArray(problem.description) ? problem.description.map((line) => `- ${line}`).join('\n') : `- ${problem.description}`;
 
 	const prompt =
@@ -224,34 +234,80 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		],
 	};
 
-	if (options.debug === true && completionStream !== undefined) {
-		const thinkingLogger = createLiveLineLogger('LLM thinking (stream)');
-		const responseLogger = createLiveLineLogger('LLM response (stream)');
-		let generatedCode = '';
+	const shouldUseStreaming = completionStream !== undefined && (options.debug === true || typeof options.onPhaseChange === 'function');
 
-		for await (const chunk of completionStream(request, {timeout: requestTimeoutMs})) {
-			const [firstChoice] = chunk.choices;
-			const delta = firstChoice && 'delta' in firstChoice ? firstChoice.delta : undefined;
-
-			const thinkingDelta =
-				delta && typeof delta.reasoning === 'string'
-					? delta.reasoning
-					: delta && typeof delta.reasoning_content === 'string'
-						? delta.reasoning_content
-						: undefined;
-			if (typeof thinkingDelta === 'string') {
-				thinkingLogger.push(thinkingDelta);
-			}
-
-			const responseDelta = delta && typeof delta.content === 'string' ? delta.content : undefined;
-			if (typeof responseDelta === 'string') {
-				responseLogger.push(responseDelta);
-				generatedCode += responseDelta;
-			}
+	if (shouldUseStreaming) {
+		if (typeof completionStream === 'undefined') {
+			throw new TypeError('Streaming completion is not available');
 		}
 
-		thinkingLogger.flush();
-		responseLogger.flush();
+		const debugStream = options.debug === true;
+		const thinkingLogger = debugStream ? createLiveLineLogger('LLM thinking (stream)') : undefined;
+		const responseLogger = debugStream ? createLiveLineLogger('LLM response (stream)') : undefined;
+		let generatedCode = '';
+		let markedRunning = false;
+
+		try {
+			for await (const chunk of completionStream(request, {timeout: requestTimeoutMs})) {
+				const [firstChoice] = chunk.choices;
+				const delta = firstChoice ? firstChoice.delta : undefined;
+
+				const thinkingDelta =
+					delta && typeof delta.reasoning === 'string'
+						? delta.reasoning
+						: delta && typeof delta.reasoning_content === 'string'
+							? delta.reasoning_content
+							: undefined;
+				if (typeof thinkingDelta === 'string' && thinkingLogger) {
+					thinkingLogger.push(thinkingDelta);
+				}
+
+				const responseDelta = delta && typeof delta.content === 'string' ? delta.content : undefined;
+				if (typeof responseDelta === 'string') {
+					if (!markedRunning) {
+						setPhase('running');
+						markedRunning = true;
+					}
+
+					if (responseLogger && typeof responseDelta === 'string') {
+						responseLogger.push(responseDelta);
+					}
+					generatedCode += responseDelta;
+				}
+			}
+		} catch {
+			setPhase('running');
+			const fallbackResponse = await completion(request, {timeout: requestTimeoutMs});
+			const [fallbackChoice] = fallbackResponse.choices;
+			const fallbackMessage = fallbackChoice && 'message' in fallbackChoice ? fallbackChoice.message : undefined;
+			const fallbackText = fallbackMessage && 'content' in fallbackMessage ? fallbackMessage.content : undefined;
+			if (typeof fallbackText !== 'string') {
+				throw new TypeError(`Empty response for problem: ${problem.name}`);
+			}
+
+			if (options.debug === true) {
+				const modelThinking = extractModelThinking(fallbackMessage);
+				if (typeof modelThinking === 'string') {
+					printDebugBlock('LLM thinking', modelThinking, [`problem: ${problem.name}`]);
+				}
+				printDebugBlock('LLM response', fallbackText, [`problem: ${problem.name}`]);
+			}
+
+			return stripFences(fallbackText);
+		}
+
+		if (!markedRunning) {
+			setPhase('running');
+		}
+
+		if (debugStream) {
+			if (thinkingLogger) {
+				thinkingLogger.flush();
+			}
+			if (responseLogger) {
+				responseLogger.flush();
+			}
+		}
 
 		if (generatedCode.length === 0) {
 			throw new TypeError(`Empty response for problem: ${problem.name}`);
@@ -260,6 +316,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		return stripFences(generatedCode);
 	}
 
+	setPhase('running');
 	const res = await completion(request, {timeout: requestTimeoutMs});
 
 	const [firstChoice] = res.choices;

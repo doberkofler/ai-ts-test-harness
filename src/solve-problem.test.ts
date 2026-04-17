@@ -79,4 +79,31 @@ describe('solveProblem', () => {
 			error: 'runner crashed',
 		});
 	});
+
+	test('emits thinking, running, and testing phases in order', async () => {
+		const phases: string[] = [];
+		generateMock.mockImplementation(async (_problem, options) => {
+			await Promise.resolve();
+			if (typeof options.onPhaseChange === 'function') {
+				options.onPhaseChange('running');
+			}
+			return 'function sum(a: number, b: number): number { return a + b; }';
+		});
+		runProblemMock.mockResolvedValue({
+			problem: 'sum',
+			category: 'arithmetic',
+			program: 'generated program',
+			passed: true,
+			duration_ms: 1,
+		});
+
+		await solveProblem(problem, {
+			model: 'test-model',
+			onPhaseChange: (phase) => {
+				phases.push(phase);
+			},
+		});
+
+		expect(phases).toEqual(['thinking', 'running', 'testing']);
+	});
 });

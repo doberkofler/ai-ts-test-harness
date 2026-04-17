@@ -1,5 +1,6 @@
 import {summarizeResults} from './core/results-summary.ts';
 import {formatMs, formatClockTime} from './core/time-format.ts';
+import {RUN_PHASE_LABELS, type RunPhase} from './run-phase.ts';
 import {STYLES, styleText} from './utils.ts';
 
 type CompletedProblemLineInput = {
@@ -23,8 +24,8 @@ const formatStep = (index: number, total: number): string => `[${String(index + 
 export const formatProblemStartLine = (index: number, total: number, name: string): string =>
 	`${styleText(formatStep(index, total), STYLES.dim)} ${styleText(name, STYLES.bold)}`;
 
-export const formatRunningLiveLine = (name: string, elapsedMs: number): string =>
-	`Running ${styleText(name, STYLES.bold)} ${styleText(formatMs(elapsedMs, {style: 'timer'}), STYLES.dim)}`;
+export const formatRunningLiveLine = (name: string, elapsedMs: number, phase: RunPhase = 'running'): string =>
+	`${RUN_PHASE_LABELS[phase]} ${styleText(name, STYLES.bold)} ${styleText(formatMs(elapsedMs, {style: 'timer'}), STYLES.dim)}`;
 
 export const formatCooldownLiveLine = (remainingMs: number): string => `Cooldown ${styleText(formatMs(remainingMs, {style: 'timer'}), STYLES.dim)}`;
 

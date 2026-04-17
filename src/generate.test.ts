@@ -199,4 +199,51 @@ describe('generate', () => {
 		expect(capturedPrompt).toContain('Description:');
 		expect(capturedPrompt).toContain('- Add two integers');
 	});
+
+	test('reports thinking and running phases while streaming', async () => {
+		const phases: string[] = [];
+
+		await generate(problem, {
+			model: 'test-model',
+			onPhaseChange: (phase) => {
+				phases.push(phase);
+			},
+			async *createCompletionStream() {
+				await Promise.resolve();
+				yield {choices: [{delta: {reasoning_content: 'planning'}}]};
+				yield {choices: [{delta: {content: 'return a + b;'}}]};
+			},
+			createCompletion: async () => {
+				await Promise.resolve();
+				throw new Error('completion fallback should not run when streaming succeeds');
+			},
+		});
+
+		expect(phases).toEqual(['thinking', 'running']);
+	});
+
+	test('falls back to completion and still reports running phase', async () => {
+		const phases: string[] = [];
+
+		const result = await generate(problem, {
+			model: 'test-model',
+			onPhaseChange: (phase) => {
+				phases.push(phase);
+			},
+			createCompletion: async () => {
+				const response = await Promise.resolve({
+					choices: [{message: {content: 'return a + b;'}}],
+				});
+				return response;
+			},
+			async *createCompletionStream() {
+				await Promise.resolve();
+				yield {choices: []};
+				throw new Error('stream unsupported');
+			},
+		});
+
+		expect(result).toBe('return a + b;');
+		expect(phases).toEqual(['thinking', 'running']);
+	});
 });
