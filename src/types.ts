@@ -88,7 +88,6 @@ export type RuntimeConfig = {
 	apiKey?: string;
 	oauthToken?: string;
 	selectedCategories?: string[];
-	plannedProblemNames?: string[];
 	systemInfo?: SystemInfo;
 };
 
@@ -105,14 +104,7 @@ export type ResultsFile = {
 	model: string;
 	ollama_url?: string;
 	llm_timeout_secs?: number;
-	cooldown_period_secs?: number;
-	debug?: boolean;
 	selected_categories?: string[];
-	planned_problem_names?: string[];
 	system_info?: SystemInfo;
-	total: number;
-	passed: number;
-	failed: number;
-	pass_rate_percent: number;
 	results: Result[];
 };

@@ -38,6 +38,7 @@ export const deriveHtmlOutputPath = (jsonOutputPath: string): string => {
 };
 
 export const renderResultsHtml = (payload: ResultsFile): string => {
+	const summary = summarizeResults(payload.results);
 	const escapedPayload = JSON.stringify(payload)
 		.replaceAll('<', String.raw`\u003c`)
 		.replaceAll('>', String.raw`\u003e`)
@@ -386,14 +387,13 @@ tbody tr:hover {
 			<span>Model: ${payload.model}</span>
 			<span>Categories: ${Array.isArray(payload.selected_categories) && payload.selected_categories.length > 0 ? payload.selected_categories.join(', ') : 'all'}</span>
 			<span>Timeout: ${typeof payload.llm_timeout_secs === 'number' ? payload.llm_timeout_secs : 'n/a'}${typeof payload.llm_timeout_secs === 'number' ? 's' : ''}</span>
-			<span>Cooldown: ${typeof payload.cooldown_period_secs === 'number' ? payload.cooldown_period_secs : 0}s</span>
 			${hardwareInfo}
 		</div>
 		<div class="cards">
-			<div class="card"><div class="label">Pass Rate</div><div class="value">${payload.pass_rate_percent}%</div></div>
-			<div class="card"><div class="label">Passed</div><div class="value">${payload.passed}</div></div>
-			<div class="card"><div class="label">Failed</div><div class="value">${payload.failed}</div></div>
-			<div class="card"><div class="label">Total</div><div class="value">${payload.total}</div></div>
+			<div class="card"><div class="label">Pass Rate</div><div class="value">${summary.passRatePercent}%</div></div>
+			<div class="card"><div class="label">Passed</div><div class="value">${summary.passed}</div></div>
+			<div class="card"><div class="label">Failed</div><div class="value">${summary.failed}</div></div>
+			<div class="card"><div class="label">Total</div><div class="value">${summary.total}</div></div>
 		</div>
 	</section>
 
@@ -538,21 +538,13 @@ render();
 };
 
 export const formatResultsHtmlFile = (results: Result[], config: RuntimeConfig): string => {
-	const summary = summarizeResults(results);
-
 	const payload: ResultsFile = {
 		generated_at: new Date().toISOString(),
 		model: config.model,
 		ollama_url: config.ollamaUrl,
 		llm_timeout_secs: config.llmTimeoutSecs,
-		...(typeof config.cooldownPeriodSecs === 'number' ? {cooldown_period_secs: config.cooldownPeriodSecs} : {}),
-		debug: config.debug,
 		...(Array.isArray(config.selectedCategories) ? {selected_categories: config.selectedCategories} : {}),
 		...(config.systemInfo ? {system_info: config.systemInfo} : {}),
-		total: summary.total,
-		passed: summary.passed,
-		failed: summary.failed,
-		pass_rate_percent: summary.passRatePercent,
 		results,
 	};
 	return renderResultsHtml(payload);
@@ -615,14 +607,15 @@ const renderIndexHtml = (entries: RunReportEntry[], directoryPath: string): stri
 	const escapedEntries = JSON.stringify(
 		entries.map((entry) => {
 			const systemInfo = entry.payload.system_info;
+			const summary = summarizeResults(entry.payload.results);
 			return {
 				jsonFile: parse(entry.jsonPath).base,
 				htmlFile: parse(entry.htmlPath).base,
 				generatedAt: entry.payload.generated_at,
 				model: entry.payload.model,
-				passRate: entry.payload.pass_rate_percent,
-				passed: entry.payload.passed,
-				total: entry.payload.total,
+				passRate: summary.passRatePercent,
+				passed: summary.passed,
+				total: summary.total,
 				hostname: typeof systemInfo === 'undefined' ? '' : systemInfo.hostname,
 				cpu: typeof systemInfo === 'undefined' ? '' : systemInfo.cpu,
 				gpu: typeof systemInfo === 'undefined' || typeof systemInfo.gpu !== 'string' ? '' : systemInfo.gpu,

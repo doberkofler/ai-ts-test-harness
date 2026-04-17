@@ -84,10 +84,7 @@ describe('runCommand', () => {
 		expect(runResult.config.selectedCategories).toEqual(['logic']);
 
 		const content = parseResultsFile(readFileSync(output, 'utf8'));
-		expect(content.total).toBe(1);
-		expect(content.passed).toBe(1);
-		expect(content.failed).toBe(0);
-		expect(content.pass_rate_percent).toBe(100);
+		expect(content.results).toEqual([expect.objectContaining({problem: 'fizzbuzz', passed: true})]);
 	});
 
 	test('throws on invalid numeric input before execution', async () => {
@@ -114,9 +111,9 @@ describe('runCommand', () => {
 
 		const runResult = await runCommand({
 			model: 'test-model',
-			debug: false,
+			debug: true,
 			llmTimeoutSecs: '90',
-			cooldownPeriodSecs: '1',
+			cooldownPeriodSecs: '30',
 			ollamaUrl: 'http://localhost:11434/v1',
 			output: tempDir,
 			test: undefined,
@@ -126,8 +123,7 @@ describe('runCommand', () => {
 		expect(runResult.outputPath.endsWith('.json.gz')).toBe(true);
 		const uncompressed = gunzipSync(readFileSync(runResult.outputPath)).toString('utf8');
 		const content = parseResultsFile(uncompressed);
-		expect(content.total).toBe(1);
-		expect(content.passed).toBe(1);
+		expect(content.results).toEqual([expect.objectContaining({problem: 'fizzbuzz', passed: true})]);
 	});
 
 	test('resumes from matching open json in output directory', async () => {
@@ -141,7 +137,6 @@ describe('runCommand', () => {
 			cooldownPeriodSecs: 1,
 			ollamaUrl: 'http://localhost:11434/v1',
 			selectedCategories: ['logic'],
-			plannedProblemNames: ['fizzbuzz', 'add'],
 			systemInfo: {
 				hostname: 'host-a',
 				os: 'darwin 24.0.0 (arm64)',
@@ -150,10 +145,6 @@ describe('runCommand', () => {
 				gpu: 'GPU',
 			},
 		});
-		resumedPayload.total = 2;
-		resumedPayload.passed = 1;
-		resumedPayload.failed = 1;
-		resumedPayload.pass_rate_percent = 50;
 		writeFileSync(openPath, `${JSON.stringify(resumedPayload, undefined, 2)}\n`, 'utf8');
 
 		executeProblemsMock.mockResolvedValue([
@@ -180,5 +171,45 @@ describe('runCommand', () => {
 			}),
 		);
 		expect(runResult.outputPath).toBe(`${openPath}.gz`);
+	});
+
+	test('logs fresh run reason when open run does not match scope', async () => {
+		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic')]);
+
+		const openPath = join(tempDir, 'run_20260101-000000_test-model.json');
+		const mismatchedPayload = formatResultsFile([{problem: 'other', category: 'logic', program: 'code', passed: true, duration_ms: 5}], {
+			model: 'test-model',
+			debug: false,
+			llmTimeoutSecs: 90,
+			ollamaUrl: 'http://localhost:11434/v1',
+			systemInfo: {
+				hostname: 'host-a',
+				os: 'darwin 24.0.0 (arm64)',
+				cpu: 'CPU',
+				ram_gb: 64,
+				gpu: 'GPU',
+			},
+		});
+		writeFileSync(openPath, `${JSON.stringify(mismatchedPayload, undefined, 2)}\n`, 'utf8');
+		executeProblemsMock.mockResolvedValue([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}]);
+
+		let loggedLines = 0;
+		const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
+			loggedLines += 1;
+		});
+		await runCommand({
+			model: 'test-model',
+			debug: false,
+			llmTimeoutSecs: '90',
+			cooldownPeriodSecs: '0',
+			ollamaUrl: 'http://localhost:11434/v1',
+			output: tempDir,
+			test: undefined,
+			category: 'logic',
+		});
+
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Starting fresh run'));
+		expect(loggedLines).toBeGreaterThan(0);
+		logSpy.mockRestore();
 	});
 });

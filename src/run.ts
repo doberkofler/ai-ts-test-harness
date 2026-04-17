@@ -26,6 +26,7 @@ type RunOutputTargets = {
 	openOutputPath: string;
 	finalOutputPath: string;
 	resumedResults: Result[];
+	resumeReason: string;
 };
 
 const isResultsOutputFilePath = (value: string): boolean => {
@@ -83,45 +84,46 @@ const isRecentPayload = (payload: ResultsFile, nowMs: number): boolean => {
 	return nowMs - generatedAtMs <= AUTO_RESUME_WINDOW_MS;
 };
 
-const isResumablePayload = (payload: ResultsFile, config: RuntimeConfig, plannedProblemNames: readonly string[], nowMs: number): boolean => {
+const uniqueCompletedProblemNames = (results: readonly Result[], plannedProblemNames: readonly string[]): string[] => [
+	...new Set(results.map((result) => result.problem).filter((problemName) => plannedProblemNames.includes(problemName))),
+];
+
+const evaluateResumeCandidate = (
+	payload: ResultsFile,
+	config: RuntimeConfig,
+	plannedProblemNames: readonly string[],
+	nowMs: number,
+): {resumable: boolean; reason: string} => {
 	if (!isRecentPayload(payload, nowMs)) {
-		return false;
+		return {resumable: false, reason: 'open run is older than 24 hours'};
 	}
 
 	const selectedCategories = Array.isArray(config.selectedCategories) ? config.selectedCategories : undefined;
-	const plannedNames = Array.isArray(config.plannedProblemNames) ? config.plannedProblemNames : plannedProblemNames;
-	const payloadCooldown = typeof payload.cooldown_period_secs === 'number' ? payload.cooldown_period_secs : 0;
-	const configCooldown = typeof config.cooldownPeriodSecs === 'number' ? config.cooldownPeriodSecs : 0;
-
 	if (payload.model !== config.model) {
-		return false;
+		return {resumable: false, reason: 'model mismatch'};
 	}
 	if (payload.ollama_url !== config.ollamaUrl) {
-		return false;
+		return {resumable: false, reason: 'Ollama URL mismatch'};
 	}
 	if (payload.llm_timeout_secs !== config.llmTimeoutSecs) {
-		return false;
-	}
-	if (payloadCooldown !== configCooldown) {
-		return false;
-	}
-	if (payload.debug !== config.debug) {
-		return false;
+		return {resumable: false, reason: 'LLM timeout mismatch'};
 	}
 	if (!areStringArraysEqual(payload.selected_categories, selectedCategories)) {
-		return false;
-	}
-	if (!areStringArraysEqual(payload.planned_problem_names, plannedNames)) {
-		return false;
+		return {resumable: false, reason: 'selected categories mismatch'};
 	}
 	if (!areSystemInfosEqual(payload.system_info, config.systemInfo)) {
-		return false;
+		return {resumable: false, reason: 'system information mismatch'};
 	}
-	if (payload.results.length >= payload.total) {
-		return false;
+	if (!payload.results.every((result) => plannedProblemNames.includes(result.problem))) {
+		return {resumable: false, reason: 'open run belongs to a different problem scope'};
 	}
 
-	return payload.results.every((result) => plannedProblemNames.includes(result.problem));
+	const completedCount = uniqueCompletedProblemNames(payload.results, plannedProblemNames).length;
+	if (completedCount >= plannedProblemNames.length) {
+		return {resumable: false, reason: 'open run is already complete for current scope'};
+	}
+
+	return {resumable: true, reason: `resuming with ${completedCount}/${plannedProblemNames.length} completed`};
 };
 
 const findResumableOpenResults = (
@@ -147,7 +149,8 @@ const findResumableOpenResults = (
 	for (const entry of entries) {
 		try {
 			const payload = readResultsPayload(entry.path);
-			if (!isResumablePayload(payload, config, plannedProblemNames, nowMs)) {
+			const candidate = evaluateResumeCandidate(payload, config, plannedProblemNames, nowMs);
+			if (!candidate.resumable) {
 				continue;
 			}
 			return {path: entry.path, results: payload.results};
@@ -162,13 +165,26 @@ const findResumableOpenResults = (
 const resolveOutputTargets = (output: string, config: RuntimeConfig, plannedProblemNames: readonly string[], nowMs: number): RunOutputTargets => {
 	if (!isResultsOutputFilePath(output)) {
 		mkdirSync(output, {recursive: true});
+		const openFiles = readdirSync(output).filter((entry) => isOpenResultsFilePath(entry));
+		if (openFiles.length === 0) {
+			const safeModelName = config.model.replaceAll(/[^a-z0-9.-]/gi, '_');
+			const runBasePath = resolve(join(output, `run_${getTimestampString(nowMs)}_${safeModelName}`));
+			return {
+				openOutputPath: `${runBasePath}.json`,
+				finalOutputPath: `${runBasePath}.json.gz`,
+				resumedResults: [],
+				resumeReason: 'no open run file found',
+			};
+		}
 
 		const resumeCandidate = findResumableOpenResults(output, config, plannedProblemNames, nowMs);
 		if (typeof resumeCandidate !== 'undefined') {
+			const completedCount = uniqueCompletedProblemNames(resumeCandidate.results, plannedProblemNames).length;
 			return {
 				openOutputPath: resumeCandidate.path,
 				finalOutputPath: `${resumeCandidate.path}.gz`,
 				resumedResults: resumeCandidate.results,
+				resumeReason: `resuming with ${completedCount}/${plannedProblemNames.length} completed`,
 			};
 		}
 
@@ -178,6 +194,7 @@ const resolveOutputTargets = (output: string, config: RuntimeConfig, plannedProb
 			openOutputPath: `${runBasePath}.json`,
 			finalOutputPath: `${runBasePath}.json.gz`,
 			resumedResults: [],
+			resumeReason: 'open run files exist but none match current model/config/system/scope',
 		};
 	}
 
@@ -191,15 +208,17 @@ const resolveOutputTargets = (output: string, config: RuntimeConfig, plannedProb
 		if ((fileStats && fileStats.isFile()) === true) {
 			try {
 				const payload = readResultsPayload(resolvedOutputPath);
-				if (isResumablePayload(payload, config, plannedProblemNames, nowMs)) {
-					return {openOutputPath: resolvedOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: payload.results};
+				const candidate = evaluateResumeCandidate(payload, config, plannedProblemNames, nowMs);
+				if (candidate.resumable) {
+					return {openOutputPath: resolvedOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: payload.results, resumeReason: candidate.reason};
 				}
+				return {openOutputPath: resolvedOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: candidate.reason};
 			} catch {
-				// Ignore invalid file contents and overwrite with a fresh run.
+				return {openOutputPath: resolvedOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: 'open run file is invalid JSON'};
 			}
 		}
 
-		return {openOutputPath: resolvedOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: []};
+		return {openOutputPath: resolvedOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: 'open run file does not exist yet'};
 	}
 
 	const openOutputPath = resolvedOutputPath.slice(0, -'.gz'.length);
@@ -208,15 +227,17 @@ const resolveOutputTargets = (output: string, config: RuntimeConfig, plannedProb
 	if ((openStats && openStats.isFile()) === true) {
 		try {
 			const payload = readResultsPayload(openOutputPath);
-			if (isResumablePayload(payload, config, plannedProblemNames, nowMs)) {
-				return {openOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: payload.results};
+			const candidate = evaluateResumeCandidate(payload, config, plannedProblemNames, nowMs);
+			if (candidate.resumable) {
+				return {openOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: payload.results, resumeReason: candidate.reason};
 			}
+			return {openOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: candidate.reason};
 		} catch {
-			// Ignore invalid file contents and overwrite with a fresh run.
+			return {openOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: 'open run file is invalid JSON'};
 		}
 	}
 
-	return {openOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: []};
+	return {openOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: 'open run file not found'};
 };
 
 export const buildRuntimeConfig = (parsedOptions: ParsedRunCommandOptions, selectedCategories: string[] | undefined): RuntimeConfig => ({
@@ -257,10 +278,7 @@ export const createRunContext = (options: RunCommandOptions): RunContext => {
 	const allProblems = loadProblems('./src/problems');
 	const selectedCategories = parseCategoryFilter(parsedOptions.category);
 	const problems = selectProblemsByFilters(allProblems, parsedOptions.test, selectedCategories);
-	const runtimeConfig = {
-		...buildRuntimeConfig(parsedOptions, selectedCategories),
-		plannedProblemNames: problems.map((problem) => problem.name),
-	};
+	const runtimeConfig = buildRuntimeConfig(parsedOptions, selectedCategories);
 	const executeOptions = buildExecuteRunOptions(parsedOptions);
 
 	return {
@@ -279,7 +297,9 @@ export const runCommandWithContext = async (context: RunContext): Promise<{resul
 	const outputTargets = resolveOutputTargets(context.parsedOptions.output, context.runtimeConfig, plannedProblemNames, nowMs);
 
 	if (outputTargets.resumedResults.length > 0) {
-		console.log(`Resuming open run from ${outputTargets.openOutputPath} with ${outputTargets.resumedResults.length}/${context.problems.length} completed`);
+		console.log(`Resuming open run from ${outputTargets.openOutputPath} (${outputTargets.resumeReason})`);
+	} else {
+		console.log(`Starting fresh run (${outputTargets.resumeReason})`);
 	}
 
 	writeResultsFile(outputTargets.resumedResults, outputTargets.openOutputPath, context.runtimeConfig);

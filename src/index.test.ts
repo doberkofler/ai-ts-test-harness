@@ -27,7 +27,7 @@ const problems: Problem[] = [
 ];
 
 describe('formatResultsFile', () => {
-	test('includes summary and compact payload fields', () => {
+	test('returns lean payload fields', () => {
 		const results: Result[] = [
 			{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, duration_ms: 10},
 			{problem: 'max', category: 'arithmetic', program: 'return Math.max(a, b);', passed: false, error: 'boom', duration_ms: 12},
@@ -44,20 +44,15 @@ describe('formatResultsFile', () => {
 		expect(output.model).toBe('test-model');
 		expect(output.ollama_url).toBe('http://localhost:11434/v1');
 		expect(output.llm_timeout_secs).toBe(5);
-		expect(output.cooldown_period_secs).toBe(10);
-		expect(output.debug).toBe(true);
 		expect(output).not.toHaveProperty('selected_categories');
-		expect(output).not.toHaveProperty('planned_problem_names');
+		expect(output).not.toHaveProperty('cooldown_period_secs');
+		expect(output).not.toHaveProperty('debug');
 		expect(output).not.toHaveProperty('system_info');
-		expect(output.total).toBe(2);
-		expect(output.passed).toBe(1);
-		expect(output.failed).toBe(1);
-		expect(output.pass_rate_percent).toBe(50);
 		expect(output.results).toEqual(results);
 		expect(Date.parse(output.generated_at)).not.toBeNaN();
 	});
 
-	test('returns 0 percent pass rate for empty results', () => {
+	test('returns empty results for empty payload', () => {
 		const output = formatResultsFile([], {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
@@ -65,8 +60,7 @@ describe('formatResultsFile', () => {
 			debug: false,
 		});
 
-		expect(output.total).toBe(0);
-		expect(output.pass_rate_percent).toBe(0);
+		expect(output.results).toEqual([]);
 	});
 
 	test('does not persist auth credentials into result payload', () => {
