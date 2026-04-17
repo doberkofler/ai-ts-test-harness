@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-04-17T22:45:39.486Z",
+  "model": "gemma4:26b-a4b-it-q8_0",
+  "ollama_url": "http://localhost:11434/v1",
+  "llm_timeout_secs": 180,
+  "system_info": {
+    "hostname": "Dieters-MacBook-Pro-M5.local",
+    "os": "darwin 26.4.1 (arm64)",
+    "cpu": "Apple M5 Max (18 cores)",
+    "ram_gb": 64,
+    "gpu": "Apple Apple M5 Max"
+  },
+  "results": [
+    {
+      "problem": "a-star-grid-shortest-path",
+      "category": "algorithms",
+      "program": "function aStarGridShortestPath(grid: number[][], start: readonly [number, number], end: readonly [number, number]): number | null {\n  const rows = grid.length;\n  if (rows === 0) return null;\n  const cols = grid[0].length;\n\n  const [startR, startC] = start;\n  const [endR, endC] = end;\n\n  if (\n    startR < 0 || startR >= rows || startC < 0 || startC >= cols ||\n    endR < 0 || endR >= rows || endC < 0 || endC >= cols ||\n    grid[startR][startC] === 1 || grid[endR][endC] === 1\n  ) {\n    return null;\n  }\n\n  const heuristic = (r: number, c: number) => Math.abs(r - endR) + Math.abs(c - endC);\n\n  class MinHeap {\n    nodes: { r: number; c: number; f: number }[] = [];\n    push(node: { r: number; c: number; f: number }) {\n      this.nodes.push(node);\n      let index = this.nodes.length - 1;\n      while (index > 0) {\n        let parent = Math.floor((index - 1) / 2);\n        if (this.nodes[parent].f <= this.nodes[index].f) break;\n        [this.nodes[parent], this.nodes[index]] = [this.nodes[index], this.nodes[parent]];\n        index = parent;\n      }\n    }\n    pop() {\n      if (this.nodes.length === 0) return null;\n      const min = this.nodes[0];\n      const last = this.nodes.pop()!;\n      if (this.nodes.length > 0) {\n        this.nodes[0] = last;\n        let index = 0;\n        while (true) {\n          let left = 2 * index + 1;\n          let right = 2 * index + 2;\n          let smallest = index;\n          if (left < this.nodes.length && this.nodes[left].f < this.nodes[smallest].f) smallest = left;\n          if (right < this.nodes.length && this.nodes[right].f < this.nodes[smallest].f) smallest = right;\n          if (smallest === index) break;\n          [this.nodes[smallest], this.nodes[index]] = [this.nodes[index], this.nodes[smallest]];\n          index = smallest;\n        }\n      }\n      return min;\n    }\n    size() { return this.nodes.length; }\n  }\n\n  const openSet = new MinHeap();\n  const gScore = new Map<string, number>();\n\n  const startKey = `${startR},${startC}`;\n  gScore.set(startKey, 0);\n  openSet.push({ r: startR, c: startC, f: heuristic(startR, startC) });\n\n  const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];\n\n  while (openSet.size() > 0) {\n    const current = openSet.pop()!;\n    const { r, c, f } = current;\n\n    const currentG = gScore.get(`${r},${c}`)!;\n    if (f > currentG + heuristic(r, c)) continue;\n\n    if (r === endR && c === endC) return currentG;\n\n    for (const [dr, dc] of directions) {\n      const nr = r + dr;\n      const nc = c + dc;\n\n      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc] === 0) {\n        const tentativeG = currentG + 1;\n        const neighborKey = `${nr},${nc}`;\n        const neighborG = gScore.get(neighborKey);\n\n        if (neighborG === undefined || tentativeG < neighborG) {\n          gScore.set(neighborKey, tentativeG);\n          openSet.push({ r: nr, c: nc, f: tentativeG + heuristic(nr, nc) });\n        }\n      }\n    }\n  }\n\n  return null;\n}",
+      "passed": true,
+      "duration_ms": 99834
+    },
+    {
+      "problem": "binary-search-boundary",
+      "category": "algorithms",
+      "program": "function binarySearchBoundary(values: number[], target: number): number {\n  let low = 0;\n  let high = values.length - 1;\n  let result = -1;\n\n  while (low <= high) {\n    const mid = Math.floor(low + (high - low) / 2);\n\n    if (values[mid] === target) {\n      result = mid;\n      high = mid - 1;\n    } else if (values[mid] < target) {\n      low = mid + 1;\n    } else {\n      high = mid - 1;\n    }\n  }\n\n  return result;\n}",
+      "passed": true,
+      "duration_ms": 12131
+    },
+    {
+      "problem": "binary-search-first-last-position",
+      "category": "algorithms",
+      "program": "function binarySearchFirstLastPosition(values: number[], target: number): [number, number] {\n  let first = -1;\n  let low = 0;\n  let high = values.length - 1;\n\n  while (low <= high) {\n    const mid = Math.floor((low + high) / 2);\n    if (values[mid] === target) {\n      first = mid;\n      high = mid - 1;\n    } else if (values[mid] < target) {\n      low = mid + 1;\n    } else {\n      high = mid - 1;\n    }\n  }\n\n  if (first === -1) {\n    return [-1, -1];\n  }\n\n  let last = -1;\n  low = first;\n  high = values.length - 1;\n\n  while (low <= high) {\n    const mid = Math.floor((low + high) / 2);\n    if (values[mid] === target) {\n      last = mid;\n      low = mid + 1;\n    } else if (values[mid] < target) {\n      low = mid + 1;\n    } else {\n      high = mid - 1;\n    }\n  }\n\n  return [first, last];\n}",
+      "passed": true,
+      "duration_ms": 31624
+    }
+  ]
+}

@@ -58,7 +58,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 				`${formatCompletedProblemLine({
 					index,
 					total: problems.length,
-					name: problem.name,
+					name: problemDisplayName,
 					passed: completedResult.passed,
 					durationMs: completedResult.duration_ms,
 					preferUnicode,
@@ -113,7 +113,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			formatCompletedProblemLine({
 				index,
 				total: problems.length,
-				name: problem.name,
+				name: problemDisplayName,
 				passed: result.passed,
 				durationMs: result.duration_ms,
 				preferUnicode,

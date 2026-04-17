@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-17T22:34:19.547Z",
+  "generated_at": "2026-04-17T22:48:48.580Z",
   "model": "gemma4:31b",
   "ollama_url": "http://localhost:11434/v1",
   "llm_timeout_secs": 600,
@@ -476,6 +476,57 @@
       "program": "function insertThousandsSeparatorsLookahead(n: string): string {\n  return n.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');\n}",
       "passed": true,
       "duration_ms": 34878
+    },
+    {
+      "problem": "ipv4-with-optional-cidr",
+      "category": "regexp",
+      "program": "function ipv4WithOptionalCidr(): RegExp {\n  const octet = '(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])';\n  const cidr = '(3[0-2]|[1-2][0-9]|[0-9])';\n  return new RegExp(`^(${octet}\\\\.){3}${octet}(\\\\/${cidr})?$`);\n}",
+      "passed": true,
+      "duration_ms": 79430
+    },
+    {
+      "problem": "iso-8601-datetime-named-capture",
+      "category": "regexp",
+      "program": "function iso8601DatetimeNamedCapture(): RegExp {\n  return /^(?<year>\\d{4})-(?<month>\\d{2})-(?<day>\\d{2})T(?<hour>\\d{2}):(?<minute>\\d{2}):(?<second>\\d{2})(?<offset>Z|[+-]\\d{2}:?\\d{2})$/;\n}",
+      "passed": true,
+      "duration_ms": 32218
+    },
+    {
+      "problem": "markdown-h2-h3-heading-extractor",
+      "category": "regexp",
+      "program": "function markdownH2H3HeadingExtractor(): RegExp {\n  return /^#{2,3}(?!#)\\s+(.*)$/gm;\n}",
+      "passed": true,
+      "duration_ms": 23391
+    },
+    {
+      "problem": "non-currency-float-lookbehind",
+      "category": "regexp",
+      "program": "function nonCurrencyFloatLookbehind(): RegExp {\n  return /(?<![\\$€])\\b\\d+(\\.\\d+)?/g;\n}",
+      "passed": false,
+      "error": "false == true",
+      "duration_ms": 157460
+    },
+    {
+      "problem": "pixel-value-strict",
+      "category": "regexp",
+      "program": "function pixelValueStrict(): RegExp {\n  return /^\\d+px$/;\n}",
+      "passed": true,
+      "duration_ms": 10498
+    },
+    {
+      "problem": "repeated-word-backreference",
+      "category": "regexp",
+      "program": "function repeatedWordBackreference(): RegExp {\n  return /\\b(\\w+)\\s+\\1\\b/i;\n}",
+      "passed": true,
+      "duration_ms": 23218
+    },
+    {
+      "problem": "semantic-versioning-strict",
+      "category": "regexp",
+      "program": "function semanticVersioningStrict(): RegExp {\n  return /^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)*))?)?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$/;\n}",
+      "passed": false,
+      "error": "Expected values to be strictly equal:\n\ntrue !== false",
+      "duration_ms": 60312
     }
   ]
 }

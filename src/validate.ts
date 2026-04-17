@@ -180,7 +180,7 @@ export const validateCommand = async (options: ValidateCommandOptions): Promise<
 			formatCompletedProblemLine({
 				index,
 				total: solvedProblems.length,
-				name: problem.name,
+				name: problemDisplayName,
 				passed: issueMessages.length === 0,
 				durationMs: Math.max(totalDurationMs, now() - startedAtMs),
 				preferUnicode,

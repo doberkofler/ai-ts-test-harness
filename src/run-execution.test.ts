@@ -80,8 +80,8 @@ describe('executeProblems', () => {
 			expect.objectContaining({model: 'model-a', llmTimeoutSecs: 75, oauthToken: 'oauth-token'}),
 		);
 		expect(log).toHaveBeenCalledWith(expect.stringContaining('[ 1/2] logic/one'));
-		expect(log).toHaveBeenCalledWith(expect.stringContaining('PASS [ 1/2] one (10ms)'));
-		expect(log).toHaveBeenCalledWith(expect.stringContaining('FAIL [ 2/2] two (12ms)'));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('PASS [ 1/2] logic/one (10ms)'));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('FAIL [ 2/2] logic/two (12ms)'));
 		expect(log).toHaveBeenCalledWith('Run Summary');
 		expect(log).toHaveBeenCalledWith('Duration   : 50ms');
 		expect(onProblemComplete).toHaveBeenCalledTimes(2);
@@ -160,7 +160,7 @@ describe('executeProblems', () => {
 		);
 
 		expect(solveProblemMock).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({name: 'two'}), expect.anything());
-		expect(log).toHaveBeenCalledWith(expect.stringContaining('PASS [ 1/2] one (10ms)'));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('PASS [ 1/2] logic/one (10ms)'));
 		expect(log).toHaveBeenCalledWith(expect.stringContaining('(resumed)'));
 		expect(results).toEqual([resumedResult, expect.objectContaining({problem: 'two'})]);
 	});
