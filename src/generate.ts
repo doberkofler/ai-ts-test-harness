@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_OLLAMA_URL} from './config.ts';
 import {type RunPhase} from './run-phase.ts';
+import {type RunTransferStats} from './run-transfer.ts';
 import {type Problem} from './types.ts';
 
 const clientsByUrl = new Map<string, OpenAI>();
@@ -49,6 +50,7 @@ export type GenerateOptions = {
 	debug?: boolean;
 	llmTimeoutSecs?: number;
 	onPhaseChange?: (phase: RunPhase) => void;
+	onTransferProgress?: (stats: RunTransferStats) => void;
 	createCompletion?: CreateCompletion;
 	createCompletionStream?: CreateCompletionStream;
 };
@@ -159,6 +161,13 @@ const extractModelThinking = (message: {reasoning?: string | null; reasoning_con
 	return undefined;
 };
 
+const hasResponseContentOutsideThinkTags = (text: string): boolean => {
+	const withoutClosedThinkBlocks = text.replaceAll(/<think>[\s\S]*?<\/think>/g, '');
+	const withoutOpenThinkTail = withoutClosedThinkBlocks.replaceAll(/<think>[\s\S]*$/g, '');
+	const withoutStandaloneTags = withoutOpenThinkTail.replaceAll(/<\/?think>/g, '');
+	return withoutStandaloneTags.trim().length > 0;
+};
+
 const createLiveLineLogger = (header: string): {push: (text: string) => void; flush: () => void} => {
 	let started = false;
 	let buffer = '';
@@ -230,6 +239,11 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 			options.onPhaseChange(phase);
 		}
 	};
+	const setTransferProgress = (stats: RunTransferStats): void => {
+		if (typeof options.onTransferProgress === 'function') {
+			options.onTransferProgress(stats);
+		}
+	};
 
 	setPhase('thinking');
 
@@ -292,6 +306,19 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		],
 	};
 
+	const promptChars = prompt.length;
+	let responseChars = 0;
+	setTransferProgress({promptChars, responseChars});
+
+	const markResponseChars = (deltaChars: number): void => {
+		if (deltaChars <= 0) {
+			return;
+		}
+
+		responseChars += deltaChars;
+		setTransferProgress({promptChars, responseChars});
+	};
+
 	const shouldUseStreaming = completionStream !== undefined && (options.debug === true || typeof options.onPhaseChange === 'function');
 
 	if (shouldUseStreaming) {
@@ -304,6 +331,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		const responseLogger = debugStream ? createLiveLineLogger('LLM response (stream)') : undefined;
 		let generatedCode = '';
 		let markedRunning = false;
+		let responsePhaseProbe = '';
 
 		try {
 			for await (const chunk of completionStream(request, {timeout: remainingTimeoutMs()})) {
@@ -319,18 +347,29 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 				if (typeof thinkingDelta === 'string' && thinkingLogger) {
 					thinkingLogger.push(thinkingDelta);
 				}
+				if (typeof thinkingDelta === 'string') {
+					markResponseChars(thinkingDelta.length);
+				}
 
 				const responseDelta = delta && typeof delta.content === 'string' ? delta.content : undefined;
 				if (typeof responseDelta === 'string') {
 					if (!markedRunning) {
-						setPhase('running');
-						markedRunning = true;
+						responsePhaseProbe = `${responsePhaseProbe}${responseDelta}`;
+						if (responsePhaseProbe.length > 512) {
+							responsePhaseProbe = responsePhaseProbe.slice(-512);
+						}
+
+						if (hasResponseContentOutsideThinkTags(responsePhaseProbe)) {
+							setPhase('running');
+							markedRunning = true;
+						}
 					}
 
 					if (responseLogger && typeof responseDelta === 'string') {
 						responseLogger.push(responseDelta);
 					}
 					generatedCode += responseDelta;
+					markResponseChars(responseDelta.length);
 				}
 			}
 		} catch (error) {
@@ -342,7 +381,6 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 				throw error;
 			}
 
-			setPhase('running');
 			const fallbackResponse = await completion(request, {timeout: remainingTimeoutMs()}).catch((fallbackError: unknown) =>
 				normalizeTimeoutError(fallbackError),
 			);
@@ -354,10 +392,16 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 				throw new TypeError(`Empty response for problem: ${problem.name}`, {cause: error});
 			}
 
+			const fallbackThinking = extractModelThinking(fallbackMessage);
+			if (typeof fallbackThinking === 'string') {
+				markResponseChars(fallbackThinking.length);
+			}
+			markResponseChars(fallbackText.length);
+			setPhase('running');
+
 			if (options.debug === true) {
-				const modelThinking = extractModelThinking(fallbackMessage);
-				if (typeof modelThinking === 'string') {
-					printDebugBlock('LLM thinking', modelThinking, [`problem: ${problem.name}`]);
+				if (typeof fallbackThinking === 'string') {
+					printDebugBlock('LLM thinking', fallbackThinking, [`problem: ${problem.name}`]);
 				}
 				printDebugBlock('LLM response', fallbackText, [`problem: ${problem.name}`]);
 			}
@@ -385,7 +429,6 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		return stripFences(generatedCode);
 	}
 
-	setPhase('running');
 	const res = await completion(request, {timeout: remainingTimeoutMs()}).catch((error: unknown) => normalizeTimeoutError(error));
 
 	const [firstChoice] = res.choices;
@@ -395,8 +438,14 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		throw new TypeError(`Empty response for problem: ${problem.name}`);
 	}
 
+	const modelThinking = extractModelThinking(message);
+	if (typeof modelThinking === 'string') {
+		markResponseChars(modelThinking.length);
+	}
+	markResponseChars(text.length);
+	setPhase('running');
+
 	if (options.debug === true) {
-		const modelThinking = extractModelThinking(message);
 		if (typeof modelThinking === 'string') {
 			printDebugBlock('LLM thinking', modelThinking, [`problem: ${problem.name}`]);
 		}

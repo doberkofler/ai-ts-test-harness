@@ -15,6 +15,7 @@ describe('run progress formatting', () => {
 		expect(formatRunningLiveLine('sum', 4200)).toContain('Running sum 4s');
 		expect(formatRunningLiveLine('sum', 4200, 'thinking')).toContain('Thinking sum 4s');
 		expect(formatRunningLiveLine('sum', 4200, 'testing')).toContain('Testing sum 4s');
+		expect(formatRunningLiveLine('sum', 4200, 'running', {promptChars: 1500, responseChars: 84})).toContain('↑1.5k ↓84 20/s');
 		expect(formatRunningLiveLine('sum', 61_000)).toContain('Running sum 1m 1s');
 		expect(formatCooldownLiveLine(3000)).toBe('Cooldown 3s');
 		expect(formatCooldownLiveLine(420)).toBe('Cooldown 0s');

@@ -9,6 +9,7 @@ import {
 	formatSkippedProblemLine,
 } from './run-progress.ts';
 import {type RunPhase} from './run-phase.ts';
+import {type RunTransferStats} from './run-transfer.ts';
 import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
 import {solveProblem} from './solveProblem.ts';
 import {type Problem, type Result} from './types.ts';
@@ -67,11 +68,12 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 
 		const startedAt = now();
 		let currentPhase: RunPhase = 'thinking';
+		let currentTransferStats: RunTransferStats = {promptChars: 0, responseChars: 0};
 		let timerId: ReturnType<typeof setInterval> | undefined;
 		if (showLiveTimer) {
-			writeLiveLine(stream, formatRunningLiveLine(problem.name, 0, currentPhase));
+			writeLiveLine(stream, formatRunningLiveLine(problem.name, 0, currentPhase, currentTransferStats));
 			timerId = setIntervalFn(() => {
-				replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt, currentPhase));
+				replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt, currentPhase, currentTransferStats));
 			}, 1000);
 		}
 
@@ -88,7 +90,13 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 				onPhaseChange: (phase) => {
 					currentPhase = phase;
 					if (showLiveTimer) {
-						replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt, currentPhase));
+						replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt, currentPhase, currentTransferStats));
+					}
+				},
+				onTransferProgress: (stats) => {
+					currentTransferStats = stats;
+					if (showLiveTimer) {
+						replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt, currentPhase, currentTransferStats));
 					}
 				},
 			});

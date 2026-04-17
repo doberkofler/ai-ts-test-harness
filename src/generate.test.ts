@@ -222,6 +222,29 @@ describe('generate', () => {
 		expect(phases).toEqual(['thinking', 'running']);
 	});
 
+	test('keeps thinking phase while streaming think tags until real response content appears', async () => {
+		const phases: string[] = [];
+
+		await generate(problem, {
+			model: 'test-model',
+			onPhaseChange: (phase) => {
+				phases.push(phase);
+			},
+			async *createCompletionStream() {
+				await Promise.resolve();
+				yield {choices: [{delta: {content: '<think>planning'}}]};
+				yield {choices: [{delta: {content: ' details</think>'}}]};
+				yield {choices: [{delta: {content: 'return a + b;'}}]};
+			},
+			createCompletion: async () => {
+				await Promise.resolve();
+				throw new Error('completion fallback should not run when streaming succeeds');
+			},
+		});
+
+		expect(phases).toEqual(['thinking', 'running']);
+	});
+
 	test('falls back to completion and still reports running phase', async () => {
 		const phases: string[] = [];
 
@@ -311,5 +334,66 @@ describe('generate', () => {
 
 		expect(createCompletion).not.toHaveBeenCalled();
 		expect(phases).toContain('thinking');
+	});
+
+	test('reports transfer progress for streamed reasoning and content', async () => {
+		const transferUpdates: {promptChars: number; responseChars: number}[] = [];
+
+		await generate(problem, {
+			model: 'test-model',
+			onPhaseChange: () => {
+				// no-op
+			},
+			onTransferProgress: (stats) => {
+				transferUpdates.push(stats);
+			},
+			async *createCompletionStream() {
+				await Promise.resolve();
+				yield {choices: [{delta: {reasoning_content: 'abc'}}]};
+				yield {choices: [{delta: {content: 'de'}}]};
+			},
+			createCompletion: async () => {
+				await Promise.resolve();
+				throw new Error('completion fallback should not run when streaming succeeds');
+			},
+		});
+
+		expect(transferUpdates.length).toBeGreaterThanOrEqual(2);
+		const [firstTransferUpdate] = transferUpdates;
+		const lastTransferUpdate = transferUpdates.at(-1);
+		if (typeof firstTransferUpdate === 'undefined' || typeof lastTransferUpdate === 'undefined') {
+			throw new TypeError('expected transfer updates to be present');
+		}
+		expect(firstTransferUpdate.promptChars).toBeGreaterThan(0);
+		expect(firstTransferUpdate.responseChars).toBe(0);
+		expect(lastTransferUpdate).toMatchObject({promptChars: firstTransferUpdate.promptChars, responseChars: 5});
+	});
+
+	test('reports transfer progress for non-stream responses', async () => {
+		const transferUpdates: {promptChars: number; responseChars: number}[] = [];
+
+		await generate(problem, {
+			model: 'test-model',
+			onTransferProgress: (stats) => {
+				transferUpdates.push(stats);
+			},
+			createCompletion: async () => {
+				const response = await Promise.resolve({
+					choices: [{message: {reasoning_content: 'abc', content: 'de'}}],
+				});
+				return response;
+			},
+		});
+
+		expect(transferUpdates).toHaveLength(3);
+		const [firstTransferUpdate, secondTransferUpdate] = transferUpdates;
+		const finalTransferUpdate = transferUpdates.at(-1);
+		if (typeof firstTransferUpdate === 'undefined' || typeof secondTransferUpdate === 'undefined' || typeof finalTransferUpdate === 'undefined') {
+			throw new TypeError('expected transfer updates to be present');
+		}
+		expect(firstTransferUpdate.promptChars).toBeGreaterThan(0);
+		expect(firstTransferUpdate.responseChars).toBe(0);
+		expect(secondTransferUpdate).toMatchObject({promptChars: firstTransferUpdate.promptChars, responseChars: 3});
+		expect(finalTransferUpdate).toMatchObject({promptChars: firstTransferUpdate.promptChars, responseChars: 5});
 	});
 });
