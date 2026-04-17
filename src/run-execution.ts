@@ -3,6 +3,7 @@ import {STYLES, styleText} from './utils.ts';
 import {
 	formatCompletedProblemLine,
 	formatCooldownLiveLine,
+	formatProblemDisplayName,
 	formatCooldownStaticLine,
 	formatProblemStartLine,
 	formatRunFooterLines,
@@ -50,6 +51,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 	const completedProblemResults = new Map(initialResults.map((result) => [result.problem, result]));
 
 	for (const [index, problem] of problems.entries()) {
+		const problemDisplayName = formatProblemDisplayName(problem.category, problem.name);
 		const completedResult = completedProblemResults.get(problem.name);
 		if (completedResult) {
 			log(
@@ -66,7 +68,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 		}
 
 		if (!showLiveTimer) {
-			log(formatProblemStartLine(index, problems.length, problem.name));
+			log(formatProblemStartLine(index, problems.length, problemDisplayName));
 		}
 
 		const startedAt = now();
@@ -74,9 +76,9 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 		let currentTransferStats: RunTransferStats = {promptChars: 0, responseChars: 0};
 		let timerId: ReturnType<typeof setInterval> | undefined;
 		if (showLiveTimer) {
-			writeLiveLine(stream, formatRunningLiveLine(problem.name, 0, currentPhase, currentTransferStats));
+			writeLiveLine(stream, formatRunningLiveLine(problemDisplayName, 0, currentPhase, currentTransferStats));
 			timerId = setIntervalFn(() => {
-				replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt, currentPhase, currentTransferStats));
+				replaceLiveLine(stream, formatRunningLiveLine(problemDisplayName, now() - startedAt, currentPhase, currentTransferStats));
 			}, 1000);
 		}
 
@@ -93,14 +95,11 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 				onPhaseChange: (phase) => {
 					currentPhase = phase;
 					if (showLiveTimer) {
-						replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt, currentPhase, currentTransferStats));
+						replaceLiveLine(stream, formatRunningLiveLine(problemDisplayName, now() - startedAt, currentPhase, currentTransferStats));
 					}
 				},
 				onTransferProgress: (stats) => {
 					currentTransferStats = stats;
-					if (showLiveTimer) {
-						replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAt, currentPhase, currentTransferStats));
-					}
 				},
 			});
 		} finally {

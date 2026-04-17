@@ -15,6 +15,8 @@ type CompletedProblemLineInput = {
 
 const formatStep = (index: number, total: number): string => `[${String(index + 1).padStart(2, ' ')}/${total}]`;
 
+export const formatProblemDisplayName = (category: string, name: string): string => `${category}/${name}`;
+
 const formatCompactCount = (value: number): string => {
 	if (value >= 1e6) {
 		const millions = value / 1e6;

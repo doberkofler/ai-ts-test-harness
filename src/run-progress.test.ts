@@ -3,6 +3,7 @@ import {
 	formatCompletedProblemLine,
 	formatCooldownLiveLine,
 	formatCooldownStaticLine,
+	formatProblemDisplayName,
 	formatProblemStartLine,
 	formatRunFooterLines,
 	formatRunningLiveLine,
@@ -11,6 +12,7 @@ import {
 describe('run progress formatting', () => {
 	test('formats problem start and live lines', () => {
 		expect(formatProblemStartLine(0, 3, 'sum')).toContain('[ 1/3] sum');
+		expect(formatProblemDisplayName('regexp', 'credit-card-redaction-match')).toBe('regexp/credit-card-redaction-match');
 		expect(formatRunningLiveLine('sum', 4200)).toContain('Running sum 4s');
 		expect(formatRunningLiveLine('sum', 4200, 'thinking')).toContain('Thinking sum 4s');
 		expect(formatRunningLiveLine('sum', 4200, 'testing')).toContain('Testing sum 4s');

@@ -3,7 +3,7 @@ import {startVitest} from 'vitest/node';
 import {parseCategoryFilter, selectProblemsByFilters} from './core/problem-selection.ts';
 import {parseFunctionNameFromSignature} from './core/signature.ts';
 import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
-import {formatCompletedProblemLine, formatProblemStartLine, formatRunningLiveLine} from './run-progress.ts';
+import {formatCompletedProblemLine, formatProblemDisplayName, formatProblemStartLine, formatRunningLiveLine} from './run-progress.ts';
 import {runProblem} from './runner.ts';
 import {type Problem} from './types.ts';
 
@@ -117,16 +117,17 @@ export const validateCommand = async (options: ValidateCommandOptions): Promise<
 	const failures: string[] = [];
 
 	for (const [index, problem] of solvedProblems.entries()) {
+		const problemDisplayName = formatProblemDisplayName(problem.category, problem.name);
 		if (!showLiveTimer) {
-			log(formatProblemStartLine(index, solvedProblems.length, problem.name));
+			log(formatProblemStartLine(index, solvedProblems.length, problemDisplayName));
 		}
 
 		const startedAtMs = now();
 		let timerId: ReturnType<typeof setInterval> | undefined;
 		if (showLiveTimer) {
-			writeLiveLine(stream, formatRunningLiveLine(problem.name, 0));
+			writeLiveLine(stream, formatRunningLiveLine(problemDisplayName, 0));
 			timerId = setIntervalFn(() => {
-				replaceLiveLine(stream, formatRunningLiveLine(problem.name, now() - startedAtMs));
+				replaceLiveLine(stream, formatRunningLiveLine(problemDisplayName, now() - startedAtMs));
 			}, 1000);
 		}
 
