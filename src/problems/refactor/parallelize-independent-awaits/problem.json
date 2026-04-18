@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Refactor independent sequential awaits to run concurrently with Promise.all.",
+  "timeout_ms": 5000
+}

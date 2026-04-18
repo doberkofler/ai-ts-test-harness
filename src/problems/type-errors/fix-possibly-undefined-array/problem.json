@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Fix 'Object is possibly undefined' when reading first array element.\nThrow an error for empty arrays.",
+  "timeout_ms": 5000
+}

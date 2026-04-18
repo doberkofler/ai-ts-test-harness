@@ -6,23 +6,19 @@ import {type Problem} from './types.ts';
 const problem: Problem = {
 	name: 'sum',
 	category: 'arithmetic',
-	description: ['Add two integers'],
-	signature: 'function sum(a: number, b: number): number',
-	tests: ({assert}) => {
-		assert.strictEqual(1, 1);
-	},
+	description: 'Add two integers',
+	timeout_ms: 5000,
+	files: [],
+	tests: [],
 };
 
 const directRefactorProblem: Problem = {
 	name: 'renameVariables',
 	category: 'refactor',
-	kind: 'direct-refactor',
-	description: ['Rename weak local identifiers in provided code while preserving behavior.'],
-	input: 'function rename(a: number): number { const tmp = a + 1; return tmp; }',
-	entry: 'rename',
-	tests: ({assert, code}) => {
-		assert.match(code.result, /function rename/);
-	},
+	description: 'Rename weak local identifiers in provided code while preserving behavior.',
+	timeout_ms: 5000,
+	files: [{path: 'src/rename.ts', content: 'function rename(a: number): number { const tmp = a + 1; return tmp; }'}],
+	tests: [],
 };
 
 const readLoggedOutput = (calls: readonly unknown[][]): string =>
@@ -44,7 +40,7 @@ describe('generate', () => {
 			},
 		});
 
-		expect(result).toBe('return a + b;');
+		expect(result).toEqual({kind: 'changed-files-v1', files: [{path: 'solution.ts', content: 'return a + b;'}]});
 	});
 
 	test('logs request and response when debug is enabled', async () => {
@@ -213,8 +209,7 @@ describe('generate', () => {
 			createCompletion,
 		});
 
-		expect(capturedPrompt).toContain('Input code:');
-		expect(capturedPrompt).toContain(directRefactorProblem.input);
+		expect(capturedPrompt).toContain('Initial files:');
 	});
 
 	test('accepts single-string descriptions', async () => {
@@ -244,7 +239,7 @@ describe('generate', () => {
 		);
 
 		expect(capturedPrompt).toContain('Description:');
-		expect(capturedPrompt).toContain('- Add two integers');
+		expect(capturedPrompt).toContain('Description: Add two integers');
 	});
 
 	test('reports thinking and running phases while streaming', async () => {
@@ -313,7 +308,7 @@ describe('generate', () => {
 			},
 		});
 
-		expect(result).toBe('return a + b;');
+		expect(result).toEqual({kind: 'changed-files-v1', files: [{path: 'solution.ts', content: 'return a + b;'}]});
 		expect(phases).toEqual(['thinking', 'running']);
 	});
 
@@ -348,7 +343,7 @@ describe('generate', () => {
 			},
 		});
 
-		expect(result).toBe('return a + b;');
+		expect(result).toEqual({kind: 'changed-files-v1', files: [{path: 'solution.ts', content: 'return a + b;'}]});
 		expect(streamTimeoutArg).toBe(1000);
 		expect(completionTimeoutArgs).toEqual([400]);
 		expect(phases).toEqual(['thinking', 'running']);

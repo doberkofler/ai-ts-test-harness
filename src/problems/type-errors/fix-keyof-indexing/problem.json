@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Fix unsafe generic indexing by constraining key to keyof T.",
+  "timeout_ms": 5000
+}

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Fix non-exhaustive switch over a union by handling all cases with a never check.",
+  "timeout_ms": 5000
+}

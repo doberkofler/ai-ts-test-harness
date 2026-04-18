@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return the month (1-12) and day of Easter Sunday for a given year using the Anonymous Gregorian algorithm.",
+  "timeout_ms": 5000
+}

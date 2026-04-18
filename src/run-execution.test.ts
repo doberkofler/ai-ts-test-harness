@@ -23,11 +23,10 @@ const {executeProblems} = await import('./run-execution.ts');
 const makeProblem = (name: string, category = 'logic'): Problem => ({
 	name,
 	category,
-	description: ['test problem'],
-	signature: `function ${name}(value: number): number`,
-	tests: ({assert}): void => {
-		assert.strictEqual(true, true);
-	},
+	description: 'test problem',
+	timeout_ms: 5000,
+	files: [],
+	tests: [],
 });
 
 describe('executeProblems', () => {

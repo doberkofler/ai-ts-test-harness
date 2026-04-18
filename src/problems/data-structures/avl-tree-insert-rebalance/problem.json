@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Build an AVL tree by inserting values in order and rebalancing after each insert.\nDuplicate values should be ignored. Return the root node.",
+  "timeout_ms": 5000
+}

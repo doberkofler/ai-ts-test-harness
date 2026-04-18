@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Split n into at least two positive integers so their product is maximized.\nReturn that maximum product.",
+  "timeout_ms": 5000
+}

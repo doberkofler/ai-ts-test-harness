@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return a Unicode RegExp that matches strings containing at least one emoji presentation character.\nUse Unicode property escapes with the u flag.",
+  "timeout_ms": 5000
+}

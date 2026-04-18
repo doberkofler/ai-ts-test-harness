@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Fix missing required property 'age' in returned User object.\nKeep name and include a numeric age default.",
+  "timeout_ms": 5000
+}

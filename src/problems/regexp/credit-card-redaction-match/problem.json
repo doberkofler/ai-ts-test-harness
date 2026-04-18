@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return a global RegExp that matches credit-card-like numbers for redaction in text.\nMatch grouped forms and contiguous forms where all but the last four digits can be masked.",
+  "timeout_ms": 5000
+}

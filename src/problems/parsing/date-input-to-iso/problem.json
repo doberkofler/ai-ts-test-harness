@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Convert a date string in YYYY-MM-DD format into the same normalized ISO date string.\nReturn null for invalid calendar dates or malformed input.",
+  "timeout_ms": 5000
+}

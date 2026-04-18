@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Refactor async error handling so try/catch actually captures promise rejections.",
+  "timeout_ms": 5000
+}

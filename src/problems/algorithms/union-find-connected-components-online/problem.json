@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Starting with n isolated nodes [0..n-1], apply union operations online.\nReturn the number of connected components after each union operation.",
+  "timeout_ms": 5000
+}

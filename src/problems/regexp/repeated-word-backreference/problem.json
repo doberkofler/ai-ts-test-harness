@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return a case-insensitive RegExp that detects consecutive repeated words.\nRequire word boundaries and at least one separating whitespace run.",
+  "timeout_ms": 5000
+}

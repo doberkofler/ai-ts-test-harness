@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Implement a Bloom filter with configurable bit-array size and number of hash functions.\nInsert words, then answer membership queries (true = possibly present, false = definitely absent).",
+  "timeout_ms": 5000
+}

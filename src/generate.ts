@@ -1,12 +1,23 @@
 import OpenAI from 'openai';
+import {z} from 'zod';
 import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_OLLAMA_URL} from './config.ts';
 import {type RunPhase} from './run-phase.ts';
 import {type RunTransferStats} from './run-transfer.ts';
-import {type Problem} from './types.ts';
+import {type ChangedFilesArtifact, type Problem, type WorkspaceFile} from './types.ts';
 
 const clientsByUrl = new Map<string, OpenAI>();
 const DEBUG_SECTION_RULE = '='.repeat(72);
 const DEBUG_CONTENT_RULE = '-'.repeat(72);
+
+const changedFilesArtifactSchema = z.object({
+	kind: z.literal('changed-files-v1'),
+	files: z.array(
+		z.object({
+			path: z.string().min(1),
+			content: z.string(),
+		}),
+	),
+});
 
 type ChatCompletionResponse = {
 	choices: {
@@ -90,9 +101,25 @@ const createCompletionStreamForUrl = (ollamaUrl: string, authKey?: string): Crea
  */
 const stripFences = (text: string): string =>
 	text
-		.replace(/^```(?:typescript|ts)?\n?/m, '')
+		.replace(/^```(?:json|typescript|ts)?\n?/m, '')
 		.replace(/\n?```$/m, '')
 		.trim();
+
+const renderWorkspace = (files: readonly WorkspaceFile[]): string =>
+	files.map((file) => [`--- FILE: ${file.path} ---`, file.content, `--- END FILE ---`].join('\n')).join('\n\n');
+
+const parseArtifact = (responseText: string): ChangedFilesArtifact => {
+	const cleaned = stripFences(responseText);
+	try {
+		const parsedJson: unknown = JSON.parse(cleaned);
+		return changedFilesArtifactSchema.parse(parsedJson);
+	} catch {
+		return {
+			kind: 'changed-files-v1',
+			files: [{path: 'solution.ts', content: cleaned}],
+		};
+	}
+};
 
 const resolveLlmTimeoutSecs = (llmTimeoutSecs: number): number => {
 	if (!Number.isFinite(llmTimeoutSecs) || llmTimeoutSecs <= 0) {
@@ -235,7 +262,10 @@ const printDebugBlock = (header: string, body: string, metadata?: readonly strin
  * For implementation problems this is function code;
  * for direct-refactor problems this is transformed source code.
  */
-export const generate = async (problem: Problem, options: GenerateOptions): Promise<string> => {
+export const generate = async (problem: Problem, options: GenerateOptions): Promise<ChangedFilesArtifact> => {
+	const timeoutMs = typeof problem.timeout_ms === 'number' && Number.isFinite(problem.timeout_ms) ? problem.timeout_ms : 5000;
+	const workspaceFiles = Array.isArray(problem.files) ? problem.files : [];
+	const description = Array.isArray(problem.description) ? problem.description.join(' ') : problem.description;
 	const setPhase = (phase: RunPhase): void => {
 		if (typeof options.onPhaseChange === 'function') {
 			options.onPhaseChange(phase);
@@ -254,32 +284,23 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 
 	setPhase('thinking');
 
-	const description = Array.isArray(problem.description) ? problem.description.map((line) => `- ${line}`).join('\n') : `- ${problem.description}`;
-
-	const prompt =
-		problem.kind === 'direct-refactor'
-			? [
-					`Refactor the following TypeScript code.`,
-					`Return ONLY the refactored TypeScript code, with no markdown fences and no explanation.`,
-					``,
-					`Description:`,
-					description,
-					``,
-					`Input code:`,
-					problem.input,
-				].join('\n')
-			: [
-					`Implement the following TypeScript function.`,
-					`Return ONLY the function implementation, no imports, no explanation.`,
-					``,
-					`Description:`,
-					description,
-					``,
-					`Signature:`,
-					`${problem.signature} {`,
-					`  // your implementation here`,
-					`}`,
-				].join('\n');
+	const prompt = [
+		`You are working in a TypeScript workspace benchmark.`,
+		`Apply the requested changes to the provided files.`,
+		`Return ONLY valid JSON matching this exact schema:`,
+		`{`,
+		`  "kind": "changed-files-v1",`,
+		`  "files": [{"path": "relative/path.ts", "content": "full file content"}]`,
+		`}`,
+		`Do not include markdown fences, prose, or extra keys.`,
+		``,
+		`Problem: ${problem.category}/${problem.name}`,
+		`Description: ${description}`,
+		`Timeout (ms): ${timeoutMs}`,
+		``,
+		`Initial files:`,
+		renderWorkspace(workspaceFiles),
+	].join('\n');
 
 	if (options.debug === true) {
 		printDebugBlock('LLM request', prompt, [`problem: ${problem.name}`, `model: ${options.model}`]);
@@ -423,7 +444,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 				printDebugBlock('LLM response', fallbackText, [`problem: ${problem.name}`]);
 			}
 
-			return stripFences(fallbackText);
+			return parseArtifact(fallbackText);
 		}
 
 		if (!markedRunning) {
@@ -443,7 +464,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 			throw new TypeError(`Empty response for problem: ${problem.name}`);
 		}
 
-		return stripFences(generatedCode);
+		return parseArtifact(generatedCode);
 	}
 
 	const res = await completion(request, {timeout: remainingTimeoutMs(), signal: AbortSignal.timeout(remainingTimeoutMs())}).catch((error: unknown) =>
@@ -473,5 +494,5 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		printDebugBlock('LLM response', text, [`problem: ${problem.name}`]);
 	}
 
-	return stripFences(text);
+	return parseArtifact(text);
 };

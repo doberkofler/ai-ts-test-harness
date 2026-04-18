@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return a RegExp for strong passwords using positive lookaheads.\nRequire at least one uppercase, lowercase, digit, and one special from !@#$%^&* with minimum length 8.",
+  "timeout_ms": 5000
+}

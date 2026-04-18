@@ -45,7 +45,6 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 		return {
 			problem: problem.name,
 			category: problem.category,
-			program: '',
 			...(shouldStoreThinking && thinking.length > 0 ? {thinking} : {}),
 			passed: false,
 			error: errorText,

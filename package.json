@@ -21,15 +21,12 @@
 		"url": "https://github.com/doberkofler/ai-ts-test-harness.git"
 	},
 	"bin": "./dist/index.js",
-	"imports": {
-		"#problem-api": "./src/problem-api.ts"
-	},
 	"type": "module",
 	"scripts": {
 		"lint": "tsc && oxlint --disable-nested-config src client server tests *.config.ts && pnpm run format:check",
 		"format": "oxfmt --write .",
 		"format:check": "oxfmt --check .",
-		"test": "vitest run --coverage",
+		"test": "vitest run --coverage --exclude \"src/problems/**\"",
 		"validate": "node dist/index.js validate",
 		"release": "release-it",
 		"ci": "pnpm run lint && pnpm run build && pnpm run test && pnpm run validate",

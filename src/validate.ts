@@ -1,36 +1,32 @@
-import {loadProblems} from './load-problems.ts';
 import {startVitest} from 'vitest/node';
 import {parseCategoryFilter, selectProblemsByFilters} from './core/problem-selection.ts';
-import {parseFunctionNameFromSignature} from './core/signature.ts';
 import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
+import {loadProblems} from './load-problems.ts';
 import {formatCompletedProblemLine, formatProblemDisplayName, formatProblemStartLine, formatRunningLiveLine} from './run-progress.ts';
 import {runProblem} from './runner.ts';
-import {type Problem} from './types.ts';
+import {type ChangedFilesArtifact, type Problem} from './types.ts';
 
-const createInvalidSolution = (problem: Problem): string => {
-	if (problem.kind === 'direct-refactor') {
-		return problem.input;
-	}
-
-	const functionName = parseFunctionNameFromSignature(problem.signature);
-	return `function ${functionName}(): unknown { return undefined; }`;
+const createInvalidSolution = (problem: Problem): ChangedFilesArtifact => {
+	const [firstFile] = Array.isArray(problem.files) ? problem.files : [];
+	return {
+		kind: 'changed-files-v1',
+		files: firstFile ? [{path: firstFile.path, content: 'export const __invalid_solution__ = true;\\n'}] : [],
+	};
 };
 
 const formatFailure = (problemName: string, issue: string): string => `- ${problemName}: ${issue}`;
 
-const hasSolution = (problem: Problem): problem is Problem & {solution: NonNullable<Problem['solution']>} => typeof problem.solution === 'function';
+const hasSolution = (problem: Problem): problem is Problem & {solution: NonNullable<Problem['solution']>} => typeof problem.solution !== 'undefined';
 
 type ValidationStatus = 'passed' | 'failed' | 'missing-solution';
 
 type ValidationTableRow = {
 	problem: string;
 	category: string;
-	kind: 'implement-function' | 'direct-refactor';
+	kind: 'workspace';
 	status: ValidationStatus;
 	details: string;
 };
-
-const getProblemKind = (problem: Problem): ValidationTableRow['kind'] => problem.kind ?? 'implement-function';
 
 const VALIDATION_TABLE_COLUMNS: readonly (keyof ValidationTableRow)[] = ['problem', 'category', 'kind', 'status', 'details'];
 
@@ -46,10 +42,7 @@ const createRow = (values: readonly string[], widths: readonly number[]): string
 const printValidationTable = (rows: readonly ValidationTableRow[]): void => {
 	const headers = [...VALIDATION_TABLE_COLUMNS];
 	const widths = headers.map((header) => {
-		const widestCell = rows.reduce((max, row) => {
-			const cellLength = row[header].length;
-			return Math.max(max, cellLength);
-		}, header.length);
+		const widestCell = rows.reduce((max, row) => Math.max(max, row[header].length), header.length);
 		return widestCell;
 	});
 
@@ -64,16 +57,12 @@ const printValidationTable = (rows: readonly ValidationTableRow[]): void => {
 	console.log(horizontalRule);
 };
 
-const createProvidedSolution = (problem: Problem): string => {
-	if (typeof problem.solution !== 'function') {
-		throw new TypeError(`Problem "${problem.name}" is missing a solution callback`);
+const createProvidedSolution = (problem: Problem): ChangedFilesArtifact => {
+	if (typeof problem.solution === 'undefined' || typeof problem.solution === 'function') {
+		throw new TypeError(`Problem "${problem.name}" is missing a solution artifact`);
 	}
 
-	if (problem.kind === 'direct-refactor') {
-		return problem.solution(problem.input);
-	}
-
-	return problem.solution.toString();
+	return problem.solution;
 };
 
 export type ValidateCommandOptions = {
@@ -101,14 +90,12 @@ export const validateCommand = async (options: ValidateCommandOptions): Promise<
 	const allProblems = (options.loadProblemsFn ?? loadProblems)('./src/problems');
 	const selectedCategories = parseCategoryFilter(options.category);
 	const selectedProblems = selectProblemsByFilters(allProblems, options.test, selectedCategories);
-	const solvedProblems = selectedProblems.filter(
-		(problem): problem is Problem & {solution: NonNullable<Problem['solution']>} => typeof problem.solution === 'function',
-	);
+	const solvedProblems = selectedProblems.filter((problem): problem is Problem & {solution: NonNullable<Problem['solution']>} => hasSolution(problem));
 	const solvedCount = solvedProblems.length;
 	const validationTable: ValidationTableRow[] = selectedProblems.map((problem) => ({
 		problem: problem.name,
 		category: problem.category,
-		kind: getProblemKind(problem),
+		kind: 'workspace',
 		status: hasSolution(problem) ? 'passed' : 'missing-solution',
 		details: hasSolution(problem) ? 'Validation pending' : 'No solution provided yet',
 	}));
@@ -138,7 +125,6 @@ export const validateCommand = async (options: ValidateCommandOptions): Promise<
 		}
 
 		const issueMessages: string[] = [];
-
 		let totalDurationMs = 0;
 		try {
 			checks += 1;

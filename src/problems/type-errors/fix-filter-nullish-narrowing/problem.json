@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Fix filter(Boolean) so the result narrows to string[] with an explicit type predicate.",
+  "timeout_ms": 5000
+}

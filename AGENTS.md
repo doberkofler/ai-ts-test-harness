@@ -80,14 +80,11 @@ The CLI prints the resolved runtime parameters at startup to make debugging runs
 ## Problem Definition Workflow
 
 - Problem definitions live in `src/problems/` as recursive category directories.
-- Each problem is a `.problem.ts` file exporting a default problem object.
+- Each problem is a directory containing `problem.json`, `files/`, and `tests/`.
 - The loader/validator is implemented in `src/load-problems.ts`.
-- Required fields:
-  - Shared: `name`, `description`, `tests`
-  - Category is derived from the problem file's parent directory (relative to `src/problems`).
-  - `implement-function`: `signature`
-  - `direct-refactor`: `input`, `entry`
-- `name` must match the filename (without `.problem.ts`).
+- Required metadata fields in `problem.json`: `version`, `description`, `timeout_ms`.
+- Category is derived from the problem directory's parent path (relative to `src/problems`).
+- Problem name is derived from the problem directory name.
 
 ### Refactor Test Expectations
 

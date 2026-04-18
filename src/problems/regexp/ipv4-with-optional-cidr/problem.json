@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return a RegExp that matches IPv4 addresses with optional CIDR suffix.\nEach octet must be 0-255 and must not contain leading zeros.",
+  "timeout_ms": 5000
+}

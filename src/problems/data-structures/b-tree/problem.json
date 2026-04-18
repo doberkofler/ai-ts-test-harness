@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Implement a parameterized B-tree of minimum degree t (t >= 2).\nExpose insert, search, delete, and keys APIs.\nUse standard B-tree split-on-descent insertion; duplicate inserts should be ignored.",
+  "timeout_ms": 5000
+}

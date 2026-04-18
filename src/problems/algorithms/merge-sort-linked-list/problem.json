@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Sort a singly linked list using merge sort and return the new head.\nDo not use array-index tricks or Array.prototype.sort.",
+  "timeout_ms": 5000
+}

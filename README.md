@@ -71,149 +71,42 @@ After each run, the CLI saves both JSON and HTML reports, and prints a clickable
 
 ## Problem Definitions
 
-Problems are defined as typed TypeScript modules in `src/problems/`.
+Problems are workspace folders under `src/problems/`.
 
 ### Directory Layout
 
-- Files are discovered recursively under `src/problems`.
-- Use category folders to group problems (for example `src/problems/refactor`, `src/problems/algorithms`).
-- Use descriptive file names without numeric prefixes.
-- File extension must be `.problem.ts`.
+- Problems are discovered recursively under `src/problems`.
+- Category is derived from the relative parent directory.
+- Each problem folder is named after the problem slug.
 
 Example layout:
 
 ```text
 src/problems/
   algorithms/
-    fibonacci.problem.ts
-  refactor/
-    declaration-to-expression.problem.ts
-    for-loop-to-for-of.problem.ts
+    fibonacci/
+      problem.json
+      files/
+        solution.ts
+      tests/
+        problem.test.ts
+      solution/
+        solution.ts
 ```
+
+### Required Files
+
+- `problem.json`: metadata (`version`, `description`, `timeout_ms`)
+- `files/`: starter files used for generation/evaluation
+- `tests/`: one or more Vitest files executed in an isolated temp workspace
+
+Optional:
+
+- `solution/`: reference solution artifact used by `pnpm run validate`
 
 ### Load Order
 
-Problems are executed in ascending alphabetical order by relative path under `src/problems`.
-
-### Naming Rules
-
-- The problem `name` is derived from the filename (without `.problem.ts`).
-- The exported `name` value must match the filename exactly.
-- Example: `src/problems/logic/boolean-expression-evaluator.problem.ts` -> `name: 'boolean-expression-evaluator'`.
-
-### Module Shape
-
-Each file exports a default problem definition. Two kinds are supported:
-
-- `implement-function`
-- `direct-refactor`
-
-Shared required fields:
-
-- `name: string`
-- `description: string | string[]`
-- `tests: (context) => void | Promise<void>`
-- `category` is derived from the problem file's parent directory relative to `src/problems` (normalized to lowercase, preserving nested paths like `refactor/loops`)
-
-`implement-function` adds:
-
-- `signature: string`
-- `solution?: (...args) => unknown`
-
-`direct-refactor` adds:
-
-- `input: string`
-- `entry: string` (function identifier used for behavior checks)
-- `solution?: (input: string) => string`
-
-### Authoring Template: `implement-function`
-
-```ts
-import {defineImplementProblem} from '#problem-api';
-
-export default defineImplementProblem({
-  name: 'integer-break-max-product',
-  description: 'Split n into at least two positive integers and return the maximum possible product.',
-  solution: function integerBreakMaxProduct(n: number): number {
-    if (n <= 3) {
-      return n - 1;
-    }
-
-    let product = 1;
-    let remaining = n;
-    while (remaining > 4) {
-      product *= 3;
-      remaining -= 3;
-    }
-
-    return product * remaining;
-  },
-
-  signature: 'function integerBreakMaxProduct(n: number): number',
-	 tests: ({assert, implementation}) => {
-	 	assert.strictEqual(implementation(2), 1);
-	 	assert.strictEqual(implementation(10), 36);
-	 },
-});
-```
-
-### Authoring Template: `direct-refactor`
-
-```ts
-import {defineRefactorProblem} from '#problem-api';
-
-export default defineRefactorProblem({
-  name: 'declaration-to-expression',
-  description: ['Convert function declaration to const arrow function.'],
-  solution: (source) =>
-    source
-      .replace('function multiply', 'const multiply =')
-      .replace('): number {', '): number => {'),
-  input: [
-    'function multiply(a: number, b: number): number {',
-    '\treturn a * b;',
-    '}',
-  ].join('\n'),
-  entry: 'multiply',
-	 tests: ({assert, original, transformed, code}) => {
-	 	const transformedMultiply = transformed as (a: number, b: number) => number;
-	 	const originalMultiply = original as (a: number, b: number) => number;
-	 	assert.strictEqual(transformedMultiply(3, 4), originalMultiply(3, 4));
-	 	assert.match(code.result, /const\s+multiply\s*=/);
-	 	assert.doesNotMatch(code.result, /function\s+multiply\s*\(/);
-	 },
-});
-```
-
-In `direct-refactor` tests, the harness injects:
-
-- `original`: extracted function from `input` (using `entry`)
-- `transformed`: extracted function from generated refactor
-- `code.input`: original source string
-- `code.result`: transformed source string
-
-### Tests Callback
-
-`tests` is always a callback for editor support and linting:
-
-```ts
-import {defineImplementProblem} from '#problem-api';
-
-export default defineImplementProblem({
-	name: 'fibonacci',
-	description: ['Return nth fibonacci number'],
-	signature: 'function fibonacci(n: number): number',
-	tests: ({assert, implementation}) => {
-		const fibonacciFn = implementation as (n: number) => number;
-		assert.strictEqual(fibonacciFn(10), 55);
-	},
-});
-```
-
-Callback context:
-
-- implement-function: `assert`, `implementation`, `code.result`
-- direct-refactor: `assert`, `original`, `transformed`, `code.input`, `code.result`
+Problems are executed in ascending alphabetical order by relative `problem.json` path under `src/problems`.
 
 ## Tooling
 

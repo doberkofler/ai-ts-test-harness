@@ -7,22 +7,18 @@ const problems: Problem[] = [
 	{
 		name: 'fizzbuzz',
 		category: 'logic',
-		description: ['Return fizzbuzz values'],
-		signature: 'function fizzbuzz(n: number): string[]',
-		tests: ({assert}) => {
-			assert.strictEqual(1, 1);
-		},
+		description: 'Return fizzbuzz values',
+		timeout_ms: 5000,
+		files: [],
+		tests: [],
 	},
 	{
 		name: 'renameVariables',
 		category: 'refactor',
-		kind: 'direct-refactor',
-		description: ['Rename short variables'],
-		input: 'function f(x:number){return x}',
-		entry: 'f',
-		tests: ({assert}) => {
-			assert.strictEqual(1, 1);
-		},
+		description: 'Rename short variables',
+		timeout_ms: 5000,
+		files: [],
+		tests: [],
 	},
 ];
 
@@ -176,7 +172,7 @@ describe('formatResultsHtmlFile', () => {
 		expect(html).toContain('arithmetic');
 		expect(html).toContain('sum');
 		expect(html).toContain('max');
-		expect(html).toContain('Generated Program:');
+		expect(html).toContain('Generated Artifact:');
 		expect(html).toContain('return a + b;');
 	});
 });

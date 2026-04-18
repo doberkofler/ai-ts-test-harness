@@ -28,11 +28,10 @@ const {runCommand} = await import('./run.ts');
 const makeProblem = (name: string, category: string): Problem => ({
 	name,
 	category,
-	description: ['test'],
-	signature: `function ${name}(input: number): number`,
-	tests: ({assert}): void => {
-		assert.strictEqual(true, true);
-	},
+	description: 'test',
+	timeout_ms: 5000,
+	files: [],
+	tests: [],
 });
 
 describe('runCommand', () => {

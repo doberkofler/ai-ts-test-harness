@@ -1,112 +1,21 @@
-import {readdirSync, readFileSync} from 'node:fs';
+import {existsSync, readdirSync, readFileSync, statSync} from 'node:fs';
 import {basename, dirname, join, relative, sep} from 'node:path';
-import vm from 'node:vm';
-import ts from 'typescript';
 import {z} from 'zod';
-import {defineImplementProblem, defineRefactorProblem} from './problem-api.ts';
-import {
-	type DirectRefactorProblemSolutionCallback,
-	type DirectRefactorProblemTestCallback,
-	type ImplementProblemSolutionCallback,
-	type ImplementProblemTestCallback,
-	type Problem,
-} from './types.ts';
+import {type ChangedFilesArtifact, type Problem, type WorkspaceFile} from './types.ts';
 
-const implementTestsSchema = z.custom<ImplementProblemTestCallback>((value) => typeof value === 'function', {
-	message: 'problems must include tests as a callback function',
-});
+const problemMetadataSchema = z
+	.object({
+		version: z.number().int().positive(),
+		description: z.string().min(1),
+		timeout_ms: z.number().int().positive(),
+	})
+	.strict();
 
-const refactorTestsSchema = z.custom<DirectRefactorProblemTestCallback>((value) => typeof value === 'function', {
-	message: 'problems must include tests as a callback function',
-});
-
-const implementSolutionSchema = z.custom<ImplementProblemSolutionCallback>((value) => typeof value === 'function', {
-	message: 'implement-function solutions must be callback functions',
-});
-
-const refactorSolutionSchema = z.custom<DirectRefactorProblemSolutionCallback>((value) => typeof value === 'function', {
-	message: 'direct-refactor solutions must be callback functions',
-});
-
-const nonEmptyStringOrStringArraySchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
-
-const implementProblemSchema = z.object({
-	name: z.string().min(1),
-	kind: z.literal('implement-function').default('implement-function'),
-	description: nonEmptyStringOrStringArraySchema,
-	signature: z.string().min(1),
-	solution: implementSolutionSchema.optional(),
-	tests: implementTestsSchema,
-});
-
-const refactorProblemSchema = z.object({
-	name: z.string().min(1),
-	kind: z.literal('direct-refactor'),
-	description: nonEmptyStringOrStringArraySchema,
-	input: z.string().min(1, 'direct-refactor problems must include an input value'),
-	entry: z.string().min(1, 'direct-refactor problems must include an entry value'),
-	solution: refactorSolutionSchema.optional(),
-	tests: refactorTestsSchema,
-});
-
-const problemSchema = z.union([implementProblemSchema, refactorProblemSchema]);
+const normalizePath = (value: string): string => value.split(sep).join('/');
 
 const normalizeCategory = (value: string): string => value.trim().toLowerCase();
 
-const parseCategoryFromPath = (rootDir: string, filePath: string): string => {
-	const parentDir = dirname(filePath);
-	const relativeParentDir = relative(rootDir, parentDir);
-	if (relativeParentDir === '.') {
-		throw new TypeError(`Problem file must be in a category directory: ${filePath}`);
-	}
-
-	const normalizedParentDir = relativeParentDir.split(sep).join('/');
-	return normalizeCategory(normalizedParentDir);
-};
-
-const parseNameFromPath = (filePath: string): string => {
-	const fileName = basename(filePath);
-	if (!fileName.endsWith('.problem.ts')) {
-		throw new TypeError(`Invalid problem file path: ${filePath}`);
-	}
-
-	const withoutExtension = fileName.slice(0, -'.problem.ts'.length);
-	if (withoutExtension.length === 0) {
-		throw new TypeError(`Unable to derive problem name from file path: ${filePath}`);
-	}
-
-	return withoutExtension;
-};
-
-const loadProblemModule = (filePath: string): unknown => {
-	const source = readFileSync(filePath, 'utf8');
-	const transpiled = ts.transpileModule(source, {
-		compilerOptions: {
-			target: ts.ScriptTarget.ES2022,
-			module: ts.ModuleKind.CommonJS,
-		},
-		fileName: filePath,
-	}).outputText;
-
-	const localRequire = (specifier: string): unknown => {
-		if (specifier === '#problem-api') {
-			return {defineImplementProblem, defineRefactorProblem};
-		}
-
-		throw new TypeError(`Unsupported import "${specifier}" in ${filePath}. Use '#problem-api'.`);
-	};
-
-	const moduleLike: {exports: Record<string, unknown>} = {exports: {}};
-	vm.runInNewContext(transpiled, {
-		module: moduleLike,
-		exports: moduleLike.exports,
-		require: localRequire,
-	});
-
-	return moduleLike.exports['default'];
-};
-
-const collectProblemFiles = (rootDir: string): string[] => {
+const collectFilesRecursively = (rootDir: string): string[] => {
 	const allFiles: string[] = [];
 	const walk = (currentDir: string): void => {
 		const entries = readdirSync(currentDir, {withFileTypes: true}).sort((left, right) => left.name.localeCompare(right.name));
@@ -117,42 +26,72 @@ const collectProblemFiles = (rootDir: string): string[] => {
 				continue;
 			}
 
-			if (entry.isFile() && entry.name.endsWith('.problem.ts')) {
+			if (entry.isFile()) {
 				allFiles.push(absolutePath);
 			}
 		}
 	};
 
 	walk(rootDir);
-	return allFiles.sort((leftPath, rightPath) => relative(rootDir, leftPath).localeCompare(relative(rootDir, rightPath)));
+	return allFiles.sort((leftPath, rightPath) => normalizePath(relative(rootDir, leftPath)).localeCompare(normalizePath(relative(rootDir, rightPath))));
 };
 
-const parseProblemModule = (rootDir: string, filePath: string): Problem => {
-	const exported = loadProblemModule(filePath);
-	const parsed = problemSchema.parse(exported);
-	const nameFromFile = parseNameFromPath(filePath);
-	const categoryFromPath = parseCategoryFromPath(rootDir, filePath);
-
-	if (parsed.name !== nameFromFile) {
-		throw new TypeError(`Problem name mismatch in ${filePath}: expected "${nameFromFile}" but received "${parsed.name}"`);
+const loadWorkspaceFiles = (rootDir: string): WorkspaceFile[] => {
+	if (!existsSync(rootDir) || !statSync(rootDir).isDirectory()) {
+		throw new TypeError(`Missing required directory: ${rootDir}`);
 	}
 
-	if (parsed.kind === 'direct-refactor') {
-		const {solution, ...rest} = parsed;
-		return {
-			...rest,
-			category: categoryFromPath,
-			...(typeof solution === 'undefined' ? {} : {solution}),
-		};
-	}
+	return collectFilesRecursively(rootDir).map((filePath) => ({
+		path: normalizePath(relative(rootDir, filePath)),
+		content: readFileSync(filePath, 'utf8'),
+	}));
+};
 
-	const {solution, ...rest} = parsed;
+const loadOptionalSolution = (problemDir: string): ChangedFilesArtifact | undefined => {
+	const solutionDir = join(problemDir, 'solution');
+	if (!existsSync(solutionDir) || !statSync(solutionDir).isDirectory()) {
+		return undefined;
+	}
 
 	return {
-		...rest,
+		kind: 'changed-files-v1',
+		files: loadWorkspaceFiles(solutionDir),
+	};
+};
+
+const parseProblemFromPath = (rootDir: string, metadataFilePath: string): Problem => {
+	const problemDir = dirname(metadataFilePath);
+	const slug = basename(problemDir);
+	if (slug.length === 0) {
+		throw new TypeError(`Unable to derive problem name from path: ${metadataFilePath}`);
+	}
+
+	const relativeProblemDir = normalizePath(relative(rootDir, problemDir));
+	const categoryFromPath = normalizeCategory(normalizePath(dirname(relativeProblemDir)));
+	if (categoryFromPath === '.' || categoryFromPath.length === 0) {
+		throw new TypeError(`Problem directory must be nested under a category: ${problemDir}`);
+	}
+
+	const metadataRaw = readFileSync(metadataFilePath, 'utf8');
+	const metadataUnknown: unknown = JSON.parse(metadataRaw);
+	const metadata = problemMetadataSchema.parse(metadataUnknown);
+
+	const solution = loadOptionalSolution(problemDir);
+
+	return {
+		name: slug,
 		category: categoryFromPath,
+		description: metadata.description,
+		timeout_ms: metadata.timeout_ms,
+		files: loadWorkspaceFiles(join(problemDir, 'files')),
+		tests: loadWorkspaceFiles(join(problemDir, 'tests')),
 		...(typeof solution === 'undefined' ? {} : {solution}),
 	};
 };
 
-export const loadProblems = (dir: string): Problem[] => collectProblemFiles(dir).map((filePath) => parseProblemModule(dir, filePath));
+const collectProblemMetadataFiles = (rootDir: string): string[] =>
+	collectFilesRecursively(rootDir)
+		.filter((filePath) => basename(filePath) === 'problem.json')
+		.sort((leftPath, rightPath) => normalizePath(relative(rootDir, leftPath)).localeCompare(normalizePath(relative(rootDir, rightPath))));
+
+export const loadProblems = (dir: string): Problem[] => collectProblemMetadataFiles(dir).map((path) => parseProblemFromPath(dir, path));

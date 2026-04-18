@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Fix mutation of readonly array in Cart.\nReturn a new Cart value without mutating the original input.",
+  "timeout_ms": 5000
+}

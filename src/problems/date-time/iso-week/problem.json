@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return the ISO 8601 week number and ISO year for a given Date.\nThe ISO year may differ from the calendar year near year boundaries.",
+  "timeout_ms": 5000
+}

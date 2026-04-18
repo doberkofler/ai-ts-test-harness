@@ -446,6 +446,19 @@ const formatDuration = (durationMs) => durationMs < 1000
 
 const getResultKey = (result) => result.problem + '::' + result.category;
 
+const renderArtifact = (artifact, program) => {
+	if (!artifact || artifact.kind !== 'changed-files-v1' || !Array.isArray(artifact.files) || artifact.files.length === 0) {
+		if (typeof program === 'string' && program.length > 0) {
+			return '<div class="program">' + escapeHtml(program) + '</div>';
+		}
+		return '<div class="program">No artifact output.</div>';
+	}
+
+	return artifact.files
+		.map((file) => '<div class="program-label">' + escapeHtml(file.path) + ':</div>' + '<div class="program">' + escapeHtml(file.content) + '</div>')
+		.join('');
+};
+
 const render = () => {
 	const query = searchInput.value.trim().toLowerCase();
 	const filtered = data.results.filter((result) => {
@@ -482,6 +495,7 @@ const render = () => {
 				? '<div class="program-label">Model Thinking:</div>'
 					+ '<div class="program">' + escapeHtml(result.thinking) + '</div>'
 				: '';
+			const artifactBlock = '<div class="program-label">Generated Artifact:</div>' + renderArtifact(result.artifact, result.program);
 			const detailsRow = isExpanded
 				? '<tr class="drilldown-row" data-parent-key="' + escapeHtml(resultKey) + '">'
 					+ '<td colspan="5">'
@@ -489,8 +503,7 @@ const render = () => {
 					+ '<div class="drilldown-meta">' + statusText + ' • ' + escapeHtml(result.category) + ' • ' + formatDuration(result.duration_ms) + '</div>'
 					+ '<div class="error">' + escapeHtml(typeof result.error === 'string' && result.error.length > 0 ? result.error : 'No error output.') + '</div>'
 					+ thinkingBlock
-					+ '<div class="program-label">Generated Program:</div>'
-					+ '<div class="program">' + escapeHtml(result.program) + '</div>'
+					+ artifactBlock
 					+ '</div>'
 					+ '</td>'
 					+ '</tr>'

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Fix incorrect property access in discriminated union branches.",
+  "timeout_ms": 5000
+}

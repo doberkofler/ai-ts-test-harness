@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Fix async return type mismatch so the function returns Promise<number>.",
+  "timeout_ms": 5000
+}

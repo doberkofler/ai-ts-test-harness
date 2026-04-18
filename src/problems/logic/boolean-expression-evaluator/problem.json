@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Evaluate a boolean expression with literals true/false, operators !, &&, ||, and parentheses.\nOperator precedence is ! first, then &&, then ||.",
+  "timeout_ms": 5000
+}

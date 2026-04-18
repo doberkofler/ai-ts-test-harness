@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Insert words into a trie and return all completions for each prefix query.\nCompletions for each prefix must be lexicographically sorted.",
+  "timeout_ms": 5000
+}

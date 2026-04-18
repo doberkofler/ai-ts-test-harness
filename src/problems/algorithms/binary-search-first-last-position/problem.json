@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Given a sorted array and a target, return [firstIndex, lastIndex] or [-1, -1] if missing.",
+  "timeout_ms": 5000
+}

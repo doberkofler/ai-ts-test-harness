@@ -10,70 +10,40 @@ export type AssertApi = {
 	fail: (message?: string | Error) => never;
 };
 
-type ProblemBase = {
-	/** Unique identifier */
-	name: string;
-	/** Problem category used for filtering/reporting */
-	category: string;
-	/** Natural language description sent to the model */
-	description: string | string[];
+export type WorkspaceFile = {
+	path: string;
+	content: string;
 };
 
 export type ImplementProblemSolutionCallback = (...args: readonly never[]) => unknown;
 
 export type DirectRefactorProblemSolutionCallback = (input: string) => string;
 
-export type ImplementProblemTestContext = {
-	assert: AssertApi;
-	implementation: (...args: readonly unknown[]) => unknown;
-	code: {result: string};
+export type ChangedFilesArtifact = {
+	kind: 'changed-files-v1';
+	files: WorkspaceFile[];
 };
 
-export type DirectRefactorProblemTestContext = {
-	assert: AssertApi;
-	original: (...args: readonly unknown[]) => unknown;
-	transformed: (...args: readonly unknown[]) => unknown;
-	code: {input: string; result: string};
+export type Problem = {
+	name: string;
+	category: string;
+	description: string | string[];
+	timeout_ms?: number;
+	files?: WorkspaceFile[];
+	tests: WorkspaceFile[];
+	solution?: ChangedFilesArtifact | ImplementProblemSolutionCallback | DirectRefactorProblemSolutionCallback;
+	kind?: 'implement-function' | 'direct-refactor';
+	signature?: string;
+	input?: string;
+	entry?: string;
 };
-
-export type ImplementProblemTestCallback = (context: ImplementProblemTestContext) => void | Promise<void>;
-
-export type DirectRefactorProblemTestCallback = (context: DirectRefactorProblemTestContext) => void | Promise<void>;
-
-export type ProblemTests = ImplementProblemTestCallback | DirectRefactorProblemTestCallback;
-
-/** Function-implementation benchmark */
-export type ImplementFunctionProblem = ProblemBase & {
-	kind?: 'implement-function';
-	/** Full function signature — model must implement this */
-	signature: string;
-	/** Optional precomputed solution to the problem */
-	solution?: ImplementProblemSolutionCallback;
-	/** Test body callback */
-	tests: ImplementProblemTestCallback;
-};
-
-/** Direct refactoring benchmark */
-export type DirectRefactorProblem = ProblemBase & {
-	kind: 'direct-refactor';
-	/** Source code provided to the model for transformation */
-	input: string;
-	/** Function identifier used for behavior-equivalence checks */
-	entry: string;
-	/** Optional precomputed source transformation for validation */
-	solution?: DirectRefactorProblemSolutionCallback;
-	/** Test body callback */
-	tests: DirectRefactorProblemTestCallback;
-};
-
-/** A single benchmark problem */
-export type Problem = ImplementFunctionProblem | DirectRefactorProblem;
 
 /** Result of running one problem */
 export type Result = {
 	problem: string;
 	category: string;
-	program: string;
+	program?: string;
+	artifact?: ChangedFilesArtifact;
 	thinking?: string;
 	passed: boolean;
 	error?: string;

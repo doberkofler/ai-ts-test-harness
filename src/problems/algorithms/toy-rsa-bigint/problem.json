@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Implement toy RSA using bigint arithmetic: key generation, encrypt, and decrypt.\nGiven primes p and q, public exponent e, and message m < n, return keys + cipher + decrypted message.",
+  "timeout_ms": 5000
+}

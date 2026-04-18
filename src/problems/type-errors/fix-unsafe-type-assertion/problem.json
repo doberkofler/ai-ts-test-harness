@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Replace unsafe type assertion with runtime checks before reading nested fields.",
+  "timeout_ms": 5000
+}

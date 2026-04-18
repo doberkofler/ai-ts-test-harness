@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Group words that are anagrams. Return groups sorted by first appearance in the input.",
+  "timeout_ms": 5000
+}

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return a RegExp for CSS hex colors with # prefix.\nAccept 3, 4, 6, or 8 hex digits and reject invalid lengths/characters.",
+  "timeout_ms": 5000
+}

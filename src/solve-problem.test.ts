@@ -1,9 +1,14 @@
 import {describe, expect, test, vi, beforeEach} from 'vitest';
 import {type GenerateOptions} from './generate.ts';
-import {type Problem, type Result} from './types.ts';
+import {type ChangedFilesArtifact, type Problem, type Result} from './types.ts';
 
-const generateMock = vi.fn<(problem: Problem, options: GenerateOptions) => Promise<string>>();
-const runProblemMock = vi.fn<(problem: Problem, code: string, options?: {debug?: boolean}) => Promise<Result>>();
+const generateMock = vi.fn<(problem: Problem, options: GenerateOptions) => Promise<ChangedFilesArtifact>>();
+const runProblemMock = vi.fn<(problem: Problem, artifact: ChangedFilesArtifact, options?: {debug?: boolean}) => Promise<Result>>();
+
+const generatedArtifact: ChangedFilesArtifact = {
+	kind: 'changed-files-v1',
+	files: [{path: 'solution.ts', content: 'function sum(a: number, b: number): number { return a + b; }'}],
+};
 
 vi.mock(import('./generate.ts'), () => ({
 	generate: generateMock,
@@ -18,11 +23,10 @@ const {solveProblem} = await import('./solveProblem.ts');
 const problem: Problem = {
 	name: 'sum',
 	category: 'arithmetic',
-	description: ['Add two numbers'],
-	signature: 'function sum(a: number, b: number): number',
-	tests: ({assert}): void => {
-		assert.strictEqual(true, true);
-	},
+	description: 'Add two numbers',
+	timeout_ms: 5000,
+	files: [{path: 'src/sum.ts', content: 'export const sum = () => 0;\n'}],
+	tests: [{path: 'tests/sum.test.ts', content: ''}],
 };
 
 describe('solveProblem', () => {
@@ -32,11 +36,11 @@ describe('solveProblem', () => {
 	});
 
 	test('generates code, runs tests, and returns execution result', async () => {
-		generateMock.mockResolvedValue('function sum(a: number, b: number): number { return a + b; }');
+		generateMock.mockResolvedValue(generatedArtifact);
 		runProblemMock.mockResolvedValue({
 			problem: 'sum',
 			category: 'arithmetic',
-			program: 'generated program',
+			artifact: {kind: 'changed-files-v1', files: [{path: 'src/sum.ts', content: 'updated'}]},
 			passed: true,
 			duration_ms: 1,
 		});
@@ -44,9 +48,9 @@ describe('solveProblem', () => {
 		const result = await solveProblem(problem, {model: 'test-model'});
 
 		expect(generateMock).toHaveBeenCalledExactlyOnceWith(problem, expect.objectContaining({model: 'test-model', onThinkingDelta: expect.any(Function)}));
-		expect(runProblemMock).toHaveBeenCalledExactlyOnceWith(problem, 'function sum(a: number, b: number): number { return a + b; }', {debug: false});
+		expect(runProblemMock).toHaveBeenCalledExactlyOnceWith(problem, generatedArtifact, {debug: false});
 		expect(result.passed).toBe(true);
-		expect(result.program).toBe('generated program');
+		expect(result.artifact).toEqual({kind: 'changed-files-v1', files: [{path: 'src/sum.ts', content: 'updated'}]});
 		expect(result.duration_ms).toBeGreaterThanOrEqual(0);
 	});
 
@@ -58,12 +62,12 @@ describe('solveProblem', () => {
 			options.onThinkingDelta('plan ');
 			options.onThinkingDelta('steps');
 			await Promise.resolve();
-			return 'function sum(a: number, b: number): number { return a + b; }';
+			return generatedArtifact;
 		});
 		runProblemMock.mockResolvedValue({
 			problem: 'sum',
 			category: 'arithmetic',
-			program: 'generated program',
+			artifact: {kind: 'changed-files-v1', files: []},
 			passed: true,
 			duration_ms: 1,
 		});
@@ -79,12 +83,12 @@ describe('solveProblem', () => {
 				options.onThinkingDelta('should not be included');
 			}
 			await Promise.resolve();
-			return 'function sum(a: number, b: number): number { return a + b; }';
+			return generatedArtifact;
 		});
 		runProblemMock.mockResolvedValue({
 			problem: 'sum',
 			category: 'arithmetic',
-			program: 'generated program',
+			artifact: {kind: 'changed-files-v1', files: []},
 			passed: true,
 			duration_ms: 1,
 		});
@@ -102,7 +106,6 @@ describe('solveProblem', () => {
 		expect(result).toMatchObject({
 			problem: 'sum',
 			category: 'arithmetic',
-			program: '',
 			passed: false,
 			error: 'llm unavailable',
 		});
@@ -110,7 +113,7 @@ describe('solveProblem', () => {
 	});
 
 	test('returns failed result when runner throws non-error value', async () => {
-		generateMock.mockResolvedValue('function sum(a: number, b: number): number { return a + b; }');
+		generateMock.mockResolvedValue(generatedArtifact);
 		runProblemMock.mockRejectedValue('runner crashed');
 
 		const result = await solveProblem(problem, {model: 'test-model', debug: true});
@@ -118,7 +121,6 @@ describe('solveProblem', () => {
 		expect(result).toMatchObject({
 			problem: 'sum',
 			category: 'arithmetic',
-			program: '',
 			passed: false,
 			error: 'runner crashed',
 		});
@@ -131,12 +133,12 @@ describe('solveProblem', () => {
 			if (typeof options.onPhaseChange === 'function') {
 				options.onPhaseChange('running');
 			}
-			return 'function sum(a: number, b: number): number { return a + b; }';
+			return generatedArtifact;
 		});
 		runProblemMock.mockResolvedValue({
 			problem: 'sum',
 			category: 'arithmetic',
-			program: 'generated program',
+			artifact: {kind: 'changed-files-v1', files: []},
 			passed: true,
 			duration_ms: 1,
 		});

@@ -6,171 +6,85 @@ import {loadProblems} from './load-problems.ts';
 
 const createTempProblemsDir = (): string => mkdtempSync(join(tmpdir(), 'problem-loader-'));
 
+const writeJson = (filePath: string, value: unknown): void => {
+	writeFileSync(filePath, `${JSON.stringify(value, undefined, 2)}\n`, 'utf8');
+};
+
 describe('loadProblems', () => {
-	test('loads .problem.ts files recursively and sorts by path', () => {
+	test('loads problem directories recursively and sorts by path', () => {
 		const root = createTempProblemsDir();
 
 		try {
-			mkdirSync(join(root, 'logic'), {recursive: true});
-			mkdirSync(join(root, 'algorithms'), {recursive: true});
-			mkdirSync(join(root, 'refactor', 'loops'), {recursive: true});
+			const addDir = join(root, 'algorithms', 'add');
+			const fizzbuzzDir = join(root, 'logic', 'fizzbuzz');
+			mkdirSync(join(addDir, 'files', 'src'), {recursive: true});
+			mkdirSync(join(addDir, 'tests'), {recursive: true});
+			mkdirSync(join(fizzbuzzDir, 'files', 'src'), {recursive: true});
+			mkdirSync(join(fizzbuzzDir, 'tests'), {recursive: true});
 
-			writeFileSync(
-				join(root, 'logic', 'fizzbuzz.problem.ts'),
-				[
-					`import {defineImplementProblem} from '#problem-api';`,
-					``,
-					`export default defineImplementProblem({`,
-					`\tname: 'fizzbuzz',`,
-					`\tdescription: ['FizzBuzz output'],`,
-					`\tsignature: 'function fizzbuzz(n: number): string',`,
-					`\ttests: ({assert}) => {`,
-					`\t\tassert.strictEqual(true, true);`,
-					`\t},`,
-					`});`,
-				].join('\n'),
-				'utf8',
-			);
+			writeJson(join(addDir, 'problem.json'), {version: 1, description: 'add two values', timeout_ms: 5000});
+			writeFileSync(join(addDir, 'files', 'src', 'sum.ts'), 'export const sum = (a: number, b: number): number => a + b;\n', 'utf8');
+			writeFileSync(join(addDir, 'tests', 'sum.test.ts'), "import {expect, test} from 'vitest';\n", 'utf8');
 
-			writeFileSync(
-				join(root, 'algorithms', 'add.problem.ts'),
-				[
-					`import {defineImplementProblem} from '#problem-api';`,
-					``,
-					`export default defineImplementProblem({`,
-					`\tname: 'add',`,
-					`\tdescription: ['Add values'],`,
-					`\tsignature: 'function add(a: number, b: number): number',`,
-					`\ttests: ({assert}) => {`,
-					`\t\tassert.strictEqual(true, true);`,
-					`\t},`,
-					`});`,
-				].join('\n'),
-				'utf8',
-			);
-
-			writeFileSync(
-				join(root, 'refactor', 'loops', 'for-loop.problem.ts'),
-				[
-					`import {defineRefactorProblem} from '#problem-api';`,
-					``,
-					`export default defineRefactorProblem({`,
-					`\tname: 'for-loop',`,
-					`\tdescription: ['Use for...of'],`,
-					`\tinput: 'function sum(values: number[]): number { return values.length; }',`,
-					`\tentry: 'sum',`,
-					`\ttests: ({assert}) => {`,
-					`\t\tassert.strictEqual(true, true);`,
-					`\t},`,
-					`});`,
-				].join('\n'),
-				'utf8',
-			);
+			writeJson(join(fizzbuzzDir, 'problem.json'), {version: 1, description: 'fizzbuzz', timeout_ms: 7000});
+			writeFileSync(join(fizzbuzzDir, 'files', 'src', 'fizzbuzz.ts'), 'export const fizzbuzz = (): string => "ok";\n', 'utf8');
+			writeFileSync(join(fizzbuzzDir, 'tests', 'fizzbuzz.test.ts'), "import {expect, test} from 'vitest';\n", 'utf8');
 
 			const loaded = loadProblems(root);
-			expect(loaded.map((problem) => problem.name)).toEqual(['add', 'fizzbuzz', 'for-loop']);
-			expect(loaded.map((problem) => problem.category)).toEqual(['algorithms', 'logic', 'refactor/loops']);
-			expect(loaded[2]).toMatchObject({kind: 'direct-refactor', entry: 'sum'});
+			expect(loaded.map((problem) => problem.name)).toEqual(['add', 'fizzbuzz']);
+			expect(loaded.map((problem) => problem.category)).toEqual(['algorithms', 'logic']);
+			if (!loaded[0]) {
+				throw new TypeError('expected first problem');
+			}
+			if (!Array.isArray(loaded[0].tests)) {
+				throw new TypeError('expected test files array');
+			}
+			if (!Array.isArray(loaded[0].files)) {
+				throw new TypeError('expected source files array');
+			}
+			expect(loaded[0].files[0]).toMatchObject({path: 'src/sum.ts'});
+			expect(loaded[0].tests[0]).toMatchObject({path: 'sum.test.ts'});
 		} finally {
 			rmSync(root, {recursive: true, force: true});
 		}
 	});
 
-	test('throws when exported name does not match file name', () => {
+	test('throws when a problem has no category directory', () => {
 		const root = createTempProblemsDir();
 
 		try {
-			mkdirSync(join(root, 'logic'), {recursive: true});
-			writeFileSync(
-				join(root, 'logic', 'fizzbuzz.problem.ts'),
-				[
-					`import {defineImplementProblem} from '#problem-api';`,
-					``,
-					`export default defineImplementProblem({`,
-					`\tname: 'wrong-name',`,
-					`\tdescription: ['bad name'],`,
-					`\tsignature: 'function fizzbuzz(n: number): string',`,
-					`\ttests: ({assert}) => {`,
-					`\t\tassert.strictEqual(true, true);`,
-					`\t},`,
-					`});`,
-				].join('\n'),
-				'utf8',
-			);
+			const problemDir = join(root, 'no-category-problem');
+			mkdirSync(join(problemDir, 'files'), {recursive: true});
+			mkdirSync(join(problemDir, 'tests'), {recursive: true});
+			writeJson(join(problemDir, 'problem.json'), {version: 1, description: 'bad', timeout_ms: 5000});
 
-			expect(() => loadProblems(root)).toThrow('Problem name mismatch');
+			expect(() => loadProblems(root)).toThrow('nested under a category');
 		} finally {
 			rmSync(root, {recursive: true, force: true});
 		}
 	});
 
-	test('loads function-based tests', () => {
+	test('loads optional solution artifact from solution directory', () => {
 		const root = createTempProblemsDir();
 
 		try {
-			mkdirSync(join(root, 'logic'), {recursive: true});
-			writeFileSync(
-				join(root, 'logic', 'callable-tests.problem.ts'),
-				[
-					`import {defineImplementProblem} from '#problem-api';`,
-					``,
-					`export default defineImplementProblem({`,
-					`\tname: 'callable-tests',`,
-					`\tdescription: ['function tests'],`,
-					`\tsignature: 'function callableTests(input: number): number',`,
-					`\ttests: ({assert}) => {`,
-					`\t\tassert.ok(true);`,
-					`\t},`,
-					`});`,
-				].join('\n'),
-				'utf8',
-			);
+			const problemDir = join(root, 'logic', 'with-solution');
+			mkdirSync(join(problemDir, 'files'), {recursive: true});
+			mkdirSync(join(problemDir, 'tests'), {recursive: true});
+			mkdirSync(join(problemDir, 'solution'), {recursive: true});
+			writeJson(join(problemDir, 'problem.json'), {version: 1, description: 'desc', timeout_ms: 5000});
+			writeFileSync(join(problemDir, 'files', 'index.ts'), 'export const value = 1;\n', 'utf8');
+			writeFileSync(join(problemDir, 'tests', 'index.test.ts'), "import {expect, test} from 'vitest';\n", 'utf8');
+			writeFileSync(join(problemDir, 'solution', 'index.ts'), 'export const value = 2;\n', 'utf8');
 
 			const [loaded] = loadProblems(root);
 			if (!loaded) {
-				throw new TypeError('expected one loaded problem');
+				throw new TypeError('expected loaded problem');
 			}
-			if (typeof loaded.tests !== 'function') {
-				throw new TypeError('expected tests callback');
-			}
-		} finally {
-			rmSync(root, {recursive: true, force: true});
-		}
-	});
-
-	test('supports string descriptions and callback solutions', () => {
-		const root = createTempProblemsDir();
-
-		try {
-			mkdirSync(join(root, 'logic'), {recursive: true});
-			writeFileSync(
-				join(root, 'logic', 'description-and-solution.problem.ts'),
-				[
-					`import {defineImplementProblem} from '#problem-api';`,
-					``,
-					`export default defineImplementProblem({`,
-					`\tname: 'description-and-solution',`,
-					`\tdescription: 'single line description',`,
-					`\tsignature: 'function descriptionAndSolution(): number',`,
-					`\tsolution: function descriptionAndSolution(): number { return 1; },`,
-					`\ttests: ({assert}) => {`,
-					`\t\tassert.strictEqual(true, true);`,
-					`\t},`,
-					`});`,
-				].join('\n'),
-				'utf8',
-			);
-
-			const [loaded] = loadProblems(root);
-			if (!loaded || loaded.kind === 'direct-refactor') {
-				throw new TypeError('expected implement-function problem');
-			}
-
-			expect(loaded.description).toBe('single line description');
-			if (typeof loaded.solution !== 'function') {
-				throw new TypeError('expected solution callback');
-			}
-			expect(loaded.solution.toString()).toContain('descriptionAndSolution');
+			expect(loaded.solution).toEqual({
+				kind: 'changed-files-v1',
+				files: [{path: 'index.ts', content: 'export const value = 2;\n'}],
+			});
 		} finally {
 			rmSync(root, {recursive: true, force: true});
 		}

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return the length of the longest substring without repeating characters.",
+  "timeout_ms": 5000
+}

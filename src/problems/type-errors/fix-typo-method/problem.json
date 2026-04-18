@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Fix Property 'toUppercase' does not exist on type 'string'.\nPreserve behavior and function signature.",
+  "timeout_ms": 5000
+}

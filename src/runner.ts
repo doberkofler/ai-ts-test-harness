@@ -1,10 +1,8 @@
-import {writeFileSync, unlinkSync} from 'node:fs';
-import {join} from 'node:path';
+import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {dirname, isAbsolute, join, resolve} from 'node:path';
 import {type CliOptions, startVitest} from 'vitest/node';
-import {parseFunctionNameFromSignature} from './core/signature.ts';
-import {type Problem, type Result} from './types.ts';
-
-const TIMEOUT_MS = 5000;
+import {type ChangedFilesArtifact, type Problem, type Result, type WorkspaceFile} from './types.ts';
 
 type VitestTaskLike = {
 	result?: {errors?: unknown[]};
@@ -27,33 +25,6 @@ export type RunProblemOptions = {
 	debug?: boolean;
 	startVitest?: StartVitestLike;
 	cwd?: string;
-};
-
-const sanitizeForFileName = (value: string): string => value.replaceAll(/[^\w-]/g, '_');
-
-const hashForFileName = (value: string): string => {
-	let hash = 0;
-	for (const character of value) {
-		const codePoint = character.codePointAt(0) ?? 0;
-		hash = (hash * 31 + codePoint) % 1_000_000_007;
-	}
-	return Math.trunc(hash).toString(36);
-};
-
-const indentBlock = (text: string, indent: string): string =>
-	text
-		.split('\n')
-		.map((line) => `${indent}${line}`)
-		.join('\n');
-
-const IDENTIFIER_PATTERN = /^[a-z_$][\w$]*$/i;
-
-const ensureIdentifier = (value: string, sourceLabel: string): string => {
-	if (!IDENTIFIER_PATTERN.test(value)) {
-		throw new TypeError(`Invalid function identifier from ${sourceLabel}: ${value}`);
-	}
-
-	return value;
 };
 
 const sanitizeErrorText = (value: string): string => {
@@ -158,13 +129,42 @@ const withMutedOutput = async <T>(run: () => Promise<T>): Promise<T> => {
 	}
 };
 
-const buildResultFromRunner = (problem: Problem, resultProgram: string, startedAtMs: number, runnerInstance: VitestRunLike): Result => {
+const ensureSafeRelativePath = (value: string): string => {
+	if (isAbsolute(value)) {
+		throw new TypeError(`Artifact file path must be relative: ${value}`);
+	}
+
+	if (value.includes('..')) {
+		throw new TypeError(`Artifact file path must not include parent traversal: ${value}`);
+	}
+
+	return value;
+};
+
+const writeWorkspaceFiles = (rootDir: string, files: readonly WorkspaceFile[]): void => {
+	for (const file of files) {
+		const relativePath = ensureSafeRelativePath(file.path);
+		const fullPath = resolve(join(rootDir, relativePath));
+		mkdirSync(dirname(fullPath), {recursive: true});
+		writeFileSync(fullPath, file.content, 'utf8');
+	}
+};
+
+const readArtifactFromWorkspace = (rootDir: string, changedFiles: readonly WorkspaceFile[]): ChangedFilesArtifact => ({
+	kind: 'changed-files-v1',
+	files: changedFiles.map((file) => ({
+		path: file.path,
+		content: readFileSync(resolve(join(rootDir, ensureSafeRelativePath(file.path))), 'utf8'),
+	})),
+});
+
+const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact, startedAtMs: number, runnerInstance: VitestRunLike): Result => {
 	const executedFiles = runnerInstance.state.getFiles();
 	if (executedFiles.length === 0) {
 		return {
 			problem: problem.name,
 			category: problem.category,
-			program: resultProgram,
+			artifact,
 			passed: false,
 			error: 'No tests were executed by Vitest',
 			duration_ms: Date.now() - startedAtMs,
@@ -176,7 +176,7 @@ const buildResultFromRunner = (problem: Problem, resultProgram: string, startedA
 		return {
 			problem: problem.name,
 			category: problem.category,
-			program: resultProgram,
+			artifact,
 			passed: false,
 			error: getVitestFailureOutput(runnerInstance),
 			duration_ms: Date.now() - startedAtMs,
@@ -186,146 +186,56 @@ const buildResultFromRunner = (problem: Problem, resultProgram: string, startedA
 	return {
 		problem: problem.name,
 		category: problem.category,
-		program: resultProgram,
+		artifact,
 		passed: true,
 		duration_ms: Date.now() - startedAtMs,
 	};
 };
 
-/*
- * Assembles a self-contained TS file from the problem + generated code,
- * runs it with Vitest's Node API, and returns pass/fail.
- */
-export const runProblem = async (problem: Problem, generatedCode: string, options: RunProblemOptions = {}): Promise<Result> => {
-	const implementationEntry =
-		problem.kind === 'direct-refactor' ? undefined : ensureIdentifier(parseFunctionNameFromSignature(problem.signature), 'problem signature');
-	const refactorEntry = problem.kind === 'direct-refactor' ? ensureIdentifier(problem.entry, 'problem entry') : undefined;
-
-	const implementFunctionSupport =
-		problem.kind === 'direct-refactor'
-			? []
-			: [
-					generatedCode,
-					`const implementation = (() => {`,
-					`	const extracted = typeof ${implementationEntry} !== 'undefined' ? ${implementationEntry} : undefined;`,
-					`	if (typeof extracted === 'undefined') {`,
-					`		throw new TypeError('Missing function in generated code: ${implementationEntry}');`,
-					`	}`,
-					`	if (typeof extracted !== 'function') {`,
-					`		throw new TypeError('Generated symbol is not callable: ${implementationEntry}');`,
-					`	}`,
-					`	return extracted as ((...args: readonly unknown[]) => unknown);`,
-					`})();`,
-					`const code = {result: ${JSON.stringify(generatedCode)}};`,
-					``,
-				];
-
-	const directRefactorSupport =
-		problem.kind === 'direct-refactor'
-			? [
-					`import ts from 'typescript';`,
-					``,
-					`const input = ${JSON.stringify(problem.input)};`,
-					`const result = ${JSON.stringify(generatedCode)};`,
-					`const entry = ${JSON.stringify(refactorEntry)};`,
-					``,
-					`const evaluateRefactorFunction = (source: string, functionName: string): ((...args: readonly unknown[]) => unknown) => {`,
-					`	const wrappedSource = [`,
-					`		source,`,
-					`		\`\`,`,
-					`		\`module.exports = {__extracted: typeof \${functionName} !== 'undefined' ? \${functionName} : undefined};\`,`,
-					`	].join('\\n');`,
-					``,
-					`	const transpiled = ts.transpileModule(wrappedSource, {`,
-					`		compilerOptions: {`,
-					`			target: ts.ScriptTarget.ES2022,`,
-					`			module: ts.ModuleKind.CommonJS,`,
-					`		},`,
-					`	}).outputText;`,
-					``,
-					`	const moduleLike: {exports: Record<string, unknown>} = {exports: {}};`,
-					`	const executeTranspiled = new Function('module', 'exports', transpiled) as (module: {exports: Record<string, unknown>}, exports: Record<string, unknown>) => void;`,
-					`	executeTranspiled(moduleLike, moduleLike.exports);`,
-					`	const extracted = moduleLike.exports.__extracted;`,
-					``,
-					`	if (typeof extracted === 'undefined') {`,
-					`		throw new TypeError(\`Missing function in transformed code: \${functionName}\`);`,
-					`	}`,
-					``,
-					`	if (typeof extracted !== 'function') {`,
-					`		throw new TypeError(\`Transformed symbol is not callable: \${functionName}\`);`,
-					`	}`,
-					``,
-					`	return extracted;`,
-					`};`,
-					``,
-					`const original = evaluateRefactorFunction(input, entry);`,
-					`const transformed = evaluateRefactorFunction(result, entry);`,
-					`const code = {input, result};`,
-					``,
-				]
-			: [];
-
-	const functionBasedTests = `const __problemTests = (${problem.tests.toString()});`;
-	const testsBody =
-		problem.kind === 'direct-refactor'
-			? 'return __problemTests({assert, original, transformed, code});'
-			: 'return __problemTests({assert, implementation, code});';
-
-	const program = [
-		`import {describe, test} from 'vitest';`,
-		`import assert from 'node:assert';`,
-		``,
-		...implementFunctionSupport,
-		...directRefactorSupport,
-		functionBasedTests,
-		``,
-		`describe(${JSON.stringify(problem.name)}, () => {`,
-		`\ttest('generated solution', () => {`,
-		indentBlock(testsBody, '\t\t'),
-		`\t});`,
-		`});`,
-	].join('\n');
-
-	if (options.debug === true) {
-		console.log('\n[debug] Program under test');
-		console.log(program);
-	}
-
-	const root = options.cwd ?? process.cwd();
-	const tmpFile = join(root, `eval_${sanitizeForFileName(problem.name)}_${hashForFileName(program)}.test.ts`);
-	writeFileSync(tmpFile, program, 'utf8');
-
-	const start = Date.now();
+export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifact, options: RunProblemOptions = {}): Promise<Result> => {
 	const runVitest = options.startVitest ?? startVitest;
+	const problemFiles = Array.isArray(problem.files) ? problem.files : [];
+	const problemTests = Array.isArray(problem.tests) ? problem.tests : [];
+	const timeoutMs = typeof problem.timeout_ms === 'number' && Number.isFinite(problem.timeout_ms) ? problem.timeout_ms : 5000;
+	const tempWorkspace = mkdtempSync(join(tmpdir(), 'ai-ts-harness-'));
 	let runnerInstance: VitestRunLike | undefined;
+	const startedAtMs = Date.now();
 
 	try {
+		writeWorkspaceFiles(tempWorkspace, problemFiles);
+		writeWorkspaceFiles(tempWorkspace, artifact.files);
+		writeWorkspaceFiles(tempWorkspace, problemTests);
+
+		const testPaths = problemTests.map((testFile) => resolve(join(tempWorkspace, ensureSafeRelativePath(testFile.path))));
+		if (testPaths.length === 0) {
+			throw new TypeError(`Problem has no test files: ${problem.name}`);
+		}
+
 		const runVitestOnce = async (): Promise<VitestRunLike> => {
-			const runner = await runVitest('test', [tmpFile], {
+			const runner = await runVitest('test', testPaths, {
 				run: true,
 				watch: false,
 				silent: true,
 				color: false,
-				testTimeout: TIMEOUT_MS,
+				testTimeout: timeoutMs,
 				reporters: ['dot'],
-				root,
+				root: tempWorkspace,
 			});
 			return runner;
 		};
 
 		runnerInstance = options.debug === true ? await runVitestOnce() : await withMutedOutput(runVitestOnce);
-
-		return buildResultFromRunner(problem, generatedCode, start, runnerInstance);
+		const persistedArtifact = readArtifactFromWorkspace(tempWorkspace, artifact.files);
+		return buildResultFromRunner(problem, persistedArtifact, startedAtMs, runnerInstance);
 	} catch (error) {
 		const errorText = getErrorOutput(error);
 		return {
 			problem: problem.name,
 			category: problem.category,
-			program: generatedCode,
+			artifact,
 			passed: false,
 			error: errorText,
-			duration_ms: Date.now() - start,
+			duration_ms: Date.now() - startedAtMs,
 		};
 	} finally {
 		if (runnerInstance) {
@@ -336,10 +246,6 @@ export const runProblem = async (problem: Problem, generatedCode: string, option
 			}
 		}
 
-		try {
-			unlinkSync(tmpFile);
-		} catch {
-			/* ignore */
-		}
+		rmSync(tempWorkspace, {recursive: true, force: true});
 	}
 };

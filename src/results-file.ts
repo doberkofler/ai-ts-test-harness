@@ -1,10 +1,21 @@
 import {z} from 'zod';
 import {type Result, type ResultsFile, type RuntimeConfig} from './types.ts';
 
+const artifactSchema = z.object({
+	kind: z.literal('changed-files-v1'),
+	files: z.array(
+		z.object({
+			path: z.string(),
+			content: z.string(),
+		}),
+	),
+});
+
 export const resultSchema = z.object({
 	problem: z.string(),
 	category: z.string(),
-	program: z.string(),
+	program: z.string().optional(),
+	artifact: artifactSchema.optional(),
 	thinking: z.string().optional(),
 	passed: z.boolean(),
 	error: z.string().optional(),
@@ -42,7 +53,8 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 			? {
 					problem: result.problem,
 					category: result.category,
-					program: result.program,
+					...(typeof result.program === 'string' ? {program: result.program} : {}),
+					...(typeof result.artifact === 'undefined' ? {} : {artifact: result.artifact}),
 					...(typeof result.thinking === 'string' ? {thinking: result.thinking} : {}),
 					passed: result.passed,
 					error: result.error,
@@ -51,7 +63,8 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 			: {
 					problem: result.problem,
 					category: result.category,
-					program: result.program,
+					...(typeof result.program === 'string' ? {program: result.program} : {}),
+					...(typeof result.artifact === 'undefined' ? {} : {artifact: result.artifact}),
 					...(typeof result.thinking === 'string' ? {thinking: result.thinking} : {}),
 					passed: result.passed,
 					duration_ms: result.duration_ms,

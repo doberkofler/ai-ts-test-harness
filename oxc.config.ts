@@ -4,9 +4,9 @@ import {configs as regexpConfigs} from 'eslint-plugin-regexp';
 /** Filter out core ESLint rules bundled into eslint-plugin-regexp recommended config */
 const regexpPluginRules = Object.fromEntries(Object.entries(regexpConfigs.recommended.rules).filter(([key]) => key.startsWith('regexp/')));
 
-const regexpRulesDisabled = Object.fromEntries(Object.keys(regexpPluginRules).map((key) => [key, 'off']));
+const commonIgnore = ['**/.*', 'node_modules/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**', 'public/**', 'src/problems/**', '**/*.md', '**/*.json'];
 
-const commonIgnore = ['**/.*', 'node_modules/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**', 'public/**', '**/*.md', '**/*.json'];
+const fixtureSourceIgnore = ['src/problems/**'];
 
 export const linter = defineConfig({
 	options: {
@@ -150,19 +150,6 @@ export const linter = defineConfig({
 	},
 	overrides: [
 		{
-			files: ['src/problems/**/*.problem.ts'],
-			rules: {
-				...regexpRulesDisabled,
-				'eslint/no-bitwise': 'off',
-				'eslint/prefer-numeric-literals': 'off',
-				'unicorn/consistent-function-scoping': 'off',
-				'unicorn/number-literal-case': 'off',
-				'unicorn/numeric-separators-style': 'off',
-				'unicorn/prefer-code-point': 'off',
-				'unicorn/prefer-math-trunc': 'off',
-			},
-		},
-		{
 			// Relax strict type rules for unit tests to allow easier mocking and test scaffolding
 			files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx'],
 			rules: {
@@ -212,7 +199,7 @@ export const linter = defineConfig({
 		node: true,
 	},
 	globals: {},
-	ignorePatterns: commonIgnore,
+	ignorePatterns: [...commonIgnore, ...fixtureSourceIgnore],
 });
 
 export const formatter = {

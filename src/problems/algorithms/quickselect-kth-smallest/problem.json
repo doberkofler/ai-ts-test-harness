@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Find the kth smallest element in an unsorted array using quickselect.\nk is 1-based (k = 1 means smallest element).",
+  "timeout_ms": 5000
+}

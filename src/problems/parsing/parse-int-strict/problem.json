@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Parse a base-10 integer from a string.\nAllow optional leading minus and surrounding whitespace.\nReturn null when the input is not a strict integer.",
+  "timeout_ms": 5000
+}

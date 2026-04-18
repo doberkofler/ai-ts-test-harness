@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return a RegExp that matches floating-point numbers not preceded by $ or euro symbol.\nUse negative lookbehind and extract matches with exec or matchAll.",
+  "timeout_ms": 5000
+}

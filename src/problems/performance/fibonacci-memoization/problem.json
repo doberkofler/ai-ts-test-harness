@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Refactor naive recursive Fibonacci to memoized implementation with identical results.",
+  "timeout_ms": 5000
+}

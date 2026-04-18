@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return a RegExp that extracts innermost nested tag content using non-greedy matching.\nAssume one outer tag wrapping one inner tag.",
+  "timeout_ms": 5000
+}

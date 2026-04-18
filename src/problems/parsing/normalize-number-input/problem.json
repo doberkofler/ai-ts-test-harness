@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Normalize unknown numeric input from string | number | null.\nTrim and parse strings as decimal numbers; reject blank and invalid values.\nReturn null for invalid or non-finite numbers.",
+  "timeout_ms": 5000
+}
