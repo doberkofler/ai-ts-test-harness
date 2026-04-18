@@ -67,7 +67,7 @@ describe('runCommand', () => {
 			model: 'test-model',
 			debug: false,
 			llmTimeoutSecs: '90',
-			cooldownPeriodSecs: '1',
+			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			output,
 			test: undefined,
@@ -76,15 +76,39 @@ describe('runCommand', () => {
 
 		expect(executeProblemsMock).toHaveBeenCalledWith(
 			[expect.objectContaining({name: 'fizzbuzz', category: 'logic'})],
-			expect.objectContaining({llmTimeoutSecs: 90, cooldownPeriodSecs: 1}),
+			expect.objectContaining({llmTimeoutSecs: 90, noCooldown: false, storeThinking: true}),
 			expect.objectContaining({initialResults: []}),
 		);
 		expect(runResult.config.llmTimeoutSecs).toBe(90);
-		expect(runResult.config.cooldownPeriodSecs).toBe(1);
+		expect(runResult.config).toMatchObject({noCooldown: false});
 		expect(runResult.config.selectedCategories).toEqual(['logic']);
 
 		const content = parseResultsFile(readFileSync(output, 'utf8'));
 		expect(content.results).toEqual([expect.objectContaining({problem: 'fizzbuzz', passed: true})]);
+	});
+
+	test('does not persist thinking in output when storeThinking is disabled', async () => {
+		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic')]);
+		executeProblemsMock.mockResolvedValue([
+			{problem: 'fizzbuzz', category: 'logic', program: 'code', thinking: 'internal chain', passed: true, duration_ms: 5},
+		]);
+
+		const output = join(tempDir, 'results.json');
+		await runCommand({
+			model: 'test-model',
+			debug: false,
+			storeThinking: false,
+			llmTimeoutSecs: '90',
+			noCooldown: false,
+			ollamaUrl: 'http://localhost:11434/v1',
+			output,
+			test: undefined,
+			category: 'logic',
+		});
+
+		expect(executeProblemsMock).toHaveBeenCalledWith(expect.any(Array), expect.objectContaining({storeThinking: false}), expect.any(Object));
+		const content = parseResultsFile(readFileSync(output, 'utf8'));
+		expect(content.results).toEqual([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}]);
 	});
 
 	test('throws on invalid numeric input before execution', async () => {
@@ -93,7 +117,7 @@ describe('runCommand', () => {
 				model: 'test-model',
 				debug: false,
 				llmTimeoutSecs: '0',
-				cooldownPeriodSecs: '1',
+				noCooldown: false,
 				ollamaUrl: 'http://localhost:11434/v1',
 				output: join(tempDir, 'results.json'),
 				test: undefined,
@@ -113,7 +137,7 @@ describe('runCommand', () => {
 			model: 'test-model',
 			debug: true,
 			llmTimeoutSecs: '90',
-			cooldownPeriodSecs: '30',
+			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			output: tempDir,
 			test: undefined,
@@ -134,7 +158,7 @@ describe('runCommand', () => {
 			model: 'test-model',
 			debug: false,
 			llmTimeoutSecs: 90,
-			cooldownPeriodSecs: 1,
+			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			selectedCategories: ['logic'],
 			systemInfo: {
@@ -156,7 +180,7 @@ describe('runCommand', () => {
 			model: 'test-model',
 			debug: false,
 			llmTimeoutSecs: '90',
-			cooldownPeriodSecs: '1',
+			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			output: tempDir,
 			test: undefined,
@@ -201,7 +225,7 @@ describe('runCommand', () => {
 			model: 'test-model',
 			debug: false,
 			llmTimeoutSecs: '90',
-			cooldownPeriodSecs: '0',
+			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			output: tempDir,
 			test: undefined,

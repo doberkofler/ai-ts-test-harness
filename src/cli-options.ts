@@ -1,12 +1,12 @@
 import {Command} from 'commander';
-import {DEFAULT_COOLDOWN_PERIOD_SECS, DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_MODEL, DEFAULT_OLLAMA_URL} from './config.ts';
+import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_MODEL, DEFAULT_OLLAMA_URL} from './config.ts';
 
 export type CliOpts = {
 	model: string;
 	debug: boolean;
 	storeThinking?: boolean;
 	llmTimeoutSecs: string;
-	cooldownPeriodSecs: string;
+	noCooldown: boolean;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;
@@ -24,7 +24,7 @@ const isCliOpts = (data: unknown): data is CliOpts =>
 	'model' in data &&
 	'debug' in data &&
 	'llmTimeoutSecs' in data &&
-	'cooldownPeriodSecs' in data &&
+	'noCooldown' in data &&
 	'ollamaUrl' in data &&
 	'output' in data;
 
@@ -33,7 +33,7 @@ export const registerGlobalCliOptions = (program: Command): void => {
 	program.option('--debug', 'Print LLM request/response for each problem', false);
 	program.option('--no-store-thinking', 'Do not persist model thinking/reasoning in result files');
 	program.option('--llm-timeout <seconds>', 'LLM response timeout in seconds', String(DEFAULT_LLM_TIMEOUT_SECS));
-	program.option('--cooldown-period <seconds>', 'Delay between problems in seconds', String(DEFAULT_COOLDOWN_PERIOD_SECS));
+	program.option('--no-cooldown', 'Disable cooldown between problems');
 	program.option('--ollama-url <url>', 'Ollama-compatible API base URL', DEFAULT_OLLAMA_URL);
 	program.option('--api-key <key>', 'API key for cloud model authorization');
 	program.option('--oauth-token <token>', 'OAuth token for cloud model authorization');
@@ -49,13 +49,14 @@ export const normalizeCliOpts = (data: unknown): CliOpts | undefined => {
 	}
 
 	const llmTimeoutValue: unknown = Reflect.get(data, 'llmTimeout');
-	const cooldownPeriodValue: unknown = Reflect.get(data, 'cooldownPeriod');
+	const cooldownValue: unknown = Reflect.get(data, 'cooldown');
 	const storeThinkingValue: unknown = Reflect.get(data, 'storeThinking');
+	const noCooldown = cooldownValue === false;
 	const normalized = {
 		...data,
 		storeThinking: typeof storeThinkingValue === 'boolean' ? storeThinkingValue : true,
 		llmTimeoutSecs: llmTimeoutValue,
-		cooldownPeriodSecs: cooldownPeriodValue,
+		noCooldown,
 	};
 
 	if (!isCliOpts(normalized)) {

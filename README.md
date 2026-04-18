@@ -28,6 +28,7 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 - `--model <model>`: Model name to use via the local Ollama-compatible endpoint.
 - `--ollama-url <url>`: Ollama-compatible API base URL. Default: `http://localhost:11434/v1`.
 - `--debug`: Print the full LLM request and raw response for each problem.
+- `--no-store-thinking`: Do not store model reasoning/thinking text in saved JSON results.
 - `--llm-timeout <seconds>`: Timeout for each LLM response in seconds. Default: `120` (2 minutes).
 - `--output <file>`: JSON file path for saving run results. Default: `results.json`.
 - `--html-output <file>`: Optional HTML report path. If omitted, the CLI writes one next to `--output` using the same filename and `.html` extension.

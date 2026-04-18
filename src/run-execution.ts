@@ -20,11 +20,14 @@ export type ExecuteRunOptions = {
 	debug: boolean;
 	storeThinking?: boolean;
 	llmTimeoutSecs: number;
-	cooldownPeriodSecs: number;
+	noCooldown: boolean;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;
 };
+
+const MAX_COOLDOWN_MS = 60_000;
+const COOLDOWN_RATIO = 0.5;
 
 type ExecuteProblemsDeps = {
 	stream?: NodeJS.WriteStream;
@@ -129,27 +132,28 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 		}
 
 		const hasRemainingUnfinishedProblem = problems.slice(index + 1).some((remainingProblem) => !completedProblemResults.has(remainingProblem.name));
-		if (options.cooldownPeriodSecs > 0 && hasRemainingUnfinishedProblem) {
+		const cooldownDurationMs = options.noCooldown ? 0 : Math.min(MAX_COOLDOWN_MS, Math.floor(result.duration_ms * COOLDOWN_RATIO));
+		if (cooldownDurationMs > 0 && hasRemainingUnfinishedProblem) {
 			if (showLiveTimer) {
 				const cooldownStartedAt = now();
-				writeLiveLine(stream, formatCooldownLiveLine(options.cooldownPeriodSecs * 1000));
+				writeLiveLine(stream, formatCooldownLiveLine(cooldownDurationMs));
 				const cooldownTimerId = setIntervalFn(() => {
 					const elapsed = now() - cooldownStartedAt;
-					const remaining = Math.max(0, options.cooldownPeriodSecs * 1000 - elapsed);
+					const remaining = Math.max(0, cooldownDurationMs - elapsed);
 					replaceLiveLine(stream, formatCooldownLiveLine(remaining));
 				}, 1000);
 
 				try {
 					// oxlint-disable-next-line no-await-in-loop
-					await sleepMs(options.cooldownPeriodSecs * 1000);
+					await sleepMs(cooldownDurationMs);
 				} finally {
 					clearIntervalFn(cooldownTimerId);
 					clearLiveLine(stream);
 				}
 			} else {
-				log(formatCooldownStaticLine(options.cooldownPeriodSecs * 1000));
+				log(formatCooldownStaticLine(cooldownDurationMs));
 				// oxlint-disable-next-line no-await-in-loop
-				await sleepMs(options.cooldownPeriodSecs * 1000);
+				await sleepMs(cooldownDurationMs);
 			}
 		}
 	}

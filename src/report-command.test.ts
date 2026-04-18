@@ -11,7 +11,7 @@ const runtimeConfig: RuntimeConfig = {
 	model: 'test-model',
 	debug: false,
 	llmTimeoutSecs: 60,
-	cooldownPeriodSecs: 5,
+	noCooldown: false,
 	ollamaUrl: 'http://localhost:11434/v1',
 };
 

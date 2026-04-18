@@ -16,7 +16,7 @@ describe('parseIntOption', () => {
 	});
 
 	test('throws for non-numeric values', () => {
-		expect(() => parseIntOption('abc', {optionName: '--cooldown-period', minimum: 0})).toThrow('Invalid --cooldown-period value: abc');
+		expect(() => parseIntOption('abc', {optionName: '--llm-timeout', minimum: 1})).toThrow('Invalid --llm-timeout value: abc');
 	});
 });
 
@@ -89,7 +89,7 @@ describe('parseRunCommandOptions', () => {
 				model: 'test-model',
 				debug: false,
 				llmTimeoutSecs: '120',
-				cooldownPeriodSecs: '5',
+				noCooldown: false,
 				ollamaUrl: 'http://localhost:11434/v1',
 				apiKey: 'secret',
 				output: 'results.json',
@@ -101,7 +101,7 @@ describe('parseRunCommandOptions', () => {
 			debug: false,
 			storeThinking: true,
 			llmTimeoutSecs: 120,
-			cooldownPeriodSecs: 5,
+			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			apiKey: 'secret',
 			output: 'results.json',
@@ -116,7 +116,7 @@ describe('parseRunCommandOptions', () => {
 				model: 'test-model',
 				debug: false,
 				llmTimeoutSecs: '0',
-				cooldownPeriodSecs: '0',
+				noCooldown: false,
 				ollamaUrl: 'http://localhost:11434/v1',
 				output: 'results.json',
 				test: undefined,

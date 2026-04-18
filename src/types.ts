@@ -85,7 +85,7 @@ export type RuntimeConfig = {
 	debug: boolean;
 	storeThinking?: boolean;
 	llmTimeoutSecs: number;
-	cooldownPeriodSecs?: number;
+	noCooldown?: boolean;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;

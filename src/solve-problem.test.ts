@@ -20,9 +20,9 @@ const problem: Problem = {
 	category: 'arithmetic',
 	description: ['Add two numbers'],
 	signature: 'function sum(a: number, b: number): number',
-		tests: ({assert}): void => {
-			assert.strictEqual(true, true);
-		},
+	tests: ({assert}): void => {
+		assert.strictEqual(true, true);
+	},
 };
 
 describe('solveProblem', () => {
@@ -31,7 +31,7 @@ describe('solveProblem', () => {
 		runProblemMock.mockReset();
 	});
 
-		test('generates code, runs tests, and returns execution result', async () => {
+	test('generates code, runs tests, and returns execution result', async () => {
 		generateMock.mockResolvedValue('function sum(a: number, b: number): number { return a + b; }');
 		runProblemMock.mockResolvedValue({
 			problem: 'sum',
@@ -43,8 +43,7 @@ describe('solveProblem', () => {
 
 		const result = await solveProblem(problem, {model: 'test-model'});
 
-		expect(generateMock).toHaveBeenCalledTimes(1);
-		expect(generateMock).toHaveBeenCalledWith(problem, expect.objectContaining({model: 'test-model', onThinkingDelta: expect.any(Function)}));
+		expect(generateMock).toHaveBeenCalledExactlyOnceWith(problem, expect.objectContaining({model: 'test-model', onThinkingDelta: expect.any(Function)}));
 		expect(runProblemMock).toHaveBeenCalledExactlyOnceWith(problem, 'function sum(a: number, b: number): number { return a + b; }', {debug: false});
 		expect(result.passed).toBe(true);
 		expect(result.program).toBe('generated program');
@@ -58,6 +57,7 @@ describe('solveProblem', () => {
 			}
 			options.onThinkingDelta('plan ');
 			options.onThinkingDelta('steps');
+			await Promise.resolve();
 			return 'function sum(a: number, b: number): number { return a + b; }';
 		});
 		runProblemMock.mockResolvedValue({
@@ -78,6 +78,7 @@ describe('solveProblem', () => {
 			if (typeof options.onThinkingDelta === 'function') {
 				options.onThinkingDelta('should not be included');
 			}
+			await Promise.resolve();
 			return 'function sum(a: number, b: number): number { return a + b; }';
 		});
 		runProblemMock.mockResolvedValue({

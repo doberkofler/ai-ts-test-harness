@@ -5,7 +5,7 @@ export type RunCommandOptions = {
 	debug: boolean;
 	storeThinking?: boolean;
 	llmTimeoutSecs: string;
-	cooldownPeriodSecs: string;
+	noCooldown: boolean;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;
@@ -19,7 +19,7 @@ export type ParsedRunCommandOptions = {
 	debug: boolean;
 	storeThinking: boolean;
 	llmTimeoutSecs: number;
-	cooldownPeriodSecs: number;
+	noCooldown: boolean;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;
@@ -30,7 +30,6 @@ export type ParsedRunCommandOptions = {
 
 export const parseRunCommandOptions = (options: RunCommandOptions): ParsedRunCommandOptions => {
 	const llmTimeoutSecs = parseIntOption(options.llmTimeoutSecs, {optionName: '--llm-timeout', minimum: 1});
-	const cooldownPeriodSecs = parseIntOption(options.cooldownPeriodSecs, {optionName: '--cooldown-period', minimum: 0});
 	const ollamaUrl = parseRequiredOption(options.ollamaUrl, '--ollama-url');
 	const output = parseRequiredOption(options.output, '--output');
 	const apiKey = parseOptionalNonEmptyOption(options.apiKey, '--api-key');
@@ -41,7 +40,7 @@ export const parseRunCommandOptions = (options: RunCommandOptions): ParsedRunCom
 		debug: options.debug,
 		storeThinking: options.storeThinking ?? true,
 		llmTimeoutSecs,
-		cooldownPeriodSecs,
+		noCooldown: options.noCooldown,
 		ollamaUrl,
 		...(typeof apiKey === 'string' ? {apiKey} : {}),
 		...(typeof oauthToken === 'string' ? {oauthToken} : {}),

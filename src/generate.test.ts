@@ -92,6 +92,9 @@ describe('generate', () => {
 
 		await generate(problem, {
 			model: 'test-model',
+			onPhaseChange: () => {
+				// no-op
+			},
 			onThinkingDelta: (thinkingDelta) => {
 				thinkingDeltas.push(thinkingDelta);
 			},
@@ -138,6 +141,9 @@ describe('generate', () => {
 
 		await generate(problem, {
 			model: 'test-model',
+			onPhaseChange: () => {
+				// no-op
+			},
 			onThinkingDelta: (thinkingDelta) => {
 				thinkingDeltas.push(thinkingDelta);
 			},

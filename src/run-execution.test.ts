@@ -54,7 +54,7 @@ describe('executeProblems', () => {
 				debug: true,
 				storeThinking: false,
 				llmTimeoutSecs: 75,
-				cooldownPeriodSecs: 0,
+				noCooldown: true,
 				ollamaUrl: 'http://localhost:11434/v1',
 				oauthToken: 'oauth-token',
 			},
@@ -123,7 +123,7 @@ describe('executeProblems', () => {
 				model: 'model-a',
 				debug: false,
 				llmTimeoutSecs: 75,
-				cooldownPeriodSecs: 0,
+				noCooldown: false,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{
@@ -154,7 +154,7 @@ describe('executeProblems', () => {
 				model: 'model-a',
 				debug: false,
 				llmTimeoutSecs: 75,
-				cooldownPeriodSecs: 0,
+				noCooldown: false,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{log, initialResults: [resumedResult]},
@@ -166,11 +166,11 @@ describe('executeProblems', () => {
 		expect(results).toEqual([resumedResult, expect.objectContaining({problem: 'two'})]);
 	});
 
-	test('waits for cooldown between problems', async () => {
+	test('waits for 50% of task duration between problems', async () => {
 		const log = vi.fn<(message: string) => void>();
 		const sleepMs = vi.fn<(durationMs: number) => Promise<void>>().mockResolvedValue();
 		solveProblemMock
-			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, duration_ms: 10})
+			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, duration_ms: 10_000})
 			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, duration_ms: 12});
 
 		await executeProblems(
@@ -179,7 +179,7 @@ describe('executeProblems', () => {
 				model: 'model-a',
 				debug: false,
 				llmTimeoutSecs: 75,
-				cooldownPeriodSecs: 3,
+				noCooldown: false,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{
@@ -188,7 +188,28 @@ describe('executeProblems', () => {
 			},
 		);
 
-		expect(sleepMs).toHaveBeenCalledExactlyOnceWith(3000);
-		expect(log).toHaveBeenCalledWith('Cooldown 3s');
+		expect(sleepMs).toHaveBeenCalledExactlyOnceWith(5000);
+		expect(log).toHaveBeenCalledWith('Cooldown 5s');
+	});
+
+	test('caps dynamic cooldown at one minute', async () => {
+		const sleepMs = vi.fn<(durationMs: number) => Promise<void>>().mockResolvedValue();
+		solveProblemMock
+			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, duration_ms: 200_000})
+			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, duration_ms: 10});
+
+		await executeProblems(
+			[makeProblem('one'), makeProblem('two')],
+			{
+				model: 'model-a',
+				debug: false,
+				llmTimeoutSecs: 75,
+				noCooldown: false,
+				ollamaUrl: 'http://localhost:11434/v1',
+			},
+			{sleepMs},
+		);
+
+		expect(sleepMs).toHaveBeenCalledExactlyOnceWith(60_000);
 	});
 });

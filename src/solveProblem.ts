@@ -12,6 +12,11 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 	const start = Date.now();
 	let thinking = '';
 	const shouldStoreThinking = options.storeThinking ?? true;
+	const onThinkingDelta: ((thinkingDelta: string) => void) | undefined = shouldStoreThinking
+		? (thinkingDelta: string): void => {
+				thinking += thinkingDelta;
+			}
+		: undefined;
 
 	try {
 		if (typeof options.onPhaseChange === 'function') {
@@ -20,11 +25,7 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 		// oxlint-disable-next-line no-await-in-loop
 		const code = await generate(problem, {
 			...options,
-			onThinkingDelta: shouldStoreThinking
-				? (thinkingDelta) => {
-					thinking += thinkingDelta;
-				}
-				: undefined,
+			...(typeof onThinkingDelta === 'function' ? {onThinkingDelta} : {}),
 		});
 
 		if (typeof options.onPhaseChange === 'function') {
