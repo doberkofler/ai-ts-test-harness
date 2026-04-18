@@ -4,6 +4,7 @@ import {DEFAULT_COOLDOWN_PERIOD_SECS, DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_MODEL, D
 export type CliOpts = {
 	model: string;
 	debug: boolean;
+	storeThinking?: boolean;
 	llmTimeoutSecs: string;
 	cooldownPeriodSecs: string;
 	ollamaUrl: string;
@@ -30,6 +31,7 @@ const isCliOpts = (data: unknown): data is CliOpts =>
 export const registerGlobalCliOptions = (program: Command): void => {
 	program.option('--model <model>', 'Model to use', DEFAULT_MODEL);
 	program.option('--debug', 'Print LLM request/response for each problem', false);
+	program.option('--no-store-thinking', 'Do not persist model thinking/reasoning in result files');
 	program.option('--llm-timeout <seconds>', 'LLM response timeout in seconds', String(DEFAULT_LLM_TIMEOUT_SECS));
 	program.option('--cooldown-period <seconds>', 'Delay between problems in seconds', String(DEFAULT_COOLDOWN_PERIOD_SECS));
 	program.option('--ollama-url <url>', 'Ollama-compatible API base URL', DEFAULT_OLLAMA_URL);
@@ -48,8 +50,10 @@ export const normalizeCliOpts = (data: unknown): CliOpts | undefined => {
 
 	const llmTimeoutValue: unknown = Reflect.get(data, 'llmTimeout');
 	const cooldownPeriodValue: unknown = Reflect.get(data, 'cooldownPeriod');
+	const storeThinkingValue: unknown = Reflect.get(data, 'storeThinking');
 	const normalized = {
 		...data,
+		storeThinking: typeof storeThinkingValue === 'boolean' ? storeThinkingValue : true,
 		llmTimeoutSecs: llmTimeoutValue,
 		cooldownPeriodSecs: cooldownPeriodValue,
 	};

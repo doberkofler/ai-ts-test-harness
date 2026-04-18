@@ -14,6 +14,7 @@ export const printRuntimeConfig = (problems: Problem[], config: RuntimeConfig): 
 	console.log(`Timeout:    ${formatMs(config.llmTimeoutSecs * 1000)}`);
 	console.log(`Cooldown:   ${formatMs(cooldownPeriodSecs * 1000)}`);
 	console.log(`Debug:      ${config.debug ? styleText('enabled', STYLES.yellow) : 'disabled'}`);
+	console.log(`Thinking:   ${(config.storeThinking ?? true) ? 'stored' : styleText('not stored', STYLES.yellow)}`);
 	console.log(`Categories: ${Array.isArray(config.selectedCategories) && config.selectedCategories.length > 0 ? config.selectedCategories.join(', ') : 'all'}`);
 	console.log(`Problems:   ${problems.length}\n`);
 };

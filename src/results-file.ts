@@ -5,6 +5,7 @@ export const resultSchema = z.object({
 	problem: z.string(),
 	category: z.string(),
 	program: z.string(),
+	thinking: z.string().optional(),
 	passed: z.boolean(),
 	error: z.string().optional(),
 	duration_ms: z.number(),
@@ -42,6 +43,7 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 					problem: result.problem,
 					category: result.category,
 					program: result.program,
+					...(typeof result.thinking === 'string' ? {thinking: result.thinking} : {}),
 					passed: result.passed,
 					error: result.error,
 					duration_ms: result.duration_ms,
@@ -50,6 +52,7 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 					problem: result.problem,
 					category: result.category,
 					program: result.program,
+					...(typeof result.thinking === 'string' ? {thinking: result.thinking} : {}),
 					passed: result.passed,
 					duration_ms: result.duration_ms,
 				},
@@ -77,12 +80,17 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 	};
 };
 
-export const formatResultsFile = (results: Result[], config: RuntimeConfig): ResultsFile => ({
-	generated_at: new Date().toISOString(),
-	model: config.model,
-	ollama_url: config.ollamaUrl,
-	llm_timeout_secs: config.llmTimeoutSecs,
-	...(Array.isArray(config.selectedCategories) ? {selected_categories: config.selectedCategories} : {}),
-	...(config.systemInfo ? {system_info: config.systemInfo} : {}),
-	results,
-});
+export const formatResultsFile = (results: Result[], config: RuntimeConfig): ResultsFile => {
+	const shouldStoreThinking = config.storeThinking ?? true;
+	const persistedResults = shouldStoreThinking ? results : results.map(({thinking: _thinking, ...result}) => result);
+
+	return {
+		generated_at: new Date().toISOString(),
+		model: config.model,
+		ollama_url: config.ollamaUrl,
+		llm_timeout_secs: config.llmTimeoutSecs,
+		...(Array.isArray(config.selectedCategories) ? {selected_categories: config.selectedCategories} : {}),
+		...(config.systemInfo ? {system_info: config.systemInfo} : {}),
+		results: persistedResults,
+	};
+};

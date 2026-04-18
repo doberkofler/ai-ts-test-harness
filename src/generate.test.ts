@@ -87,6 +87,25 @@ describe('generate', () => {
 		logSpy.mockRestore();
 	});
 
+	test('forwards non-stream model thinking through callback', async () => {
+		const thinkingDeltas: string[] = [];
+
+		await generate(problem, {
+			model: 'test-model',
+			onThinkingDelta: (thinkingDelta) => {
+				thinkingDeltas.push(thinkingDelta);
+			},
+			createCompletion: async () => {
+				const response = await Promise.resolve({
+					choices: [{message: {content: 'return a + b;', reasoning_content: 'plan and solve'}}],
+				});
+				return response;
+			},
+		});
+
+		expect(thinkingDeltas).toEqual(['plan and solve']);
+	});
+
 	test('streams thinking and response line by line in debug mode', async () => {
 		const logSpy = vi.spyOn(console, 'log');
 
@@ -112,6 +131,25 @@ describe('generate', () => {
 		expect(output).toContain('const result = a + b;');
 		expect(output).toContain('return result;');
 		logSpy.mockRestore();
+	});
+
+	test('forwards streaming model thinking deltas through callback', async () => {
+		const thinkingDeltas: string[] = [];
+
+		await generate(problem, {
+			model: 'test-model',
+			onThinkingDelta: (thinkingDelta) => {
+				thinkingDeltas.push(thinkingDelta);
+			},
+			async *createCompletionStream() {
+				await Promise.resolve();
+				yield {choices: [{delta: {reasoning_content: 'planning '}}]};
+				yield {choices: [{delta: {reasoning_content: 'steps'}}]};
+				yield {choices: [{delta: {content: 'return a + b;'}}]};
+			},
+		});
+
+		expect(thinkingDeltas).toEqual(['planning ', 'steps']);
 	});
 
 	test('rejects invalid timeout values', async () => {

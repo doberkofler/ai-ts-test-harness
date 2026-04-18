@@ -478,12 +478,17 @@ const render = () => {
 			const statusText = result.passed ? 'PASS' : 'FAIL';
 			const isExpanded = expandedResultKeys.has(resultKey);
 			const actionLabel = isExpanded ? 'Hide details' : 'Show details';
+			const thinkingBlock = typeof result.thinking === 'string' && result.thinking.length > 0
+				? '<div class="program-label">Model Thinking:</div>'
+					+ '<div class="program">' + escapeHtml(result.thinking) + '</div>'
+				: '';
 			const detailsRow = isExpanded
 				? '<tr class="drilldown-row" data-parent-key="' + escapeHtml(resultKey) + '">'
 					+ '<td colspan="5">'
 					+ '<div class="drilldown-content">'
 					+ '<div class="drilldown-meta">' + statusText + ' • ' + escapeHtml(result.category) + ' • ' + formatDuration(result.duration_ms) + '</div>'
 					+ '<div class="error">' + escapeHtml(typeof result.error === 'string' && result.error.length > 0 ? result.error : 'No error output.') + '</div>'
+					+ thinkingBlock
 					+ '<div class="program-label">Generated Program:</div>'
 					+ '<div class="program">' + escapeHtml(result.program) + '</div>'
 					+ '</div>'

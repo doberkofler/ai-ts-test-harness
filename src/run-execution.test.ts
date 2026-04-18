@@ -52,6 +52,7 @@ describe('executeProblems', () => {
 			{
 				model: 'model-a',
 				debug: true,
+				storeThinking: false,
 				llmTimeoutSecs: 75,
 				cooldownPeriodSecs: 0,
 				ollamaUrl: 'http://localhost:11434/v1',
@@ -77,7 +78,7 @@ describe('executeProblems', () => {
 		expect(solveProblemMock).toHaveBeenNthCalledWith(
 			1,
 			expect.objectContaining({name: 'one'}),
-			expect.objectContaining({model: 'model-a', llmTimeoutSecs: 75, oauthToken: 'oauth-token'}),
+			expect.objectContaining({model: 'model-a', storeThinking: false, llmTimeoutSecs: 75, oauthToken: 'oauth-token'}),
 		);
 		expect(log).toHaveBeenCalledWith(expect.stringContaining('[ 1/2] logic/one'));
 		expect(log).toHaveBeenCalledWith(expect.stringContaining('PASS [ 1/2] logic/one (10ms)'));

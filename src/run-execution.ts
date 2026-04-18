@@ -18,6 +18,7 @@ import {type Problem, type Result} from './types.ts';
 export type ExecuteRunOptions = {
 	model: string;
 	debug: boolean;
+	storeThinking?: boolean;
 	llmTimeoutSecs: number;
 	cooldownPeriodSecs: number;
 	ollamaUrl: string;
@@ -91,6 +92,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 				...(typeof options.apiKey === 'string' ? {apiKey: options.apiKey} : {}),
 				...(typeof options.oauthToken === 'string' ? {oauthToken: options.oauthToken} : {}),
 				debug: options.debug,
+				storeThinking: options.storeThinking ?? true,
 				llmTimeoutSecs: options.llmTimeoutSecs,
 				onPhaseChange: (phase) => {
 					currentPhase = phase;

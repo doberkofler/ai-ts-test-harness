@@ -243,6 +243,7 @@ const resolveOutputTargets = (output: string, config: RuntimeConfig, plannedProb
 export const buildRuntimeConfig = (parsedOptions: ParsedRunCommandOptions, selectedCategories: string[] | undefined): RuntimeConfig => ({
 	model: parsedOptions.model,
 	debug: parsedOptions.debug,
+	storeThinking: parsedOptions.storeThinking,
 	llmTimeoutSecs: parsedOptions.llmTimeoutSecs,
 	cooldownPeriodSecs: parsedOptions.cooldownPeriodSecs,
 	ollamaUrl: parsedOptions.ollamaUrl,
@@ -254,6 +255,7 @@ export const buildRuntimeConfig = (parsedOptions: ParsedRunCommandOptions, selec
 export const buildExecuteRunOptions = (parsedOptions: ParsedRunCommandOptions): ExecuteRunOptions => ({
 	model: parsedOptions.model,
 	debug: parsedOptions.debug,
+	storeThinking: parsedOptions.storeThinking,
 	llmTimeoutSecs: parsedOptions.llmTimeoutSecs,
 	cooldownPeriodSecs: parsedOptions.cooldownPeriodSecs,
 	ollamaUrl: parsedOptions.ollamaUrl,

@@ -6,6 +6,7 @@ import {type CliOpts} from './cli-options.ts';
 export const toRunCommandOptions = (opts: CliOpts): RunCommandOptions => ({
 	model: opts.model,
 	debug: opts.debug,
+	storeThinking: opts.storeThinking ?? true,
 	llmTimeoutSecs: opts.llmTimeoutSecs,
 	cooldownPeriodSecs: opts.cooldownPeriodSecs,
 	ollamaUrl: opts.ollamaUrl,

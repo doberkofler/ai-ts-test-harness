@@ -20,9 +20,9 @@ const problem: Problem = {
 	category: 'arithmetic',
 	description: ['Add two numbers'],
 	signature: 'function sum(a: number, b: number): number',
-	tests: ({assert}): void => {
-		assert.strictEqual(true, true);
-	},
+		tests: ({assert}): void => {
+			assert.strictEqual(true, true);
+		},
 };
 
 describe('solveProblem', () => {
@@ -31,7 +31,7 @@ describe('solveProblem', () => {
 		runProblemMock.mockReset();
 	});
 
-	test('generates code, runs tests, and returns execution result', async () => {
+		test('generates code, runs tests, and returns execution result', async () => {
 		generateMock.mockResolvedValue('function sum(a: number, b: number): number { return a + b; }');
 		runProblemMock.mockResolvedValue({
 			problem: 'sum',
@@ -43,11 +43,54 @@ describe('solveProblem', () => {
 
 		const result = await solveProblem(problem, {model: 'test-model'});
 
-		expect(generateMock).toHaveBeenCalledExactlyOnceWith(problem, {model: 'test-model'});
+		expect(generateMock).toHaveBeenCalledTimes(1);
+		expect(generateMock).toHaveBeenCalledWith(problem, expect.objectContaining({model: 'test-model', onThinkingDelta: expect.any(Function)}));
 		expect(runProblemMock).toHaveBeenCalledExactlyOnceWith(problem, 'function sum(a: number, b: number): number { return a + b; }', {debug: false});
 		expect(result.passed).toBe(true);
 		expect(result.program).toBe('generated program');
 		expect(result.duration_ms).toBeGreaterThanOrEqual(0);
+	});
+
+	test('stores model thinking in result by default', async () => {
+		generateMock.mockImplementation(async (_problem, options) => {
+			if (typeof options.onThinkingDelta !== 'function') {
+				throw new TypeError('missing onThinkingDelta callback');
+			}
+			options.onThinkingDelta('plan ');
+			options.onThinkingDelta('steps');
+			return 'function sum(a: number, b: number): number { return a + b; }';
+		});
+		runProblemMock.mockResolvedValue({
+			problem: 'sum',
+			category: 'arithmetic',
+			program: 'generated program',
+			passed: true,
+			duration_ms: 1,
+		});
+
+		const result = await solveProblem(problem, {model: 'test-model'});
+
+		expect(result.thinking).toBe('plan steps');
+	});
+
+	test('can disable thinking storage for results', async () => {
+		generateMock.mockImplementation(async (_problem, options) => {
+			if (typeof options.onThinkingDelta === 'function') {
+				options.onThinkingDelta('should not be included');
+			}
+			return 'function sum(a: number, b: number): number { return a + b; }';
+		});
+		runProblemMock.mockResolvedValue({
+			problem: 'sum',
+			category: 'arithmetic',
+			program: 'generated program',
+			passed: true,
+			duration_ms: 1,
+		});
+
+		const result = await solveProblem(problem, {model: 'test-model', storeThinking: false});
+
+		expect(result).not.toHaveProperty('thinking');
 	});
 
 	test('returns failed result when generation throws', async () => {

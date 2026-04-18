@@ -74,6 +74,7 @@ export type Result = {
 	problem: string;
 	category: string;
 	program: string;
+	thinking?: string;
 	passed: boolean;
 	error?: string;
 	duration_ms: number;
@@ -82,6 +83,7 @@ export type Result = {
 export type RuntimeConfig = {
 	model: string;
 	debug: boolean;
+	storeThinking?: boolean;
 	llmTimeoutSecs: number;
 	cooldownPeriodSecs?: number;
 	ollamaUrl: string;

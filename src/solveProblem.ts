@@ -5,17 +5,27 @@ import {type Problem, type Result} from './types.ts';
 
 export type SolveProblemOptions = GenerateOptions & {
 	onPhaseChange?: (phase: RunPhase) => void;
+	storeThinking?: boolean;
 };
 
 export const solveProblem = async (problem: Problem, options: SolveProblemOptions): Promise<Result> => {
 	const start = Date.now();
+	let thinking = '';
+	const shouldStoreThinking = options.storeThinking ?? true;
 
 	try {
 		if (typeof options.onPhaseChange === 'function') {
 			options.onPhaseChange('thinking');
 		}
 		// oxlint-disable-next-line no-await-in-loop
-		const code = await generate(problem, options);
+		const code = await generate(problem, {
+			...options,
+			onThinkingDelta: shouldStoreThinking
+				? (thinkingDelta) => {
+					thinking += thinkingDelta;
+				}
+				: undefined,
+		});
 
 		if (typeof options.onPhaseChange === 'function') {
 			options.onPhaseChange('testing');
@@ -25,6 +35,7 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 
 		return {
 			...result,
+			...(shouldStoreThinking && thinking.length > 0 ? {thinking} : {}),
 			duration_ms: Date.now() - start,
 		};
 	} catch (error) {
@@ -34,6 +45,7 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 			problem: problem.name,
 			category: problem.category,
 			program: '',
+			...(shouldStoreThinking && thinking.length > 0 ? {thinking} : {}),
 			passed: false,
 			error: errorText,
 			duration_ms: Date.now() - start,

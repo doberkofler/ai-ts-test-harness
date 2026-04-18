@@ -3,6 +3,7 @@ import {parseIntOption, parseOptionalNonEmptyOption, parseRequiredOption} from '
 export type RunCommandOptions = {
 	model: string;
 	debug: boolean;
+	storeThinking?: boolean;
 	llmTimeoutSecs: string;
 	cooldownPeriodSecs: string;
 	ollamaUrl: string;
@@ -16,6 +17,7 @@ export type RunCommandOptions = {
 export type ParsedRunCommandOptions = {
 	model: string;
 	debug: boolean;
+	storeThinking: boolean;
 	llmTimeoutSecs: number;
 	cooldownPeriodSecs: number;
 	ollamaUrl: string;
@@ -37,6 +39,7 @@ export const parseRunCommandOptions = (options: RunCommandOptions): ParsedRunCom
 	return {
 		model: options.model,
 		debug: options.debug,
+		storeThinking: options.storeThinking ?? true,
 		llmTimeoutSecs,
 		cooldownPeriodSecs,
 		ollamaUrl,

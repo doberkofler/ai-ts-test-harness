@@ -99,6 +99,7 @@ describe('parseRunCommandOptions', () => {
 		).toEqual({
 			model: 'test-model',
 			debug: false,
+			storeThinking: true,
 			llmTimeoutSecs: 120,
 			cooldownPeriodSecs: 5,
 			ollamaUrl: 'http://localhost:11434/v1',

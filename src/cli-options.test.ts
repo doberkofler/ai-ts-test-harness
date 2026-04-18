@@ -16,6 +16,7 @@ describe('normalizeCliOpts', () => {
 		expect(normalized).toEqual({
 			model: 'test-model',
 			debug: true,
+			storeThinking: true,
 			llmTimeout: '75',
 			cooldownPeriod: '3',
 			llmTimeoutSecs: '75',
@@ -35,6 +36,7 @@ describe('command option mappers', () => {
 		const opts: CliOpts = {
 			model: 'model-a',
 			debug: false,
+			storeThinking: false,
 			llmTimeoutSecs: '120',
 			cooldownPeriodSecs: '5',
 			ollamaUrl: 'http://localhost:11434/v1',
@@ -48,6 +50,7 @@ describe('command option mappers', () => {
 		expect(toRunCommandOptions(opts)).toEqual({
 			model: 'model-a',
 			debug: false,
+			storeThinking: false,
 			llmTimeoutSecs: '120',
 			cooldownPeriodSecs: '5',
 			ollamaUrl: 'http://localhost:11434/v1',

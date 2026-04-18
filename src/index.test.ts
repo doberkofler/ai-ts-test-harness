@@ -76,6 +76,21 @@ describe('formatResultsFile', () => {
 		expect(output).not.toHaveProperty('api_key');
 		expect(output).not.toHaveProperty('oauth_token');
 	});
+
+	test('omits thinking from persisted results when disabled', () => {
+		const output = formatResultsFile(
+			[{problem: 'sum', category: 'arithmetic', program: 'return a + b;', thinking: 'chain of thought', passed: true, duration_ms: 10}],
+			{
+				model: 'test-model',
+				ollamaUrl: 'http://localhost:11434/v1',
+				llmTimeoutSecs: 5,
+				debug: false,
+				storeThinking: false,
+			},
+		);
+
+		expect(output.results).toEqual([{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, duration_ms: 10}]);
+	});
 });
 
 describe('run context builders', () => {
@@ -84,6 +99,7 @@ describe('run context builders', () => {
 			{
 				model: 'test-model',
 				debug: true,
+				storeThinking: false,
 				llmTimeoutSecs: 90,
 				cooldownPeriodSecs: 3,
 				ollamaUrl: 'http://localhost:11434/v1',
@@ -98,6 +114,7 @@ describe('run context builders', () => {
 		expect(config).toEqual({
 			model: 'test-model',
 			debug: true,
+			storeThinking: false,
 			llmTimeoutSecs: 90,
 			cooldownPeriodSecs: 3,
 			ollamaUrl: 'http://localhost:11434/v1',
@@ -110,6 +127,7 @@ describe('run context builders', () => {
 		const executeOptions = buildExecuteRunOptions({
 			model: 'test-model',
 			debug: false,
+			storeThinking: false,
 			llmTimeoutSecs: 90,
 			cooldownPeriodSecs: 0,
 			ollamaUrl: 'http://localhost:11434/v1',
@@ -122,6 +140,7 @@ describe('run context builders', () => {
 		expect(executeOptions).toEqual({
 			model: 'test-model',
 			debug: false,
+			storeThinking: false,
 			llmTimeoutSecs: 90,
 			cooldownPeriodSecs: 0,
 			ollamaUrl: 'http://localhost:11434/v1',

@@ -52,6 +52,7 @@ export type GenerateOptions = {
 	llmTimeoutSecs?: number;
 	onPhaseChange?: (phase: RunPhase) => void;
 	onTransferProgress?: (stats: RunTransferStats) => void;
+	onThinkingDelta?: (thinkingDelta: string) => void;
 	createCompletion?: CreateCompletion;
 	createCompletionStream?: CreateCompletionStream;
 };
@@ -245,6 +246,11 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 			options.onTransferProgress(stats);
 		}
 	};
+	const pushThinkingDelta = (thinkingDelta: string): void => {
+		if (typeof options.onThinkingDelta === 'function') {
+			options.onThinkingDelta(thinkingDelta);
+		}
+	};
 
 	setPhase('thinking');
 
@@ -353,6 +359,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 					thinkingLogger.push(thinkingDelta);
 				}
 				if (typeof thinkingDelta === 'string') {
+					pushThinkingDelta(thinkingDelta);
 					markResponseChars(thinkingDelta.length);
 				}
 
@@ -403,6 +410,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 
 			const fallbackThinking = extractModelThinking(fallbackMessage);
 			if (typeof fallbackThinking === 'string') {
+				pushThinkingDelta(fallbackThinking);
 				markResponseChars(fallbackThinking.length);
 			}
 			markResponseChars(fallbackText.length);
@@ -451,6 +459,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 
 	const modelThinking = extractModelThinking(message);
 	if (typeof modelThinking === 'string') {
+		pushThinkingDelta(modelThinking);
 		markResponseChars(modelThinking.length);
 	}
 	markResponseChars(text.length);
