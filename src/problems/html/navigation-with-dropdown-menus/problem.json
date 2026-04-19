@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "description": "Generate a semantic main navigation bar with three top-level items, each with a dropdown menu.\nUse <nav aria-label=\"Main navigation\"> and nested ul-in-li structure, with aria-haspopup/aria-expanded on trigger buttons and role=\"menuitem\" for dropdown links. Include tabindex=\"-1\" for non-focused items and include keyboard arrow-key handling markers in the output (ArrowRight, ArrowLeft, ArrowDown, ArrowUp)."
+}

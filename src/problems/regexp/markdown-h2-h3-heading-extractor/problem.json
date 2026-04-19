@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return a global multiline RegExp to extract heading text for markdown ## and ### headings only.\nDo not match # headings or #### and deeper headings.",
-  "timeout_ms": 5000
+  "description": "Return a global multiline RegExp to extract heading text for markdown ## and ### headings only.\nDo not match # headings or #### and deeper headings."
 }

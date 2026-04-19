@@ -8,6 +8,7 @@ export const toRunCommandOptions = (opts: CliOpts): RunCommandOptions => ({
 	debug: opts.debug,
 	storeThinking: opts.storeThinking ?? true,
 	llmTimeoutSecs: opts.llmTimeoutSecs,
+	vitestTimeoutSecs: opts.vitestTimeoutSecs,
 	noCooldown: opts.noCooldown,
 	ollamaUrl: opts.ollamaUrl,
 	...(typeof opts.apiKey === 'string' ? {apiKey: opts.apiKey} : {}),

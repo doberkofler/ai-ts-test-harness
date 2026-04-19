@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Convert a typed async generator to clean ES2022 JavaScript while preserving pagination behavior.",
-  "timeout_ms": 5000
+  "description": "Convert a typed async generator to clean ES2022 JavaScript while preserving pagination behavior."
 }

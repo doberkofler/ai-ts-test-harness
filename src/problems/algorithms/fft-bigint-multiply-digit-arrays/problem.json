@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Multiply two non-negative integers represented as base-10 digit arrays using FFT-style convolution.\nInput digits are big-endian (e.g. [1,2,3] means 123). Return digits in big-endian form.",
-  "timeout_ms": 5000
+  "description": "Multiply two non-negative integers represented as base-10 digit arrays using FFT-style convolution.\nInput digits are big-endian (e.g. [1,2,3] means 123). Return digits in big-endian form."
 }

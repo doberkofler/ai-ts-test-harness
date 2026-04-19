@@ -8,7 +8,6 @@ const problems: Problem[] = [
 		name: 'fizzbuzz',
 		category: 'logic',
 		description: 'Return fizzbuzz values',
-		timeout_ms: 5000,
 		files: [],
 		tests: [],
 	},
@@ -16,7 +15,6 @@ const problems: Problem[] = [
 		name: 'renameVariables',
 		category: 'refactor',
 		description: 'Rename short variables',
-		timeout_ms: 5000,
 		files: [],
 		tests: [],
 	},
@@ -33,6 +31,7 @@ describe('formatResultsFile', () => {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
 			llmTimeoutSecs: 5,
+			vitestTimeoutSecs: 60,
 			noCooldown: false,
 			debug: true,
 		});
@@ -53,6 +52,7 @@ describe('formatResultsFile', () => {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
 			llmTimeoutSecs: 5,
+			vitestTimeoutSecs: 60,
 			debug: false,
 		});
 
@@ -64,6 +64,7 @@ describe('formatResultsFile', () => {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
 			llmTimeoutSecs: 5,
+			vitestTimeoutSecs: 60,
 			debug: false,
 			apiKey: 'secret-key',
 			oauthToken: 'secret-token',
@@ -80,6 +81,7 @@ describe('formatResultsFile', () => {
 				model: 'test-model',
 				ollamaUrl: 'http://localhost:11434/v1',
 				llmTimeoutSecs: 5,
+				vitestTimeoutSecs: 60,
 				debug: false,
 				storeThinking: false,
 			},
@@ -97,6 +99,7 @@ describe('run context builders', () => {
 				debug: true,
 				storeThinking: false,
 				llmTimeoutSecs: 90,
+				vitestTimeoutSecs: 60,
 				noCooldown: true,
 				ollamaUrl: 'http://localhost:11434/v1',
 				apiKey: 'secret',
@@ -112,6 +115,7 @@ describe('run context builders', () => {
 			debug: true,
 			storeThinking: false,
 			llmTimeoutSecs: 90,
+			vitestTimeoutSecs: 60,
 			noCooldown: true,
 			ollamaUrl: 'http://localhost:11434/v1',
 			apiKey: 'secret',
@@ -125,6 +129,7 @@ describe('run context builders', () => {
 			debug: false,
 			storeThinking: false,
 			llmTimeoutSecs: 90,
+			vitestTimeoutSecs: 60,
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			oauthToken: 'oauth-token',
@@ -138,6 +143,7 @@ describe('run context builders', () => {
 			debug: false,
 			storeThinking: false,
 			llmTimeoutSecs: 90,
+			vitestTimeoutSecs: 60,
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			oauthToken: 'oauth-token',
@@ -156,6 +162,7 @@ describe('formatResultsHtmlFile', () => {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
 			llmTimeoutSecs: 5,
+			vitestTimeoutSecs: 60,
 			debug: false,
 		});
 
@@ -183,6 +190,7 @@ describe('parseResultsFile', () => {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
 			llmTimeoutSecs: 5,
+			vitestTimeoutSecs: 60,
 			debug: false,
 		});
 

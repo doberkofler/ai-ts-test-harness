@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return a global dotAll RegExp that matches SQL block comments.\nMust remove /* ... */ blocks non-greedily across lines while preserving -- comments.",
-  "timeout_ms": 5000
+  "description": "Return a global dotAll RegExp that matches SQL block comments.\nMust remove /* ... */ blocks non-greedily across lines while preserving -- comments."
 }

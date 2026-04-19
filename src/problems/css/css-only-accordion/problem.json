@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "description": "Generate a JavaScript-free accordion using details/summary, animated row expansion, rotating chevrons, and named-group single-open behavior with documented limitation."
+}

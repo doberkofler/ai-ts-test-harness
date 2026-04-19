@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return true when a binary tree is a valid BST (strictly ordered: left < node < right).",
-  "timeout_ms": 5000
+  "description": "Return true when a binary tree is a valid BST (strictly ordered: left < node < right)."
 }

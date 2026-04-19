@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Implement a stack that can return the minimum value in constant time while processing operation tuples.",
-  "timeout_ms": 5000
+  "description": "Implement a stack that can return the minimum value in constant time while processing operation tuples."
 }

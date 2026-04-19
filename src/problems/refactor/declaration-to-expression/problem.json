@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Refactor the given TypeScript function declaration into a const arrow function expression. Preserve the parameter list, type annotations, and body exactly.",
-  "timeout_ms": 5000
+  "description": "Refactor the given TypeScript function declaration into a const arrow function expression. Preserve the parameter list, type annotations, and body exactly."
 }

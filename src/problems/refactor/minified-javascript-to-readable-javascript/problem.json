@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Restore the provided minified JavaScript EventBus implementation to readable, well-structured code with meaningful names, proper formatting, and JSDoc comments on all public methods. Preserve runtime behaviour exactly.",
-  "timeout_ms": 5000
+  "description": "Restore the provided minified JavaScript EventBus implementation to readable, well-structured code with meaningful names, proper formatting, and JSDoc comments on all public methods. Preserve runtime behaviour exactly."
 }

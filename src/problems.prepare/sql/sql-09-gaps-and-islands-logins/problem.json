@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "For each user, return contiguous login date ranges with no gaps between dates.\nExpected columns: user_id, start_date, end_date.",
-  "timeout_ms": 5000
+  "description": "For each user, return contiguous login date ranges with no gaps between dates.\nExpected columns: user_id, start_date, end_date."
 }

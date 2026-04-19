@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Write procedure truncate_staging_tables(p_schema VARCHAR2, p_truncated_count OUT NUMBER) that scans ALL_TABLES for STG_% tables in the schema, truncates with EXECUTE IMMEDIATE, skips ORA-00942, and returns count of successful truncations.",
-  "timeout_ms": 5000
+  "description": "Write procedure truncate_staging_tables(p_schema VARCHAR2, p_truncated_count OUT NUMBER) that scans ALL_TABLES for STG_% tables in the schema, truncates with EXECUTE IMMEDIATE, skips ORA-00942, and returns count of successful truncations."
 }

@@ -11,7 +11,8 @@ export const printRuntimeConfig = (problems: Problem[], config: RuntimeConfig): 
 	console.log(`Model:      ${styleText(config.model, STYLES.cyan)}`);
 	console.log(`Ollama URL: ${config.ollamaUrl}`);
 	console.log(`Auth:       ${authMode}`);
-	console.log(`Timeout:    ${formatMs(config.llmTimeoutSecs * 1000)}`);
+	console.log(`LLM timeout: ${formatMs(config.llmTimeoutSecs * 1000)}`);
+	console.log(`Test timeout:${formatMs(config.vitestTimeoutSecs * 1000).padStart(9, ' ')}`);
 	console.log(`Cooldown:   ${cooldown}`);
 	console.log(`Debug:      ${config.debug ? styleText('enabled', STYLES.yellow) : 'disabled'}`);
 	console.log(`Thinking:   ${(config.storeThinking ?? true) ? 'stored' : styleText('not stored', STYLES.yellow)}`);

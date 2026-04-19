@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Reverse a singly linked list in place and return the new head.\nNode shape: {value: number, next: ListNode | null}. Do not allocate replacement nodes.",
-  "timeout_ms": 5000
+  "description": "Reverse a singly linked list in place and return the new head.\nNode shape: {value: number, next: ListNode | null}. Do not allocate replacement nodes."
 }

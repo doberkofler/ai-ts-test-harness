@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Refactor O(n^2) array deduplication to use Set-based O(n) behavior.",
-  "timeout_ms": 5000
+  "description": "Refactor O(n^2) array deduplication to use Set-based O(n) behavior."
 }

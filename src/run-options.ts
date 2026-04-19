@@ -5,6 +5,7 @@ export type RunCommandOptions = {
 	debug: boolean;
 	storeThinking?: boolean;
 	llmTimeoutSecs: string;
+	vitestTimeoutSecs: string;
 	noCooldown: boolean;
 	ollamaUrl: string;
 	apiKey?: string;
@@ -19,6 +20,7 @@ export type ParsedRunCommandOptions = {
 	debug: boolean;
 	storeThinking: boolean;
 	llmTimeoutSecs: number;
+	vitestTimeoutSecs: number;
 	noCooldown: boolean;
 	ollamaUrl: string;
 	apiKey?: string;
@@ -30,6 +32,7 @@ export type ParsedRunCommandOptions = {
 
 export const parseRunCommandOptions = (options: RunCommandOptions): ParsedRunCommandOptions => {
 	const llmTimeoutSecs = parseIntOption(options.llmTimeoutSecs, {optionName: '--llm-timeout', minimum: 1});
+	const vitestTimeoutSecs = parseIntOption(options.vitestTimeoutSecs, {optionName: '--vitest-timeout', minimum: 1});
 	const ollamaUrl = parseRequiredOption(options.ollamaUrl, '--ollama-url');
 	const output = parseRequiredOption(options.output, '--output');
 	const apiKey = parseOptionalNonEmptyOption(options.apiKey, '--api-key');
@@ -40,6 +43,7 @@ export const parseRunCommandOptions = (options: RunCommandOptions): ParsedRunCom
 		debug: options.debug,
 		storeThinking: options.storeThinking ?? true,
 		llmTimeoutSecs,
+		vitestTimeoutSecs,
 		noCooldown: options.noCooldown,
 		ollamaUrl,
 		...(typeof apiKey === 'string' ? {apiKey} : {}),

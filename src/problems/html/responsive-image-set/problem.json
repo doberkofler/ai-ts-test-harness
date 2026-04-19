@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "description": "Generate responsive product photo markup using picture/srcset/sizes with modern image loading hints.\nInclude a WebP <source type=\"image/webp\"> and a JPEG fallback <img>. Both source and img srcset attributes must include 400w, 800w, and 1200w candidates. Include sizes on the <img>, descriptive alt text (not containing the phrase 'image of'), loading=\"lazy\", decoding=\"async\", and explicit width/height."
+}

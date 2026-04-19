@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Define type t_employee_row and a pipelined function get_employees_by_dept(p_dept_id NUMBER) that streams rows from employees and can be queried via TABLE(get_employees_by_dept(...)).",
-  "timeout_ms": 5000
+  "description": "Define type t_employee_row and a pipelined function get_employees_by_dept(p_dept_id NUMBER) that streams rows from employees and can be queried via TABLE(get_employees_by_dept(...))."
 }

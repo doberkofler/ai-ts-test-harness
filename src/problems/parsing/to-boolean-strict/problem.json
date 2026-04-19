@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Convert known string values to booleans.\nAccept true/false/1/0/yes/no (case-insensitive) with trimming.\nReturn null for all other values.",
-  "timeout_ms": 5000
+  "description": "Convert known string values to booleans.\nAccept true/false/1/0/yes/no (case-insensitive) with trimming.\nReturn null for all other values."
 }

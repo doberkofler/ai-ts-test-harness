@@ -6,7 +6,7 @@ import {parseCategoryFilter, selectProblems, selectProblemsByFilters} from './co
 import {executeProblems, type ExecuteRunOptions} from './run-execution.ts';
 import {formatResultsFile, parseResultsFile} from './results-file.ts';
 import {parseRunCommandOptions, type ParsedRunCommandOptions, type RunCommandOptions} from './run-options.ts';
-import {type Problem, type Result, type ResultsFile, type RuntimeConfig, type SystemInfo} from './types.ts';
+import {type Problem, type Result, type ResultsFile, type RuntimeConfig} from './types.ts';
 import {getSystemInfo} from './system-info.ts';
 import {reportCommand} from './report.ts';
 
@@ -67,15 +67,6 @@ const areStringArraysEqual = (left: readonly string[] | undefined, right: readon
 	return left.every((value, index) => value === right[index]);
 };
 
-const areSystemInfosEqual = (left: SystemInfo | undefined, right: SystemInfo | undefined): boolean => {
-	if (typeof left === 'undefined' || typeof right === 'undefined') {
-		return false;
-	}
-	return (
-		left.hostname === right.hostname && left.os === right.os && left.cpu === right.cpu && left.ram_gb === right.ram_gb && (left.gpu ?? '') === (right.gpu ?? '')
-	);
-};
-
 const isRecentPayload = (payload: ResultsFile, nowMs: number): boolean => {
 	const generatedAtMs = Date.parse(payload.generated_at);
 	if (Number.isNaN(generatedAtMs)) {
@@ -108,11 +99,11 @@ const evaluateResumeCandidate = (
 	if (payload.llm_timeout_secs !== config.llmTimeoutSecs) {
 		return {resumable: false, reason: 'LLM timeout mismatch'};
 	}
+	if (payload.vitest_timeout_secs !== config.vitestTimeoutSecs) {
+		return {resumable: false, reason: 'Vitest timeout mismatch'};
+	}
 	if (!areStringArraysEqual(payload.selected_categories, selectedCategories)) {
 		return {resumable: false, reason: 'selected categories mismatch'};
-	}
-	if (!areSystemInfosEqual(payload.system_info, config.systemInfo)) {
-		return {resumable: false, reason: 'system information mismatch'};
 	}
 	if (!payload.results.every((result) => plannedProblemNames.includes(result.problem))) {
 		return {resumable: false, reason: 'open run belongs to a different problem scope'};
@@ -131,7 +122,7 @@ const findResumableOpenResults = (
 	config: RuntimeConfig,
 	plannedProblemNames: readonly string[],
 	nowMs: number,
-): {path: string; results: Result[]} | undefined => {
+): {path: string; results: Result[]; mismatchReason?: string; mismatchPath?: string} | undefined => {
 	const entries: {path: string; mtimeMs: number}[] = [];
 	for (const entry of readdirSync(outputDirectory)) {
 		if (!isOpenResultsFilePath(entry)) {
@@ -146,17 +137,37 @@ const findResumableOpenResults = (
 	}
 	entries.sort((left, right) => right.mtimeMs - left.mtimeMs);
 
+	let latestMismatchReason: string | undefined;
+	let latestMismatchPath: string | undefined;
+
 	for (const entry of entries) {
 		try {
 			const payload = readResultsPayload(entry.path);
 			const candidate = evaluateResumeCandidate(payload, config, plannedProblemNames, nowMs);
 			if (!candidate.resumable) {
+				if (typeof latestMismatchReason === 'undefined') {
+					latestMismatchReason = candidate.reason;
+					latestMismatchPath = entry.path;
+				}
 				continue;
 			}
 			return {path: entry.path, results: payload.results};
 		} catch {
+			if (typeof latestMismatchReason === 'undefined') {
+				latestMismatchReason = 'open run file is invalid JSON';
+				latestMismatchPath = entry.path;
+			}
 			continue;
 		}
+	}
+
+	if (typeof latestMismatchReason === 'string') {
+		return {
+			path: '',
+			results: [],
+			mismatchReason: latestMismatchReason,
+			...(typeof latestMismatchPath === 'string' ? {mismatchPath: latestMismatchPath} : {}),
+		};
 	}
 
 	return undefined;
@@ -179,6 +190,17 @@ const resolveOutputTargets = (output: string, config: RuntimeConfig, plannedProb
 
 		const resumeCandidate = findResumableOpenResults(output, config, plannedProblemNames, nowMs);
 		if (typeof resumeCandidate !== 'undefined') {
+			if (resumeCandidate.path.length === 0) {
+				const safeModelName = config.model.replaceAll(/[^a-z0-9.-]/gi, '_');
+				const runBasePath = resolve(join(output, `run_${getTimestampString(nowMs)}_${safeModelName}`));
+				const mismatchSource = typeof resumeCandidate.mismatchPath === 'string' ? ` in ${resumeCandidate.mismatchPath}` : '';
+				return {
+					openOutputPath: `${runBasePath}.json`,
+					finalOutputPath: `${runBasePath}.json.gz`,
+					resumedResults: [],
+					resumeReason: `open run files exist but latest candidate mismatched${mismatchSource}: ${resumeCandidate.mismatchReason ?? 'unknown reason'}`,
+				};
+			}
 			const completedCount = uniqueCompletedProblemNames(resumeCandidate.results, plannedProblemNames).length;
 			return {
 				openOutputPath: resumeCandidate.path,
@@ -245,6 +267,7 @@ export const buildRuntimeConfig = (parsedOptions: ParsedRunCommandOptions, selec
 	debug: parsedOptions.debug,
 	storeThinking: parsedOptions.storeThinking,
 	llmTimeoutSecs: parsedOptions.llmTimeoutSecs,
+	vitestTimeoutSecs: parsedOptions.vitestTimeoutSecs,
 	noCooldown: parsedOptions.noCooldown,
 	ollamaUrl: parsedOptions.ollamaUrl,
 	...(typeof parsedOptions.apiKey === 'string' ? {apiKey: parsedOptions.apiKey} : {}),
@@ -257,6 +280,7 @@ export const buildExecuteRunOptions = (parsedOptions: ParsedRunCommandOptions): 
 	debug: parsedOptions.debug,
 	storeThinking: parsedOptions.storeThinking,
 	llmTimeoutSecs: parsedOptions.llmTimeoutSecs,
+	vitestTimeoutSecs: parsedOptions.vitestTimeoutSecs,
 	noCooldown: parsedOptions.noCooldown,
 	ollamaUrl: parsedOptions.ollamaUrl,
 	...(typeof parsedOptions.apiKey === 'string' ? {apiKey: parsedOptions.apiKey} : {}),

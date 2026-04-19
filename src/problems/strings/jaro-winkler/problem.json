@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Compute the Jaro-Winkler similarity between two strings.\nReturn a value in [0, 1] where 1 is an exact match and 0 is no similarity.\nMatching is case-sensitive.",
-  "timeout_ms": 5000
+  "description": "Compute the Jaro-Winkler similarity between two strings.\nReturn a value in [0, 1] where 1 is an exact match and 0 is no similarity.\nMatching is case-sensitive."
 }

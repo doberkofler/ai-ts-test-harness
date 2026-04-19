@@ -3,7 +3,7 @@ import {type GenerateOptions} from './generate.ts';
 import {type ChangedFilesArtifact, type Problem, type Result} from './types.ts';
 
 const generateMock = vi.fn<(problem: Problem, options: GenerateOptions) => Promise<ChangedFilesArtifact>>();
-const runProblemMock = vi.fn<(problem: Problem, artifact: ChangedFilesArtifact, options?: {debug?: boolean}) => Promise<Result>>();
+const runProblemMock = vi.fn<(problem: Problem, artifact: ChangedFilesArtifact, options?: {debug?: boolean; vitestTimeoutMs?: number}) => Promise<Result>>();
 
 const generatedArtifact: ChangedFilesArtifact = {
 	kind: 'changed-files-v1',
@@ -24,7 +24,6 @@ const problem: Problem = {
 	name: 'sum',
 	category: 'arithmetic',
 	description: 'Add two numbers',
-	timeout_ms: 5000,
 	files: [{path: 'src/sum.ts', content: 'export const sum = () => 0;\n'}],
 	tests: [{path: 'tests/sum.test.ts', content: ''}],
 };

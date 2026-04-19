@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Write a PL/SQL block that creates DBMS_SCHEDULER job CLEANUP_EXPIRED_TOKENS for security_pkg.purge_expired_tokens every 6 hours, enabled immediately, max_failures=3, auto_drop=FALSE.",
-  "timeout_ms": 5000
+  "description": "Write a PL/SQL block that creates DBMS_SCHEDULER job CLEANUP_EXPIRED_TOKENS for security_pkg.purge_expired_tokens every 6 hours, enabled immediately, max_failures=3, auto_drop=FALSE."
 }

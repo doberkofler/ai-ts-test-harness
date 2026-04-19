@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-04-19T10:06:17.800Z",
+  "model": "qwen3.6:35b-a3b-q8_0",
+  "ollama_url": "http://localhost:11434/v1",
+  "llm_timeout_secs": 180,
+  "vitest_timeout_secs": 60,
+  "system_info": {
+    "hostname": "Dieters-MacBook-Pro-M5.local",
+    "os": "darwin 26.4.1 (arm64)",
+    "cpu": "Apple M5 Max (18 cores)",
+    "ram_gb": 64,
+    "gpu": "Apple Apple M5 Max"
+  },
+  "results": []
+}

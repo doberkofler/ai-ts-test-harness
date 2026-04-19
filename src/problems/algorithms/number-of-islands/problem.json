@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Given a grid of '1' (land) and '0' (water), return the number of islands using BFS/DFS flood-fill.",
-  "timeout_ms": 5000
+  "description": "Given a grid of '1' (land) and '0' (water), return the number of islands using BFS/DFS flood-fill."
 }

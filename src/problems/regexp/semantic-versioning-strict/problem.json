@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return a RegExp that matches strict Semantic Versioning 2.0.0 strings.\nAllow optional prerelease and build metadata sections.\nReject invalid numeric components and malformed suffixes.",
-  "timeout_ms": 5000
+  "description": "Return a RegExp that matches strict Semantic Versioning 2.0.0 strings.\nAllow optional prerelease and build metadata sections.\nReject invalid numeric components and malformed suffixes."
 }

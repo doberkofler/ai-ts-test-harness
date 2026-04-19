@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return a zero-width RegExp suitable for splitting camelCase and acronym boundaries.\nKeep consecutive capitals together unless followed by lowercase.",
-  "timeout_ms": 5000
+  "description": "Return a zero-width RegExp suitable for splitting camelCase and acronym boundaries.\nKeep consecutive capitals together unless followed by lowercase."
 }

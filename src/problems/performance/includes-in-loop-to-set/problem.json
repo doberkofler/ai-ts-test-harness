@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Refactor repeated includes checks inside a loop to use a precomputed Set lookup.",
-  "timeout_ms": 5000
+  "description": "Refactor repeated includes checks inside a loop to use a precomputed Set lookup."
 }

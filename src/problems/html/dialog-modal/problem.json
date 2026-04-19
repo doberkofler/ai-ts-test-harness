@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "description": "Generate an accessible modal using the native dialog element and minimal JavaScript wiring.\nUse aria-labelledby=\"dialog-title\" and aria-describedby=\"dialog-description\" on <dialog>, with matching element ids and a close button labeled exactly aria-label=\"Close dialog\". Use HTMLDialogElement API methods (showModal() and close()). Implement focus trap Tab wrapping with an event key check, event.preventDefault(), and focus handoff (for example first?.focus() or focusable[0]?.focus()). Include Escape-key close and backdrop click close logic using event.target === dialog."
+}

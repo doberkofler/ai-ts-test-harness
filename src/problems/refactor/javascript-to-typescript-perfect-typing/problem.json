@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Convert a JavaScript API client module to strict TypeScript with fully typed parameters/returns, generic get/post helpers, and safe unknown response parsing via type guards.",
-  "timeout_ms": 5000
+  "description": "Convert a JavaScript API client module to strict TypeScript with fully typed parameters/returns, generic get/post helpers, and safe unknown response parsing via type guards."
 }

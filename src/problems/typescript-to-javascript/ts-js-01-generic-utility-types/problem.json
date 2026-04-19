@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Convert TypeScript with generic utility types and casts into clean ES2022 JavaScript while preserving deep-merge behavior.",
-  "timeout_ms": 5000
+  "description": "Convert TypeScript with generic utility types and casts into clean ES2022 JavaScript while preserving deep-merge behavior."
 }

@@ -1,5 +1,0 @@
-{
-  "version": 1,
-  "description": "Generate a blog article page using semantic article/header/footer markup plus structured metadata.\nInclude publish time datetime 2024-11-15, author address, figure/figcaption hero image, Open Graph tags, and JSON-LD Article schema.",
-  "timeout_ms": 5000
-}

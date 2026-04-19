@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "description": "Generate a glossary section with five technical terms using semantic definition list markup.\nRequire section+h2 wrapper, a top navigation list linking to each term id, dt/dd pairs, and abbr title usage for acronym terms."
+}

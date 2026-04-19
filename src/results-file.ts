@@ -28,6 +28,7 @@ export const resultsFileSchema = z
 		model: z.string(),
 		ollama_url: z.string().optional(),
 		llm_timeout_secs: z.number().optional(),
+		vitest_timeout_secs: z.number().optional(),
 		selected_categories: z.array(z.string()).optional(),
 		system_info: z
 			.object({
@@ -87,6 +88,7 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 		model: parsed.model,
 		...(typeof parsed.ollama_url === 'string' ? {ollama_url: parsed.ollama_url} : {}),
 		...(typeof parsed.llm_timeout_secs === 'number' ? {llm_timeout_secs: parsed.llm_timeout_secs} : {}),
+		...(typeof parsed.vitest_timeout_secs === 'number' ? {vitest_timeout_secs: parsed.vitest_timeout_secs} : {}),
 		...(Array.isArray(parsed.selected_categories) ? {selected_categories: parsed.selected_categories} : {}),
 		...(typeof systemInfo === 'undefined' ? {} : {system_info: systemInfo}),
 		results,
@@ -102,6 +104,7 @@ export const formatResultsFile = (results: Result[], config: RuntimeConfig): Res
 		model: config.model,
 		ollama_url: config.ollamaUrl,
 		llm_timeout_secs: config.llmTimeoutSecs,
+		vitest_timeout_secs: config.vitestTimeoutSecs,
 		...(Array.isArray(config.selectedCategories) ? {selected_categories: config.selectedCategories} : {}),
 		...(config.systemInfo ? {system_info: config.systemInfo} : {}),
 		results: persistedResults,

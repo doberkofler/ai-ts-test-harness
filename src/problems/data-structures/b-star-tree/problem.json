@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Implement a parameterized B* tree of order t (minimum degree, t >= 2).\nBefore splitting a full node, attempt to redistribute keys to a sibling.\nExpose insert, search, delete, and keys APIs.",
-  "timeout_ms": 5000
+  "description": "Implement a parameterized B* tree of order t (minimum degree, t >= 2).\nBefore splitting a full node, attempt to redistribute keys to a sibling.\nExpose insert, search, delete, and keys APIs."
 }

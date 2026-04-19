@@ -2,6 +2,7 @@ import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:
 import {tmpdir} from 'node:os';
 import {dirname, isAbsolute, join, resolve} from 'node:path';
 import {type CliOptions, startVitest} from 'vitest/node';
+import {DEFAULT_VITEST_TIMEOUT_SECS} from './config.ts';
 import {type ChangedFilesArtifact, type Problem, type Result, type WorkspaceFile} from './types.ts';
 
 type VitestTaskLike = {
@@ -25,6 +26,7 @@ export type RunProblemOptions = {
 	debug?: boolean;
 	startVitest?: StartVitestLike;
 	cwd?: string;
+	vitestTimeoutMs?: number;
 };
 
 const sanitizeErrorText = (value: string): string => {
@@ -196,7 +198,8 @@ export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifac
 	const runVitest = options.startVitest ?? startVitest;
 	const problemFiles = Array.isArray(problem.files) ? problem.files : [];
 	const problemTests = Array.isArray(problem.tests) ? problem.tests : [];
-	const timeoutMs = typeof problem.timeout_ms === 'number' && Number.isFinite(problem.timeout_ms) ? problem.timeout_ms : 5000;
+	const timeoutMs =
+		typeof options.vitestTimeoutMs === 'number' && Number.isFinite(options.vitestTimeoutMs) ? options.vitestTimeoutMs : DEFAULT_VITEST_TIMEOUT_SECS * 1000;
 	const tempWorkspace = mkdtempSync(join(tmpdir(), 'ai-ts-harness-'));
 	let runnerInstance: VitestRunLike | undefined;
 	const startedAtMs = Date.now();

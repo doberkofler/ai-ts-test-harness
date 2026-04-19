@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return a Unicode-aware RegExp that matches whole-word \"cafe with accent\" only.\nMatch standalone \"café\" and reject embedded forms like \"caféteria\" or \"decafé\".",
-  "timeout_ms": 5000
+  "description": "Return a Unicode-aware RegExp that matches whole-word \"cafe with accent\" only.\nMatch standalone \"café\" and reject embedded forms like \"caféteria\" or \"decafé\"."
 }

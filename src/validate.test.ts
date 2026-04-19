@@ -13,7 +13,6 @@ const implementProblem: Problem = {
 	name: 'sum',
 	category: 'arithmetic',
 	description: 'Add two numbers',
-	timeout_ms: 5000,
 	files: [{path: 'src/sum.ts', content: 'export const sum = (a: number, b: number): number => 0;\n'}],
 	tests: [{path: 'tests/sum.test.ts', content: ''}],
 	solution: solutionArtifact,
@@ -23,7 +22,6 @@ const missingSolutionProblem: Problem = {
 	name: 'no-solution-yet',
 	category: 'pending',
 	description: 'Problem without a provided solution',
-	timeout_ms: 5000,
 	files: [{path: 'src/main.ts', content: 'export const value = 0;\n'}],
 	tests: [{path: 'tests/main.test.ts', content: ''}],
 };

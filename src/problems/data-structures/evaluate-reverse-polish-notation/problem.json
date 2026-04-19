@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Evaluate a reverse Polish notation expression. Division truncates toward zero.",
-  "timeout_ms": 5000
+  "description": "Evaluate a reverse Polish notation expression. Division truncates toward zero."
 }

@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Write procedure get_orders_by_status(p_status IN VARCHAR2, p_cursor OUT SYS_REFCURSOR) that opens a weak ref cursor for orders filtered by status ordered by created_at descending.",
-  "timeout_ms": 5000
+  "description": "Write procedure get_orders_by_status(p_status IN VARCHAR2, p_cursor OUT SYS_REFCURSOR) that opens a weak ref cursor for orders filtered by status ordered by created_at descending."
 }

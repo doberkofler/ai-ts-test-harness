@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Write an anonymous PL/SQL block that bulk collects inactive stale customer_ids, deletes related orders and customers with FORALL, and reports total rows deleted with DBMS_OUTPUT.",
-  "timeout_ms": 5000
+  "description": "Write an anonymous PL/SQL block that bulk collects inactive stale customer_ids, deletes related orders and customers with FORALL, and reports total rows deleted with DBMS_OUTPUT."
 }

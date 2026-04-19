@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Safely parse JSON text into unknown.\nReturn null for invalid JSON input.",
-  "timeout_ms": 5000
+  "description": "Safely parse JSON text into unknown.\nReturn null for invalid JSON input."
 }

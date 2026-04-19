@@ -6,6 +6,7 @@ import {type Problem, type Result} from './types.ts';
 export type SolveProblemOptions = GenerateOptions & {
 	onPhaseChange?: (phase: RunPhase) => void;
 	storeThinking?: boolean;
+	vitestTimeoutSecs?: number;
 };
 
 export const solveProblem = async (problem: Problem, options: SolveProblemOptions): Promise<Result> => {
@@ -32,7 +33,10 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 			options.onPhaseChange('testing');
 		}
 		// oxlint-disable-next-line no-await-in-loop
-		const result = await runProblem(problem, code, {debug: options.debug ?? false});
+		const result = await runProblem(problem, code, {
+			debug: options.debug ?? false,
+			...(typeof options.vitestTimeoutSecs === 'number' ? {vitestTimeoutMs: options.vitestTimeoutSecs * 1000} : {}),
+		});
 
 		return {
 			...result,

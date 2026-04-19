@@ -6,7 +6,6 @@ const problem: Problem = {
 	name: 'sum-case',
 	category: 'arithmetic',
 	description: 'Add two numbers',
-	timeout_ms: 5000,
 	files: [{path: 'src/sum.ts', content: 'export const sum = (a: number, b: number): number => 0;\n'}],
 	tests: [
 		{
@@ -50,6 +49,7 @@ const createVitestMock = (options: {
 describe('runProblem', () => {
 	test('runs changed-file artifacts through vitest', async () => {
 		const result = await runProblem(problem, artifact, {
+			vitestTimeoutMs: 5000,
 			startVitest: async (mode, filters, vitestOptions) => {
 				expect(mode).toBe('test');
 				const filterCount = Array.isArray(filters) ? filters.length : 0;
@@ -62,6 +62,16 @@ describe('runProblem', () => {
 
 		expect(result.passed).toBe(true);
 		expect(result.artifact).toEqual(artifact);
+	});
+
+	test('uses default vitest timeout when no override is provided', async () => {
+		await runProblem(problem, artifact, {
+			startVitest: async (_mode, _filters, vitestOptions) => {
+				expect(vitestOptions).toMatchObject({testTimeout: 60_000, root: expect.any(String)});
+				await Promise.resolve();
+				return createVitestMock({});
+			},
+		});
 	});
 
 	test('uses vitest failure output when task errors exist', async () => {

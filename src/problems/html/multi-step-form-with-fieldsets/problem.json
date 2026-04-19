@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "description": "Generate a 3-step checkout form with fieldsets and legends for Shipping, Payment, and Review.\nRequire labels for all inputs, required+aria-required attributes, hidden non-active steps, and an <ol> progress indicator with aria-current=\"step\" on the active step. Include labeled inputs with exact ids shipping-name, card-number, and review-terms (with matching label for= values). Do not use placeholder attributes on inputs."
+}

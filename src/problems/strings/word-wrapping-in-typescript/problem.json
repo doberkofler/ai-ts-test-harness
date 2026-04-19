@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Implement a configurable word-wrap utility for TypeScript.\nSupport soft and hard wrapping modes, hanging indents, custom line breaks, optional whitespace collapsing, and preservation of existing newlines as hard breaks.",
-  "timeout_ms": 5000
+  "description": "Implement a configurable word-wrap utility for TypeScript.\nSupport soft and hard wrapping modes, hanging indents, custom line breaks, optional whitespace collapsing, and preservation of existing newlines as hard breaks."
 }

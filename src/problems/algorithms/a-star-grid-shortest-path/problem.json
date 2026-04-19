@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Find the shortest path length on a 2D grid with obstacles using A*.\nGrid cells are 0 (free) and 1 (blocked). Movement is 4-directional.",
-  "timeout_ms": 5000
+  "description": "Find the shortest path length on a 2D grid with obstacles using A*.\nGrid cells are 0 (free) and 1 (blocked). Movement is 4-directional."
 }

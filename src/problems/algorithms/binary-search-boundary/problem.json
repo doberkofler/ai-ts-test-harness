@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Given a sorted array and target, return the first index where target appears, or -1 when missing.",
-  "timeout_ms": 5000
+  "description": "Given a sorted array and target, return the first index where target appears, or -1 when missing."
 }

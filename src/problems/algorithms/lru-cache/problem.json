@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Simulate an LRU cache with given capacity and operation tuples. Return outputs for each operation.",
-  "timeout_ms": 5000
+  "description": "Simulate an LRU cache with given capacity and operation tuples. Return outputs for each operation."
 }

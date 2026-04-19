@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "description": "Generate utility-first margin and padding spacing classes from a 0.25rem base scale with multipliers 0,1,2,3,4,5,6,8,10,12,16."
+}

@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Sort an array of numbers in ascending order using the quicksort algorithm.\nMust implement quicksort recursively; do not use Array.prototype.sort or any other built-in sort.\nReturn a new array, do not mutate the input.",
-  "timeout_ms": 5000
+  "description": "Sort an array of numbers in ascending order using the quicksort algorithm.\nMust implement quicksort recursively; do not use Array.prototype.sort or any other built-in sort.\nReturn a new array, do not mutate the input."
 }

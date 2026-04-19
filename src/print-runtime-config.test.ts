@@ -6,7 +6,6 @@ const makeProblem = (name: string, category = 'logic'): Problem => ({
 	name,
 	category,
 	description: 'test problem',
-	timeout_ms: 5000,
 	files: [],
 	tests: [],
 });
@@ -22,6 +21,7 @@ describe('printRuntimeConfig', () => {
 			model: 'model-a',
 			debug: true,
 			llmTimeoutSecs: 60,
+			vitestTimeoutSecs: 60,
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			apiKey: 'secret',

@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return a RegExp with named capture groups for ISO 8601 datetime fields.\nCapture year, month, day, hour, minute, second, and offset.",
-  "timeout_ms": 5000
+  "description": "Return a RegExp with named capture groups for ISO 8601 datetime fields.\nCapture year, month, day, hour, minute, second, and offset."
 }

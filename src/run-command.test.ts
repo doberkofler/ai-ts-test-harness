@@ -29,7 +29,6 @@ const makeProblem = (name: string, category: string): Problem => ({
 	name,
 	category,
 	description: 'test',
-	timeout_ms: 5000,
 	files: [],
 	tests: [],
 });
@@ -66,6 +65,7 @@ describe('runCommand', () => {
 			model: 'test-model',
 			debug: false,
 			llmTimeoutSecs: '90',
+			vitestTimeoutSecs: '60',
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			output,
@@ -75,7 +75,7 @@ describe('runCommand', () => {
 
 		expect(executeProblemsMock).toHaveBeenCalledWith(
 			[expect.objectContaining({name: 'fizzbuzz', category: 'logic'})],
-			expect.objectContaining({llmTimeoutSecs: 90, noCooldown: false, storeThinking: true}),
+			expect.objectContaining({llmTimeoutSecs: 90, vitestTimeoutSecs: 60, noCooldown: false, storeThinking: true}),
 			expect.objectContaining({initialResults: []}),
 		);
 		expect(runResult.config.llmTimeoutSecs).toBe(90);
@@ -98,6 +98,7 @@ describe('runCommand', () => {
 			debug: false,
 			storeThinking: false,
 			llmTimeoutSecs: '90',
+			vitestTimeoutSecs: '60',
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			output,
@@ -116,6 +117,7 @@ describe('runCommand', () => {
 				model: 'test-model',
 				debug: false,
 				llmTimeoutSecs: '0',
+				vitestTimeoutSecs: '60',
 				noCooldown: false,
 				ollamaUrl: 'http://localhost:11434/v1',
 				output: join(tempDir, 'results.json'),
@@ -136,6 +138,7 @@ describe('runCommand', () => {
 			model: 'test-model',
 			debug: true,
 			llmTimeoutSecs: '90',
+			vitestTimeoutSecs: '60',
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			output: tempDir,
@@ -157,6 +160,7 @@ describe('runCommand', () => {
 			model: 'test-model',
 			debug: false,
 			llmTimeoutSecs: 90,
+			vitestTimeoutSecs: 60,
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			selectedCategories: ['logic'],
@@ -179,6 +183,7 @@ describe('runCommand', () => {
 			model: 'test-model',
 			debug: false,
 			llmTimeoutSecs: '90',
+			vitestTimeoutSecs: '60',
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			output: tempDir,
@@ -204,6 +209,7 @@ describe('runCommand', () => {
 			model: 'test-model',
 			debug: false,
 			llmTimeoutSecs: 90,
+			vitestTimeoutSecs: 60,
 			ollamaUrl: 'http://localhost:11434/v1',
 			systemInfo: {
 				hostname: 'host-a',
@@ -224,6 +230,7 @@ describe('runCommand', () => {
 			model: 'test-model',
 			debug: false,
 			llmTimeoutSecs: '90',
+			vitestTimeoutSecs: '60',
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
 			output: tempDir,
@@ -232,6 +239,7 @@ describe('runCommand', () => {
 		});
 
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Starting fresh run'));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('open run files exist but latest candidate mismatched'));
 		expect(loggedLines).toBeGreaterThan(0);
 		logSpy.mockRestore();
 	});

@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "description": "Generate a complete semantic single-page HTML document skeleton.\nRequire doctype, html lang, charset and viewport meta tags, skip link first, semantic header/main/footer regions, one article and one aside in main, heading hierarchy, and no div where semantic elements are available."
+}

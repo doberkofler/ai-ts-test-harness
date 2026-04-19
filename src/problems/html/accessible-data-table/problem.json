@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "description": "Generate HTML for an accessible quarterly revenue table by region.\nMust include caption, thead/tbody/tfoot, table aria-label, and no inline styles. Use column headers Region/Q1/Q2/Q3/Q4 with scope=\"col\". Use row headers as <th scope=\"row\">North</th>, <th scope=\"row\">South</th>, <th scope=\"row\">East</th>. In <tfoot>, include <th scope=\"row\">Total</th> and quarterly totals 29,500; 35,500; 34,100; 43,100."
+}

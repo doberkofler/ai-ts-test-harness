@@ -7,7 +7,7 @@ const problemMetadataSchema = z
 	.object({
 		version: z.number().int().positive(),
 		description: z.string().min(1),
-		timeout_ms: z.number().int().positive(),
+		llm_timeout: z.number().int().positive().optional(),
 	})
 	.strict();
 
@@ -82,7 +82,7 @@ const parseProblemFromPath = (rootDir: string, metadataFilePath: string): Proble
 		name: slug,
 		category: categoryFromPath,
 		description: metadata.description,
-		timeout_ms: metadata.timeout_ms,
+		...(typeof metadata.llm_timeout === 'number' ? {llm_timeout: metadata.llm_timeout} : {}),
 		files: loadWorkspaceFiles(join(problemDir, 'files')),
 		tests: loadWorkspaceFiles(join(problemDir, 'tests')),
 		...(typeof solution === 'undefined' ? {} : {solution}),

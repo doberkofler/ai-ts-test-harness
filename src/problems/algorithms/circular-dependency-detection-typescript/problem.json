@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Given a root directory, recursively scan .ts files, build a local-import graph, detect all distinct circular import chains, print each cycle path, and return a non-zero exit code when cycles exist.",
-  "timeout_ms": 5000
+  "description": "Given a root directory, recursively scan .ts files, build a local-import graph, detect all distinct circular import chains, print each cycle path, and return a non-zero exit code when cycles exist."
 }

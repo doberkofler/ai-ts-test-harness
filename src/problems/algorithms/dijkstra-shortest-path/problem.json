@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Compute the shortest path distance in a weighted directed graph with non-negative edge weights.",
-  "timeout_ms": 5000
+  "description": "Compute the shortest path distance in a weighted directed graph with non-negative edge weights."
 }

@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return true if the string is a valid calendar date in YYYY-MM-DD format, false otherwise.\nMust reject invalid months, out-of-range days, and incorrect leap-year dates.",
-  "timeout_ms": 5000
+  "description": "Return true if the string is a valid calendar date in YYYY-MM-DD format, false otherwise.\nMust reject invalid months, out-of-range days, and incorrect leap-year dates."
 }

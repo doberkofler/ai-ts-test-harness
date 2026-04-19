@@ -7,7 +7,6 @@ const problem: Problem = {
 	name: 'sum',
 	category: 'arithmetic',
 	description: 'Add two integers',
-	timeout_ms: 5000,
 	files: [],
 	tests: [],
 };
@@ -16,7 +15,6 @@ const directRefactorProblem: Problem = {
 	name: 'renameVariables',
 	category: 'refactor',
 	description: 'Rename weak local identifiers in provided code while preserving behavior.',
-	timeout_ms: 5000,
 	files: [{path: 'src/rename.ts', content: 'function rename(a: number): number { const tmp = a + 1; return tmp; }'}],
 	tests: [],
 };
@@ -186,6 +184,32 @@ describe('generate', () => {
 		expect(createCompletion).toHaveBeenCalledWith(
 			expect.objectContaining({model: 'test-model'}),
 			expect.objectContaining({timeout: 1_234_000, signal: expect.any(AbortSignal)}),
+		);
+	});
+
+	test('prefers problem llm_timeout over global llm timeout', async () => {
+		const createCompletion = vi.fn<() => Promise<{choices: {message: {content: string}}[]}>>(async () => {
+			const response = await Promise.resolve({
+				choices: [{message: {content: 'return a + b;'}}],
+			});
+			return response;
+		});
+
+		await generate(
+			{
+				...problem,
+				llm_timeout: 3,
+			},
+			{
+				model: 'test-model',
+				llmTimeoutSecs: 1234,
+				createCompletion,
+			},
+		);
+
+		expect(createCompletion).toHaveBeenCalledWith(
+			expect.objectContaining({model: 'test-model'}),
+			expect.objectContaining({timeout: 3000, signal: expect.any(AbortSignal)}),
 		);
 	});
 

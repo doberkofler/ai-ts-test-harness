@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Process a numeric stream and return the top-k largest values after each insertion.\nEach step output must be sorted in descending order.",
-  "timeout_ms": 5000
+  "description": "Process a numeric stream and return the top-k largest values after each insertion.\nEach step output must be sorted in descending order."
 }

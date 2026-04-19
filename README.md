@@ -30,6 +30,7 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 - `--debug`: Print the full LLM request and raw response for each problem.
 - `--no-store-thinking`: Do not store model reasoning/thinking text in saved JSON results.
 - `--llm-timeout <seconds>`: Timeout for each LLM response in seconds. Default: `120` (2 minutes).
+- `--vitest-timeout <seconds>`: Per-test Vitest timeout in seconds. Default: `60`.
 - `--output <file>`: JSON file path for saving run results. Default: `results.json`.
 - `--html-output <file>`: Optional HTML report path. If omitted, the CLI writes one next to `--output` using the same filename and `.html` extension.
 - `--test <name>`: Run only one specific problem by exact name (for example, `--test=boolean-expression-evaluator`).
@@ -41,7 +42,7 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 - `run`: Queries the configured model and runs generated answers against tests.
 - `report`: Generates reports from an existing JSON results file.
 
-When the harness starts, it prints the effective CLI parameters (`model`, `debug`, `llmTimeoutSecs`, `ollamaUrl`) so you can verify runtime settings immediately.
+When the harness starts, it prints the effective CLI parameters (`model`, `debug`, `llmTimeoutSecs`, `vitestTimeoutSecs`, `ollamaUrl`) so you can verify runtime settings immediately.
 
 After each run, the CLI saves both JSON and HTML reports, and prints a clickable `file://...` link for the HTML report so you can open it directly from your terminal.
 
@@ -96,7 +97,7 @@ src/problems/
 
 ### Required Files
 
-- `problem.json`: metadata (`version`, `description`, `timeout_ms`)
+- `problem.json`: metadata (`version`, `description`, optional `llm_timeout`)
 - `files/`: starter files used for generation/evaluation
 - `tests/`: one or more Vitest files executed in an isolated temp workspace
 

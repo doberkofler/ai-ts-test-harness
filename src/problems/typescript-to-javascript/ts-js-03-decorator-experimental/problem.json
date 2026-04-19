@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Convert a TypeScript method decorator example to ES2022 JavaScript without decorator syntax while preserving logging behavior.",
-  "timeout_ms": 5000
+  "description": "Convert a TypeScript method decorator example to ES2022 JavaScript without decorator syntax while preserving logging behavior."
 }

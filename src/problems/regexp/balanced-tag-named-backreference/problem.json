@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return a RegExp that enforces matching opening and closing tag names.\nUse a named backreference for the closing tag.",
-  "timeout_ms": 5000
+  "description": "Return a RegExp that enforces matching opening and closing tag names.\nUse a named backreference for the closing tag."
 }

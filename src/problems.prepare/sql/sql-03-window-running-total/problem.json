@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return each sales row together with a running total of amount.\nThe running order must be sale_date ascending and id ascending for ties.\nExpected columns: id, sale_date, amount, running_total.",
-  "timeout_ms": 5000
+  "description": "Return each sales row together with a running total of amount.\nThe running order must be sale_date ascending and id ascending for ties.\nExpected columns: id, sale_date, amount, running_total."
 }

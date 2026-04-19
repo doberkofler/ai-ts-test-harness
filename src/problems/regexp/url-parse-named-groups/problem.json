@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return a RegExp with named capture groups for URL parsing.\nCapture protocol, host, optional port, optional path, optional query, and optional fragment.",
-  "timeout_ms": 5000
+  "description": "Return a RegExp with named capture groups for URL parsing.\nCapture protocol, host, optional port, optional path, optional query, and optional fragment."
 }

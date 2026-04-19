@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Detect whether a directed graph contains a cycle.",
-  "timeout_ms": 5000
+  "description": "Detect whether a directed graph contains a cycle."
 }

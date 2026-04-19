@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Fix reduce accumulator typing by returning a strongly typed record.",
-  "timeout_ms": 5000
+  "description": "Fix reduce accumulator typing by returning a strongly typed record."
 }

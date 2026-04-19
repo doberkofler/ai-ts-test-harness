@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return a RegExp that validates IBAN format for a Europe-focused subset.\nRequire uppercase country code, two check digits, and up to 30 alphanumeric characters.",
-  "timeout_ms": 5000
+  "description": "Return a RegExp that validates IBAN format for a Europe-focused subset.\nRequire uppercase country code, two check digits, and up to 30 alphanumeric characters."
 }

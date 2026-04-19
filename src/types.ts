@@ -28,7 +28,7 @@ export type Problem = {
 	name: string;
 	category: string;
 	description: string | string[];
-	timeout_ms?: number;
+	llm_timeout?: number;
 	files?: WorkspaceFile[];
 	tests: WorkspaceFile[];
 	solution?: ChangedFilesArtifact | ImplementProblemSolutionCallback | DirectRefactorProblemSolutionCallback;
@@ -55,6 +55,7 @@ export type RuntimeConfig = {
 	debug: boolean;
 	storeThinking?: boolean;
 	llmTimeoutSecs: number;
+	vitestTimeoutSecs: number;
 	noCooldown?: boolean;
 	ollamaUrl: string;
 	apiKey?: string;
@@ -76,6 +77,7 @@ export type ResultsFile = {
 	model: string;
 	ollama_url?: string;
 	llm_timeout_secs?: number;
+	vitest_timeout_secs?: number;
 	selected_categories?: string[];
 	system_info?: SystemInfo;
 	results: Result[];

@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Fix object literal excess property error for field 'extra'.\nReturn a Config with only host and port.",
-  "timeout_ms": 5000
+  "description": "Fix object literal excess property error for field 'extra'.\nReturn a Config with only host and port."
 }

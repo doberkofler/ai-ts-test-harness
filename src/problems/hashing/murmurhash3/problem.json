@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Implement MurmurHash3 (32-bit) for a string input with a numeric seed.\nProcess input as UTF-16 code units (use charCodeAt; no TextEncoder or Buffer).\nReturn an unsigned 32-bit integer.",
-  "timeout_ms": 5000
+  "description": "Implement MurmurHash3 (32-bit) for a string input with a numeric seed.\nProcess input as UTF-16 code units (use charCodeAt; no TextEncoder or Buffer).\nReturn an unsigned 32-bit integer."
 }

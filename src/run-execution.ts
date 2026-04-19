@@ -20,6 +20,7 @@ export type ExecuteRunOptions = {
 	debug: boolean;
 	storeThinking?: boolean;
 	llmTimeoutSecs: number;
+	vitestTimeoutSecs: number;
 	noCooldown: boolean;
 	ollamaUrl: string;
 	apiKey?: string;
@@ -98,6 +99,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 				debug: options.debug,
 				storeThinking: options.storeThinking ?? true,
 				llmTimeoutSecs: options.llmTimeoutSecs,
+				vitestTimeoutSecs: options.vitestTimeoutSecs,
 				onPhaseChange: (phase) => {
 					currentPhase = phase;
 					if (showLiveTimer) {

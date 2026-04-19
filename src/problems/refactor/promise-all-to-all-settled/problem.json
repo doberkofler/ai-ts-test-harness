@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Refactor Promise.all usage so one rejected task does not fail the whole operation.",
-  "timeout_ms": 5000
+  "description": "Refactor Promise.all usage so one rejected task does not fail the whole operation."
 }

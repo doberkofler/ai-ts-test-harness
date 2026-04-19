@@ -1,5 +1,0 @@
-{
-  "version": 1,
-  "description": "Generate an accessible modal using the native dialog element and minimal JavaScript wiring.\nRequire aria-labelledby/aria-describedby, close button label, focus trap with Tab wrapping, Escape close, backdrop click close, and HTMLDialogElement API usage.",
-  "timeout_ms": 7000
-}

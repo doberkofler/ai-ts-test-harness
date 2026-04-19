@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Create an AFTER UPDATE row trigger on products that writes one product_audit row for each changed column with changed_by=USER and changed_at=SYSDATE.",
-  "timeout_ms": 5000
+  "description": "Create an AFTER UPDATE row trigger on products that writes one product_audit row for each changed column with changed_by=USER and changed_at=SYSDATE."
 }

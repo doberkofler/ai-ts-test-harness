@@ -1,5 +1,0 @@
-{
-  "version": 1,
-  "description": "Generate a 3-step checkout form with fieldsets and legends for shipping, payment, and review.\nRequire labels for all inputs, required+aria-required attributes, hidden non-active steps, and an ol progress indicator with aria-current on the active step.",
-  "timeout_ms": 5000
-}

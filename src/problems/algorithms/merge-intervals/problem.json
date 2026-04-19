@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Merge overlapping [start, end] intervals and return a new array sorted by start.",
-  "timeout_ms": 5000
+  "description": "Merge overlapping [start, end] intervals and return a new array sorted by start."
 }

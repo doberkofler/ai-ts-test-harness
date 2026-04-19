@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Convert TypeScript module augmentation middleware code into plain ES2022 JavaScript with identical authorization behavior.",
-  "timeout_ms": 5000
+  "description": "Convert TypeScript module augmentation middleware code into plain ES2022 JavaScript with identical authorization behavior."
 }

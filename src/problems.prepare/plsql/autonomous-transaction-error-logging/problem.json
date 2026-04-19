@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Write procedure log_error(p_proc_name VARCHAR2, p_error_code NUMBER, p_error_msg VARCHAR2) using PRAGMA AUTONOMOUS_TRANSACTION that inserts into error_log and commits independently.",
-  "timeout_ms": 5000
+  "description": "Write procedure log_error(p_proc_name VARCHAR2, p_error_code NUMBER, p_error_msg VARCHAR2) using PRAGMA AUTONOMOUS_TRANSACTION that inserts into error_log and commits independently."
 }

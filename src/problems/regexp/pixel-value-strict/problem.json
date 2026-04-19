@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return an anchored RegExp for pixel values in the form digits followed by px.\nReject missing numeric prefixes and extra suffixes.",
-  "timeout_ms": 5000
+  "description": "Return an anchored RegExp for pixel values in the form digits followed by px.\nReject missing numeric prefixes and extra suffixes."
 }

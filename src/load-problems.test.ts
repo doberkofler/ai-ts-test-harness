@@ -22,11 +22,11 @@ describe('loadProblems', () => {
 			mkdirSync(join(fizzbuzzDir, 'files', 'src'), {recursive: true});
 			mkdirSync(join(fizzbuzzDir, 'tests'), {recursive: true});
 
-			writeJson(join(addDir, 'problem.json'), {version: 1, description: 'add two values', timeout_ms: 5000});
+			writeJson(join(addDir, 'problem.json'), {version: 1, description: 'add two values'});
 			writeFileSync(join(addDir, 'files', 'src', 'sum.ts'), 'export const sum = (a: number, b: number): number => a + b;\n', 'utf8');
 			writeFileSync(join(addDir, 'tests', 'sum.test.ts'), "import {expect, test} from 'vitest';\n", 'utf8');
 
-			writeJson(join(fizzbuzzDir, 'problem.json'), {version: 1, description: 'fizzbuzz', timeout_ms: 7000});
+			writeJson(join(fizzbuzzDir, 'problem.json'), {version: 1, description: 'fizzbuzz', llm_timeout: 7});
 			writeFileSync(join(fizzbuzzDir, 'files', 'src', 'fizzbuzz.ts'), 'export const fizzbuzz = (): string => "ok";\n', 'utf8');
 			writeFileSync(join(fizzbuzzDir, 'tests', 'fizzbuzz.test.ts'), "import {expect, test} from 'vitest';\n", 'utf8');
 
@@ -44,6 +44,7 @@ describe('loadProblems', () => {
 			}
 			expect(loaded[0].files[0]).toMatchObject({path: 'src/sum.ts'});
 			expect(loaded[0].tests[0]).toMatchObject({path: 'sum.test.ts'});
+			expect(loaded[1]).toMatchObject({llm_timeout: 7});
 		} finally {
 			rmSync(root, {recursive: true, force: true});
 		}
@@ -56,7 +57,7 @@ describe('loadProblems', () => {
 			const problemDir = join(root, 'no-category-problem');
 			mkdirSync(join(problemDir, 'files'), {recursive: true});
 			mkdirSync(join(problemDir, 'tests'), {recursive: true});
-			writeJson(join(problemDir, 'problem.json'), {version: 1, description: 'bad', timeout_ms: 5000});
+			writeJson(join(problemDir, 'problem.json'), {version: 1, description: 'bad'});
 
 			expect(() => loadProblems(root)).toThrow('nested under a category');
 		} finally {
@@ -72,7 +73,7 @@ describe('loadProblems', () => {
 			mkdirSync(join(problemDir, 'files'), {recursive: true});
 			mkdirSync(join(problemDir, 'tests'), {recursive: true});
 			mkdirSync(join(problemDir, 'solution'), {recursive: true});
-			writeJson(join(problemDir, 'problem.json'), {version: 1, description: 'desc', timeout_ms: 5000});
+			writeJson(join(problemDir, 'problem.json'), {version: 1, description: 'desc'});
 			writeFileSync(join(problemDir, 'files', 'index.ts'), 'export const value = 1;\n', 'utf8');
 			writeFileSync(join(problemDir, 'tests', 'index.test.ts'), "import {expect, test} from 'vitest';\n", 'utf8');
 			writeFileSync(join(problemDir, 'solution', 'index.ts'), 'export const value = 2;\n', 'utf8');

@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return a sticky RegExp token matcher for simple expressions.\nMatch integers, operators, lowercase identifiers, and whitespace for skipping.",
-  "timeout_ms": 5000
+  "description": "Return a sticky RegExp token matcher for simple expressions.\nMatch integers, operators, lowercase identifiers, and whitespace for skipping."
 }

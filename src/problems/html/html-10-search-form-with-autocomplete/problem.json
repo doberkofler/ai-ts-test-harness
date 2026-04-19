@@ -1,5 +1,0 @@
-{
-  "version": 1,
-  "description": "Generate an accessible search form using the ARIA combobox pattern with autocomplete list behavior.\nRequire combobox wrapper role, input aria-autocomplete/aria-controls/aria-expanded/aria-activedescendant, listbox+option roles, and polite live region updates for result count.",
-  "timeout_ms": 7000
-}

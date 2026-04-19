@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Parse a string to a number.\nTrim whitespace before parsing.\nReturn null if the string is empty, blank, or contains any non-numeric characters.",
-  "timeout_ms": 5000
+  "description": "Parse a string to a number.\nTrim whitespace before parsing.\nReturn null if the string is empty, blank, or contains any non-numeric characters."
 }

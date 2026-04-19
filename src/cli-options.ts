@@ -1,11 +1,12 @@
 import {Command} from 'commander';
-import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_MODEL, DEFAULT_OLLAMA_URL} from './config.ts';
+import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_MODEL, DEFAULT_OLLAMA_URL, DEFAULT_VITEST_TIMEOUT_SECS} from './config.ts';
 
 export type CliOpts = {
 	model: string;
 	debug: boolean;
 	storeThinking?: boolean;
 	llmTimeoutSecs: string;
+	vitestTimeoutSecs: string;
 	noCooldown: boolean;
 	ollamaUrl: string;
 	apiKey?: string;
@@ -24,6 +25,7 @@ const isCliOpts = (data: unknown): data is CliOpts =>
 	'model' in data &&
 	'debug' in data &&
 	'llmTimeoutSecs' in data &&
+	'vitestTimeoutSecs' in data &&
 	'noCooldown' in data &&
 	'ollamaUrl' in data &&
 	'output' in data;
@@ -33,6 +35,7 @@ export const registerGlobalCliOptions = (program: Command): void => {
 	program.option('--debug', 'Print LLM request/response for each problem', false);
 	program.option('--no-store-thinking', 'Do not persist model thinking/reasoning in result files');
 	program.option('--llm-timeout <seconds>', 'LLM response timeout in seconds', String(DEFAULT_LLM_TIMEOUT_SECS));
+	program.option('--vitest-timeout <seconds>', 'Vitest per-test timeout in seconds', String(DEFAULT_VITEST_TIMEOUT_SECS));
 	program.option('--no-cooldown', 'Disable cooldown between problems');
 	program.option('--ollama-url <url>', 'Ollama-compatible API base URL', DEFAULT_OLLAMA_URL);
 	program.option('--api-key <key>', 'API key for cloud model authorization');
@@ -49,6 +52,7 @@ export const normalizeCliOpts = (data: unknown): CliOpts | undefined => {
 	}
 
 	const llmTimeoutValue: unknown = Reflect.get(data, 'llmTimeout');
+	const vitestTimeoutValue: unknown = Reflect.get(data, 'vitestTimeout');
 	const cooldownValue: unknown = Reflect.get(data, 'cooldown');
 	const storeThinkingValue: unknown = Reflect.get(data, 'storeThinking');
 	const noCooldown = cooldownValue === false;
@@ -56,6 +60,7 @@ export const normalizeCliOpts = (data: unknown): CliOpts | undefined => {
 		...data,
 		storeThinking: typeof storeThinkingValue === 'boolean' ? storeThinkingValue : true,
 		llmTimeoutSecs: llmTimeoutValue,
+		vitestTimeoutSecs: vitestTimeoutValue,
 		noCooldown,
 	};
 

@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Given an integer array and target, return indices of two numbers that add up to target.\nReturn null when no such pair exists.",
-  "timeout_ms": 5000
+  "description": "Given an integer array and target, return indices of two numbers that add up to target.\nReturn null when no such pair exists."
 }

@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Fix unsafe property access on `unknown` input.\nReturn a trimmed name when payload has a valid string `name` field; otherwise throw.",
-  "timeout_ms": 5000
+  "description": "Fix unsafe property access on `unknown` input.\nReturn a trimmed name when payload has a valid string `name` field; otherwise throw."
 }

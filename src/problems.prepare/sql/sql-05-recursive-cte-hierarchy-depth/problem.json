@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Use a recursive CTE to return every category with depth (root = 0) and full path.\nExample path format: Electronics > Phones > Smartphones.\nExpected columns: id, name, depth, path.",
-  "timeout_ms": 5000
+  "description": "Use a recursive CTE to return every category with depth (root = 0) and full path.\nExample path format: Electronics > Phones > Smartphones.\nExpected columns: id, name, depth, path."
 }

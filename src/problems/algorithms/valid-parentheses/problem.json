@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return true if the input string has valid and correctly nested (), [], and {} pairs.",
-  "timeout_ms": 5000
+  "description": "Return true if the input string has valid and correctly nested (), [], and {} pairs."
 }

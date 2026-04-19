@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Convert a Zod-style generic schema inference implementation to ES2022 JavaScript while preserving parser composition behavior.",
-  "timeout_ms": 5000
+  "description": "Convert a Zod-style generic schema inference implementation to ES2022 JavaScript while preserving parser composition behavior."
 }

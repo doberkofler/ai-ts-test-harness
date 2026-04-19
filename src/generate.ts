@@ -263,7 +263,11 @@ const printDebugBlock = (header: string, body: string, metadata?: readonly strin
  * for direct-refactor problems this is transformed source code.
  */
 export const generate = async (problem: Problem, options: GenerateOptions): Promise<ChangedFilesArtifact> => {
-	const timeoutMs = typeof problem.timeout_ms === 'number' && Number.isFinite(problem.timeout_ms) ? problem.timeout_ms : 5000;
+	const llmTimeoutSecs = resolveLlmTimeoutSecs(
+		typeof problem.llm_timeout === 'number' && Number.isFinite(problem.llm_timeout)
+			? problem.llm_timeout
+			: (options.llmTimeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS),
+	);
 	const workspaceFiles = Array.isArray(problem.files) ? problem.files : [];
 	const description = Array.isArray(problem.description) ? problem.description.join(' ') : problem.description;
 	const setPhase = (phase: RunPhase): void => {
@@ -315,7 +319,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 					``,
 					`Problem: ${problem.category}/${problem.name}`,
 					`Description: ${description}`,
-					`Timeout (ms): ${timeoutMs}`,
+					`LLM timeout (s): ${llmTimeoutSecs}`,
 					``,
 					`Initial files:`,
 					renderWorkspace(targetFiles),
@@ -330,7 +334,6 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 	const completion = options.createCompletion ?? createCompletionForUrl(ollamaUrl, authKey);
 	const completionStream =
 		options.createCompletionStream ?? (options.createCompletion === undefined ? createCompletionStreamForUrl(ollamaUrl, authKey) : undefined);
-	const llmTimeoutSecs = resolveLlmTimeoutSecs(options.llmTimeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS);
 	const requestTimeoutMs = llmTimeoutSecs * 1000;
 	const deadlineMs = Date.now() + requestTimeoutMs;
 	const remainingTimeoutMs = (): number => {

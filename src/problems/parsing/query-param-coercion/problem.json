@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Parse URL query params into a typed object with page, limit, and includeArchived.\nDefault page=1, limit=20, includeArchived=false when values are missing or invalid.",
-  "timeout_ms": 5000
+  "description": "Parse URL query params into a typed object with page, limit, and includeArchived.\nDefault page=1, limit=20, includeArchived=false when values are missing or invalid."
 }

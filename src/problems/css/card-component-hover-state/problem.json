@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "description": "Generate CSS for a product card with image/body/footer sections, hover and focus-within lift effect, focus-visible link outline, and a shimmer skeleton loading state."
+}

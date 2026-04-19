@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "description": "Generate a responsive two-column layout with a sticky 260px sidebar, independent sidebar scrolling, and a mobile stacked fallback below 768px."
+}

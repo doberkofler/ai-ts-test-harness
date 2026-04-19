@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Parse a string to a number by manually inspecting each character.\nTrim whitespace before parsing.\nReturn null if the string is empty, blank, or contains any non-numeric characters.\nSupport an optional leading minus sign and a single decimal point.\nDo NOT use parseFloat, parseInt, Number(), +, or any built-in string-to-number conversion.",
-  "timeout_ms": 5000
+  "description": "Parse a string to a number by manually inspecting each character.\nTrim whitespace before parsing.\nReturn null if the string is empty, blank, or contains any non-numeric characters.\nSupport an optional leading minus sign and a single decimal point.\nDo NOT use parseFloat, parseInt, Number(), +, or any built-in string-to-number conversion."
 }

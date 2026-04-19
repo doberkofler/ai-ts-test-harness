@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return an array where each element is the product of all values except itself, without division.",
-  "timeout_ms": 5000
+  "description": "Return an array where each element is the product of all values except itself, without division."
 }

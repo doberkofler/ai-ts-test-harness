@@ -1,5 +1,4 @@
 {
   "version": 1,
-  "description": "Return the length of the longest common subsequence between two strings.",
-  "timeout_ms": 5000
+  "description": "Return the length of the longest common subsequence between two strings."
 }
