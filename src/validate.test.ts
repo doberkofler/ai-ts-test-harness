@@ -1,8 +1,8 @@
 import {describe, expect, test, vi} from 'vitest';
-import {type ChangedFilesArtifact, type Problem, type Result} from './types.ts';
+import {type ChangedFilesArtifact, type Problem, type ProblemExecutionResult} from './types.ts';
 import {validateCommand} from './validate.ts';
 
-type RunProblemFn = (problem: Problem, artifact: ChangedFilesArtifact) => Promise<Result>;
+type RunProblemFn = (problem: Problem, artifact: ChangedFilesArtifact) => Promise<ProblemExecutionResult>;
 
 const solutionArtifact: ChangedFilesArtifact = {
 	kind: 'changed-files-v1',
@@ -33,10 +33,10 @@ describe('validateCommand', () => {
 			await Promise.resolve();
 			const serialized = JSON.stringify(artifact);
 			if (serialized.includes('__invalid_solution__')) {
-				return {problem: 'x', category: 'x', artifact, passed: false, duration_ms: 1};
+				return {problem: 'x', category: 'x', artifact, passed: false};
 			}
 
-			return {problem: 'x', category: 'x', artifact, passed: true, duration_ms: 1};
+			return {problem: 'x', category: 'x', artifact, passed: true};
 		});
 
 		await validateCommand({
@@ -64,7 +64,6 @@ describe('validateCommand', () => {
 				artifact,
 				passed: false,
 				error: 'bad',
-				duration_ms: 1,
 			};
 		});
 
@@ -87,7 +86,6 @@ describe('validateCommand', () => {
 				category: 'arithmetic',
 				artifact,
 				passed: true,
-				duration_ms: 1,
 			};
 		});
 

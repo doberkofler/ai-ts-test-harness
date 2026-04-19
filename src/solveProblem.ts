@@ -1,5 +1,6 @@
 import {generate, type GenerateOptions} from './generate.ts';
 import {type RunPhase} from './run-phase.ts';
+import {calculateAverageTokensPerSecond, estimateTokensFromChars, type RunTransferStats} from './run-transfer.ts';
 import {runProblem} from './runner.ts';
 import {type Problem, type Result} from './types.ts';
 
@@ -10,14 +11,28 @@ export type SolveProblemOptions = GenerateOptions & {
 };
 
 export const solveProblem = async (problem: Problem, options: SolveProblemOptions): Promise<Result> => {
-	const start = Date.now();
+	const llmStartedAtMs = Date.now();
 	let thinking = '';
+	let llmFinishedAtMs: number | undefined;
+	let transferStats: RunTransferStats = {promptChars: 0, responseChars: 0};
 	const shouldStoreThinking = options.storeThinking ?? true;
 	const onThinkingDelta: ((thinkingDelta: string) => void) | undefined = shouldStoreThinking
 		? (thinkingDelta: string): void => {
 				thinking += thinkingDelta;
 			}
 		: undefined;
+	const buildLlmMetrics = (): Result['llm_metrics'] => {
+		const llmDurationMs = Math.max(0, (llmFinishedAtMs ?? Date.now()) - llmStartedAtMs);
+		const tokensSent = estimateTokensFromChars(transferStats.promptChars);
+		const tokensReceived = estimateTokensFromChars(transferStats.responseChars);
+
+		return {
+			llm_duration_ms: llmDurationMs,
+			tokens_sent: tokensSent,
+			tokens_received: tokensReceived,
+			average_tokens_per_second: calculateAverageTokensPerSecond(tokensReceived, llmDurationMs),
+		};
+	};
 
 	try {
 		if (typeof options.onPhaseChange === 'function') {
@@ -27,7 +42,14 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 		const code = await generate(problem, {
 			...options,
 			...(typeof onThinkingDelta === 'function' ? {onThinkingDelta} : {}),
+			onTransferProgress: (stats) => {
+				transferStats = stats;
+				if (typeof options.onTransferProgress === 'function') {
+					options.onTransferProgress(stats);
+				}
+			},
 		});
+		llmFinishedAtMs = Date.now();
 
 		if (typeof options.onPhaseChange === 'function') {
 			options.onPhaseChange('testing');
@@ -41,7 +63,7 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 		return {
 			...result,
 			...(shouldStoreThinking && thinking.length > 0 ? {thinking} : {}),
-			duration_ms: Date.now() - start,
+			llm_metrics: buildLlmMetrics(),
 		};
 	} catch (error) {
 		const errorText = error instanceof Error ? error.message : String(error);
@@ -52,7 +74,7 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 			...(shouldStoreThinking && thinking.length > 0 ? {thinking} : {}),
 			passed: false,
 			error: errorText,
-			duration_ms: Date.now() - start,
+			llm_metrics: buildLlmMetrics(),
 		};
 	}
 };

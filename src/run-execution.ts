@@ -4,7 +4,7 @@ import {
 	formatCooldownLiveLine,
 	formatProblemDisplayName,
 	formatCooldownStaticLine,
-	formatEstimatedTransferSummary,
+	formatLlmMetricsSummary,
 	formatProblemStartLine,
 	formatRunFooterLines,
 	formatRunningLiveLine,
@@ -77,7 +77,9 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 	const preferUnicode = stream.isTTY;
 	const showLiveTimer = supportsLiveLine(stream) && !options.debug;
 	const completedProblemResults = new Map(initialResults.map((result) => [result.problem, result]));
-	const observedProblemDurationsMs = initialResults.map((result) => result.duration_ms).filter((durationMs) => Number.isFinite(durationMs) && durationMs >= 0);
+	const observedProblemDurationsMs = initialResults
+		.map((result) => result.llm_metrics.llm_duration_ms)
+		.filter((durationMs) => Number.isFinite(durationMs) && durationMs >= 0);
 
 	for (const [index, problem] of problems.entries()) {
 		const problemDisplayName = formatProblemDisplayName(problem.category, problem.name);
@@ -89,11 +91,9 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 					total: problems.length,
 					name: problemDisplayName,
 					passed: completedResult.passed,
-					durationMs: completedResult.duration_ms,
+					durationMs: completedResult.llm_metrics.llm_duration_ms,
 					preferUnicode,
-					detail: completedResult.passed
-						? formatEstimatedTransferSummary({promptChars: 0, responseChars: 0}, completedResult.duration_ms)
-						: `[${classifyFailureKind(completedResult.error)}]`,
+					detail: completedResult.passed ? formatLlmMetricsSummary(completedResult.llm_metrics) : `[${classifyFailureKind(completedResult.error)}]`,
 				}),
 			);
 			continue;
@@ -106,7 +106,6 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 		const startedAt = now();
 		let currentPhase: RunPhase = 'thinking';
 		let currentTransferStats: RunTransferStats = {promptChars: 0, responseChars: 0};
-		let modelFinishedAt: number | undefined;
 		const computeEtaMs = (): number | undefined => {
 			if (observedProblemDurationsMs.length === 0) {
 				return undefined;
@@ -147,9 +146,6 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 				vitestTimeoutSecs: options.vitestTimeoutSecs,
 				onPhaseChange: (phase) => {
 					currentPhase = phase;
-					if (phase === 'testing') {
-						modelFinishedAt = now();
-					}
 					if (showLiveTimer) {
 						replaceLiveLine(stream, formatRunningLiveLine(problemDisplayName, now() - startedAt, currentPhase, currentTransferStats, computeEtaMs()));
 					}
@@ -165,29 +161,28 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			}
 		}
 
-		const modelDurationMs = Math.max(0, (modelFinishedAt ?? now()) - startedAt);
-		const detail = result.passed ? formatEstimatedTransferSummary(currentTransferStats, modelDurationMs) : `[${classifyFailureKind(result.error)}]`;
+		const detail = result.passed ? formatLlmMetricsSummary(result.llm_metrics) : `[${classifyFailureKind(result.error)}]`;
 		log(
 			formatCompletedProblemLine({
 				index,
 				total: problems.length,
 				name: problemDisplayName,
 				passed: result.passed,
-				durationMs: result.duration_ms,
+				durationMs: result.llm_metrics.llm_duration_ms,
 				preferUnicode,
 				detail,
 			}),
 		);
 		results.push(result);
 		completedProblemResults.set(problem.name, result);
-		observedProblemDurationsMs.push(result.duration_ms);
+		observedProblemDurationsMs.push(result.llm_metrics.llm_duration_ms);
 		if (typeof onProblemComplete === 'function') {
 			// oxlint-disable-next-line no-await-in-loop
 			await onProblemComplete([...results]);
 		}
 
 		const hasRemainingUnfinishedProblem = problems.slice(index + 1).some((remainingProblem) => !completedProblemResults.has(remainingProblem.name));
-		const cooldownDurationMs = estimateCooldownDurationMs(result.duration_ms, options.noCooldown);
+		const cooldownDurationMs = estimateCooldownDurationMs(result.llm_metrics.llm_duration_ms, options.noCooldown);
 		if (cooldownDurationMs > 0 && hasRemainingUnfinishedProblem) {
 			if (showLiveTimer) {
 				const cooldownStartedAt = now();

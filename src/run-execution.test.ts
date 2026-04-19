@@ -1,6 +1,13 @@
 import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {type Problem, type Result} from './types.ts';
 
+const llmMetrics = (llmDurationMs: number, tokensSent = 0, tokensReceived = 0): Result['llm_metrics'] => ({
+	llm_duration_ms: llmDurationMs,
+	tokens_sent: tokensSent,
+	tokens_received: tokensReceived,
+	average_tokens_per_second: llmDurationMs > 0 ? Math.round((tokensReceived * 1000) / llmDurationMs) : 0,
+});
+
 const solveProblemMock = vi.fn<(problem: Problem, options: Record<string, unknown>) => Promise<Result>>();
 const supportsLiveLineMock = vi.fn<(stream: NodeJS.WriteStream) => boolean>(() => false);
 const writeLiveLineMock = vi.fn<(stream: NodeJS.WriteStream, text: string) => void>();
@@ -42,8 +49,8 @@ describe('executeProblems', () => {
 		const log = vi.fn<(message: string) => void>();
 		const onProblemComplete = vi.fn<(results: Result[]) => void>();
 		solveProblemMock
-			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, duration_ms: 10})
-			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: false, error: 'boom', duration_ms: 12});
+			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, llm_metrics: llmMetrics(10)})
+			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: false, error: 'boom', llm_metrics: llmMetrics(12)});
 
 		const results = await executeProblems(
 			[makeProblem('one'), makeProblem('two')],
@@ -112,7 +119,7 @@ describe('executeProblems', () => {
 				category: 'logic',
 				program: 'code-1',
 				passed: true,
-				duration_ms: 10,
+				llm_metrics: llmMetrics(10, 300, 10),
 			};
 		});
 
@@ -145,9 +152,9 @@ describe('executeProblems', () => {
 
 	test('skips already completed problems from resumed results', async () => {
 		const log = vi.fn<(message: string) => void>();
-		solveProblemMock.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, duration_ms: 12});
+		solveProblemMock.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, llm_metrics: llmMetrics(12)});
 
-		const resumedResult: Result = {problem: 'one', category: 'logic', program: 'code-1', passed: true, duration_ms: 10};
+		const resumedResult: Result = {problem: 'one', category: 'logic', program: 'code-1', passed: true, llm_metrics: llmMetrics(10)};
 		const results = await executeProblems(
 			[makeProblem('one'), makeProblem('two')],
 			{
@@ -175,7 +182,7 @@ describe('executeProblems', () => {
 			category: 'logic',
 			passed: false,
 			error: 'Request timed out.',
-			duration_ms: 42,
+			llm_metrics: llmMetrics(42),
 		});
 
 		await executeProblems(
@@ -201,7 +208,7 @@ describe('executeProblems', () => {
 			category: 'logic',
 			program: 'code-2',
 			passed: true,
-			duration_ms: 12,
+			llm_metrics: llmMetrics(12),
 		});
 
 		await executeProblems(
@@ -216,7 +223,7 @@ describe('executeProblems', () => {
 			},
 			{
 				stream: {isTTY: true} as NodeJS.WriteStream,
-				initialResults: [{problem: 'one', category: 'logic', program: 'code-1', passed: true, duration_ms: 10_000}],
+				initialResults: [{problem: 'one', category: 'logic', program: 'code-1', passed: true, llm_metrics: llmMetrics(10_000)}],
 				setIntervalFn: () => 1 as unknown as ReturnType<typeof setInterval>,
 				clearIntervalFn: () => {
 					// no-op
@@ -232,8 +239,8 @@ describe('executeProblems', () => {
 		const log = vi.fn<(message: string) => void>();
 		const sleepMs = vi.fn<(durationMs: number) => Promise<void>>().mockResolvedValue();
 		solveProblemMock
-			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, duration_ms: 10_000})
-			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, duration_ms: 12});
+			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, llm_metrics: llmMetrics(10_000)})
+			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, llm_metrics: llmMetrics(12)});
 
 		await executeProblems(
 			[makeProblem('one'), makeProblem('two')],
@@ -258,8 +265,8 @@ describe('executeProblems', () => {
 	test('caps dynamic cooldown at one minute', async () => {
 		const sleepMs = vi.fn<(durationMs: number) => Promise<void>>().mockResolvedValue();
 		solveProblemMock
-			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, duration_ms: 200_000})
-			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, duration_ms: 10});
+			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, llm_metrics: llmMetrics(200_000)})
+			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, llm_metrics: llmMetrics(10)});
 
 		await executeProblems(
 			[makeProblem('one'), makeProblem('two')],

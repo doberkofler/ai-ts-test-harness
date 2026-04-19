@@ -3,6 +3,13 @@ import {buildExecuteRunOptions, buildRuntimeConfig, formatResultsFile, parseCate
 import {formatResultsHtmlFile, parseResultsFile} from './report.ts';
 import {type Problem, type Result} from './types.ts';
 
+const llmMetrics = (llmDurationMs: number): Result['llm_metrics'] => ({
+	llm_duration_ms: llmDurationMs,
+	tokens_sent: 0,
+	tokens_received: 0,
+	average_tokens_per_second: 0,
+});
+
 const problems: Problem[] = [
 	{
 		name: 'fizzbuzz',
@@ -23,8 +30,8 @@ const problems: Problem[] = [
 describe('formatResultsFile', () => {
 	test('returns lean payload fields', () => {
 		const results: Result[] = [
-			{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, duration_ms: 10},
-			{problem: 'max', category: 'arithmetic', program: 'return Math.max(a, b);', passed: false, error: 'boom', duration_ms: 12},
+			{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, llm_metrics: llmMetrics(10)},
+			{problem: 'max', category: 'arithmetic', program: 'return Math.max(a, b);', passed: false, error: 'boom', llm_metrics: llmMetrics(12)},
 		];
 
 		const output = formatResultsFile(results, {
@@ -76,7 +83,7 @@ describe('formatResultsFile', () => {
 
 	test('omits thinking from persisted results when disabled', () => {
 		const output = formatResultsFile(
-			[{problem: 'sum', category: 'arithmetic', program: 'return a + b;', thinking: 'chain of thought', passed: true, duration_ms: 10}],
+			[{problem: 'sum', category: 'arithmetic', program: 'return a + b;', thinking: 'chain of thought', passed: true, llm_metrics: llmMetrics(10)}],
 			{
 				model: 'test-model',
 				ollamaUrl: 'http://localhost:11434/v1',
@@ -87,7 +94,7 @@ describe('formatResultsFile', () => {
 			},
 		);
 
-		expect(output.results).toEqual([{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, duration_ms: 10}]);
+		expect(output.results).toEqual([{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, llm_metrics: llmMetrics(10)}]);
 	});
 });
 
@@ -158,8 +165,8 @@ describe('run context builders', () => {
 describe('formatResultsHtmlFile', () => {
 	test('renders an interactive HTML report with summary and rows', () => {
 		const results: Result[] = [
-			{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, duration_ms: 10},
-			{problem: 'max', category: 'arithmetic', program: 'return Math.max(a, b);', passed: false, error: 'boom', duration_ms: 12},
+			{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, llm_metrics: llmMetrics(10)},
+			{problem: 'max', category: 'arithmetic', program: 'return Math.max(a, b);', passed: false, error: 'boom', llm_metrics: llmMetrics(12)},
 		];
 
 		const html = formatResultsHtmlFile(results, {
@@ -190,7 +197,7 @@ describe('formatResultsHtmlFile', () => {
 
 describe('parseResultsFile', () => {
 	test('parses a valid results payload', () => {
-		const payload = formatResultsFile([{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, duration_ms: 10}], {
+		const payload = formatResultsFile([{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, llm_metrics: llmMetrics(10)}], {
 			model: 'test-model',
 			ollamaUrl: 'http://localhost:11434/v1',
 			llmTimeoutSecs: 5,

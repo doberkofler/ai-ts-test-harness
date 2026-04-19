@@ -7,6 +7,13 @@ import {formatResultsFile} from './run.ts';
 import {deriveHtmlOutputPath, printSummary, reportCommand, writeResultsHtmlFile} from './report.ts';
 import {type Result, type RuntimeConfig} from './types.ts';
 
+const llmMetrics = (llmDurationMs: number): Result['llm_metrics'] => ({
+	llm_duration_ms: llmDurationMs,
+	tokens_sent: 0,
+	tokens_received: 0,
+	average_tokens_per_second: 0,
+});
+
 const runtimeConfig: RuntimeConfig = {
 	model: 'test-model',
 	debug: false,
@@ -17,8 +24,8 @@ const runtimeConfig: RuntimeConfig = {
 };
 
 const sampleResults: Result[] = [
-	{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, duration_ms: 10},
-	{problem: 'max', category: 'arithmetic', program: 'return Math.max(a, b);', passed: false, error: 'first line\nsecond line', duration_ms: 12},
+	{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, llm_metrics: llmMetrics(10)},
+	{problem: 'max', category: 'arithmetic', program: 'return Math.max(a, b);', passed: false, error: 'first line\nsecond line', llm_metrics: llmMetrics(12)},
 ];
 
 describe('report helpers', () => {

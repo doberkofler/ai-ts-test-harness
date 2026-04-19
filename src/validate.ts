@@ -128,12 +128,13 @@ export const validateCommand = async (options: ValidateCommandOptions): Promise<
 		let totalDurationMs = 0;
 		try {
 			checks += 1;
+			const providedSolutionStartedAtMs = now();
 			// oxlint-disable-next-line no-await-in-loop
 			const solutionResult = await (options.runProblemFn ?? runProblem)(problem, solution, {
 				debug: options.debug,
 				startVitest,
 			});
-			totalDurationMs += solutionResult.duration_ms;
+			totalDurationMs += Math.max(0, now() - providedSolutionStartedAtMs);
 			if (!solutionResult.passed) {
 				const issue = `provided solution failed tests (${solutionResult.error ?? 'unknown error'})`;
 				failures.push(formatFailure(problem.name, issue));
@@ -141,12 +142,13 @@ export const validateCommand = async (options: ValidateCommandOptions): Promise<
 			}
 
 			checks += 1;
+			const invalidSolutionStartedAtMs = now();
 			// oxlint-disable-next-line no-await-in-loop
 			const invalidResult = await (options.runProblemFn ?? runProblem)(problem, createInvalidSolution(problem), {
 				debug: options.debug,
 				startVitest,
 			});
-			totalDurationMs += invalidResult.duration_ms;
+			totalDurationMs += Math.max(0, now() - invalidSolutionStartedAtMs);
 			if (invalidResult.passed) {
 				const issue = 'tests accepted an intentionally invalid solution';
 				failures.push(formatFailure(problem.name, issue));

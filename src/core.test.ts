@@ -6,6 +6,13 @@ import {parseFunctionNameFromSignature} from './core/signature.ts';
 import {parseRunCommandOptions} from './run-options.ts';
 import {type Result} from './types.ts';
 
+const llmMetrics = (llmDurationMs: number): Result['llm_metrics'] => ({
+	llm_duration_ms: llmDurationMs,
+	tokens_sent: 0,
+	tokens_received: 0,
+	average_tokens_per_second: 0,
+});
+
 describe('parseIntOption', () => {
 	test('parses valid integers', () => {
 		expect(parseIntOption('120', {optionName: '--llm-timeout', minimum: 1})).toBe(120);
@@ -59,9 +66,9 @@ describe('parseFunctionNameFromSignature', () => {
 describe('summarizeResults', () => {
 	test('returns correct totals and pass rate', () => {
 		const results: Result[] = [
-			{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, duration_ms: 10},
-			{problem: 'max', category: 'arithmetic', program: 'return Math.max(a, b);', passed: false, duration_ms: 11},
-			{problem: 'min', category: 'arithmetic', program: 'return Math.min(a, b);', passed: true, duration_ms: 12},
+			{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, llm_metrics: llmMetrics(10)},
+			{problem: 'max', category: 'arithmetic', program: 'return Math.max(a, b);', passed: false, llm_metrics: llmMetrics(11)},
+			{problem: 'min', category: 'arithmetic', program: 'return Math.min(a, b);', passed: true, llm_metrics: llmMetrics(12)},
 		];
 
 		expect(summarizeResults(results)).toEqual({

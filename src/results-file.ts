@@ -19,7 +19,12 @@ export const resultSchema = z.object({
 	thinking: z.string().optional(),
 	passed: z.boolean(),
 	error: z.string().optional(),
-	duration_ms: z.number(),
+	llm_metrics: z.object({
+		llm_duration_ms: z.number(),
+		tokens_sent: z.number(),
+		tokens_received: z.number(),
+		average_tokens_per_second: z.number(),
+	}),
 });
 
 export const resultsFileSchema = z
@@ -59,7 +64,12 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 					...(typeof result.thinking === 'string' ? {thinking: result.thinking} : {}),
 					passed: result.passed,
 					error: result.error,
-					duration_ms: result.duration_ms,
+					llm_metrics: {
+						llm_duration_ms: result.llm_metrics.llm_duration_ms,
+						tokens_sent: result.llm_metrics.tokens_sent,
+						tokens_received: result.llm_metrics.tokens_received,
+						average_tokens_per_second: result.llm_metrics.average_tokens_per_second,
+					},
 				}
 			: {
 					problem: result.problem,
@@ -68,7 +78,12 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 					...(typeof result.artifact === 'undefined' ? {} : {artifact: result.artifact}),
 					...(typeof result.thinking === 'string' ? {thinking: result.thinking} : {}),
 					passed: result.passed,
-					duration_ms: result.duration_ms,
+					llm_metrics: {
+						llm_duration_ms: result.llm_metrics.llm_duration_ms,
+						tokens_sent: result.llm_metrics.tokens_sent,
+						tokens_received: result.llm_metrics.tokens_received,
+						average_tokens_per_second: result.llm_metrics.average_tokens_per_second,
+					},
 				},
 	);
 

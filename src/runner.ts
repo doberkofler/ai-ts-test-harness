@@ -3,7 +3,7 @@ import {tmpdir} from 'node:os';
 import {dirname, isAbsolute, join, resolve} from 'node:path';
 import {type CliOptions, startVitest} from 'vitest/node';
 import {DEFAULT_VITEST_TIMEOUT_SECS} from './config.ts';
-import {type ChangedFilesArtifact, type Problem, type Result, type WorkspaceFile} from './types.ts';
+import {type ChangedFilesArtifact, type Problem, type ProblemExecutionResult, type WorkspaceFile} from './types.ts';
 
 type VitestTaskLike = {
 	result?: {errors?: unknown[]};
@@ -160,7 +160,7 @@ const readArtifactFromWorkspace = (rootDir: string, changedFiles: readonly Works
 	})),
 });
 
-const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact, startedAtMs: number, runnerInstance: VitestRunLike): Result => {
+const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact, runnerInstance: VitestRunLike): ProblemExecutionResult => {
 	const executedFiles = runnerInstance.state.getFiles();
 	if (executedFiles.length === 0) {
 		return {
@@ -169,7 +169,6 @@ const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact,
 			artifact,
 			passed: false,
 			error: 'No tests were executed by Vitest',
-			duration_ms: Date.now() - startedAtMs,
 		};
 	}
 
@@ -181,7 +180,6 @@ const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact,
 			artifact,
 			passed: false,
 			error: getVitestFailureOutput(runnerInstance),
-			duration_ms: Date.now() - startedAtMs,
 		};
 	}
 
@@ -190,11 +188,10 @@ const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact,
 		category: problem.category,
 		artifact,
 		passed: true,
-		duration_ms: Date.now() - startedAtMs,
 	};
 };
 
-export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifact, options: RunProblemOptions = {}): Promise<Result> => {
+export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifact, options: RunProblemOptions = {}): Promise<ProblemExecutionResult> => {
 	const runVitest = options.startVitest ?? startVitest;
 	const problemFiles = Array.isArray(problem.files) ? problem.files : [];
 	const problemTests = Array.isArray(problem.tests) ? problem.tests : [];
@@ -202,7 +199,6 @@ export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifac
 		typeof options.vitestTimeoutMs === 'number' && Number.isFinite(options.vitestTimeoutMs) ? options.vitestTimeoutMs : DEFAULT_VITEST_TIMEOUT_SECS * 1000;
 	const tempWorkspace = mkdtempSync(join(tmpdir(), 'ai-ts-harness-'));
 	let runnerInstance: VitestRunLike | undefined;
-	const startedAtMs = Date.now();
 
 	try {
 		writeWorkspaceFiles(tempWorkspace, problemFiles);
@@ -229,7 +225,7 @@ export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifac
 
 		runnerInstance = options.debug === true ? await runVitestOnce() : await withMutedOutput(runVitestOnce);
 		const persistedArtifact = readArtifactFromWorkspace(tempWorkspace, artifact.files);
-		return buildResultFromRunner(problem, persistedArtifact, startedAtMs, runnerInstance);
+		return buildResultFromRunner(problem, persistedArtifact, runnerInstance);
 	} catch (error) {
 		const errorText = getErrorOutput(error);
 		return {
@@ -238,7 +234,6 @@ export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifac
 			artifact,
 			passed: false,
 			error: errorText,
-			duration_ms: Date.now() - startedAtMs,
 		};
 	} finally {
 		if (runnerInstance) {

@@ -1,9 +1,10 @@
 import {describe, expect, test, vi, beforeEach} from 'vitest';
 import {type GenerateOptions} from './generate.ts';
-import {type ChangedFilesArtifact, type Problem, type Result} from './types.ts';
+import {type ChangedFilesArtifact, type Problem, type ProblemExecutionResult} from './types.ts';
 
 const generateMock = vi.fn<(problem: Problem, options: GenerateOptions) => Promise<ChangedFilesArtifact>>();
-const runProblemMock = vi.fn<(problem: Problem, artifact: ChangedFilesArtifact, options?: {debug?: boolean; vitestTimeoutMs?: number}) => Promise<Result>>();
+const runProblemMock =
+	vi.fn<(problem: Problem, artifact: ChangedFilesArtifact, options?: {debug?: boolean; vitestTimeoutMs?: number}) => Promise<ProblemExecutionResult>>();
 
 const generatedArtifact: ChangedFilesArtifact = {
 	kind: 'changed-files-v1',
@@ -41,7 +42,6 @@ describe('solveProblem', () => {
 			category: 'arithmetic',
 			artifact: {kind: 'changed-files-v1', files: [{path: 'src/sum.ts', content: 'updated'}]},
 			passed: true,
-			duration_ms: 1,
 		});
 
 		const result = await solveProblem(problem, {model: 'test-model'});
@@ -50,7 +50,7 @@ describe('solveProblem', () => {
 		expect(runProblemMock).toHaveBeenCalledExactlyOnceWith(problem, generatedArtifact, {debug: false});
 		expect(result.passed).toBe(true);
 		expect(result.artifact).toEqual({kind: 'changed-files-v1', files: [{path: 'src/sum.ts', content: 'updated'}]});
-		expect(result.duration_ms).toBeGreaterThanOrEqual(0);
+		expect(result.llm_metrics.llm_duration_ms).toBeGreaterThanOrEqual(0);
 	});
 
 	test('stores model thinking in result by default', async () => {
@@ -68,7 +68,6 @@ describe('solveProblem', () => {
 			category: 'arithmetic',
 			artifact: {kind: 'changed-files-v1', files: []},
 			passed: true,
-			duration_ms: 1,
 		});
 
 		const result = await solveProblem(problem, {model: 'test-model'});
@@ -89,7 +88,6 @@ describe('solveProblem', () => {
 			category: 'arithmetic',
 			artifact: {kind: 'changed-files-v1', files: []},
 			passed: true,
-			duration_ms: 1,
 		});
 
 		const result = await solveProblem(problem, {model: 'test-model', storeThinking: false});
@@ -139,7 +137,6 @@ describe('solveProblem', () => {
 			category: 'arithmetic',
 			artifact: {kind: 'changed-files-v1', files: []},
 			passed: true,
-			duration_ms: 1,
 		});
 
 		await solveProblem(problem, {
@@ -150,5 +147,28 @@ describe('solveProblem', () => {
 		});
 
 		expect(phases).toEqual(['thinking', 'running', 'testing']);
+	});
+
+	test('records llm duration independently from test execution time', async () => {
+		generateMock.mockResolvedValue(generatedArtifact);
+		runProblemMock.mockImplementation(async () => {
+			await Promise.resolve();
+			return {
+				problem: 'sum',
+				category: 'arithmetic',
+				artifact: {kind: 'changed-files-v1', files: []},
+				passed: true,
+			};
+		});
+
+		const nowSpy = vi.spyOn(Date, 'now');
+		nowSpy.mockReturnValueOnce(1000).mockReturnValueOnce(1025);
+
+		try {
+			const result = await solveProblem(problem, {model: 'test-model'});
+			expect(result.llm_metrics.llm_duration_ms).toBe(25);
+		} finally {
+			nowSpy.mockRestore();
+		}
 	});
 });

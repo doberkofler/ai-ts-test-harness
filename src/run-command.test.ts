@@ -7,6 +7,13 @@ import {parseResultsFile} from './report.ts';
 import {type Problem, type Result} from './types.ts';
 import {formatResultsFile} from './results-file.ts';
 
+const llmMetrics = (llmDurationMs: number): Result['llm_metrics'] => ({
+	llm_duration_ms: llmDurationMs,
+	tokens_sent: 0,
+	tokens_received: 0,
+	average_tokens_per_second: 0,
+});
+
 const loadProblemsMock = vi.fn<() => Problem[]>();
 const executeProblemsMock = vi.fn<() => Promise<Result[]>>();
 const getSystemInfoMock = vi.fn<() => Promise<{hostname: string; os: string; cpu: string; ram_gb: number; gpu: string}>>();
@@ -62,7 +69,7 @@ describe('runCommand', () => {
 
 	test('loads, filters, executes, and writes output payload', async () => {
 		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic'), makeProblem('add', 'arithmetic')]);
-		executeProblemsMock.mockResolvedValue([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}]);
+		executeProblemsMock.mockResolvedValue([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, llm_metrics: llmMetrics(5)}]);
 
 		const output = join(tempDir, 'results', 'test-model.json');
 		const runResult = await runCommand({
@@ -95,7 +102,7 @@ describe('runCommand', () => {
 	test('does not persist thinking in output when storeThinking is disabled', async () => {
 		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic')]);
 		executeProblemsMock.mockResolvedValue([
-			{problem: 'fizzbuzz', category: 'logic', program: 'code', thinking: 'internal chain', passed: true, duration_ms: 5},
+			{problem: 'fizzbuzz', category: 'logic', program: 'code', thinking: 'internal chain', passed: true, llm_metrics: llmMetrics(5)},
 		]);
 
 		const output = join(tempDir, 'results', 'test-model.json');
@@ -115,7 +122,7 @@ describe('runCommand', () => {
 
 		expect(executeProblemsMock).toHaveBeenCalledWith(expect.any(Array), expect.objectContaining({storeThinking: false}), expect.any(Object));
 		const content = parseResultsFile(readFileSync(output, 'utf8'));
-		expect(content.results).toEqual([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}]);
+		expect(content.results).toEqual([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, llm_metrics: llmMetrics(5)}]);
 	});
 
 	test('throws on invalid numeric input before execution', async () => {
@@ -140,7 +147,7 @@ describe('runCommand', () => {
 
 	test('writes compressed JSON when compression is enabled', async () => {
 		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic')]);
-		executeProblemsMock.mockResolvedValue([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}]);
+		executeProblemsMock.mockResolvedValue([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, llm_metrics: llmMetrics(5)}]);
 
 		const runResult = await runCommand({
 			model: 'test-model',
@@ -166,7 +173,7 @@ describe('runCommand', () => {
 
 		const openPath = join(tempDir, 'results', 'test-model.json');
 		mkdirSync(join(tempDir, 'results'), {recursive: true});
-		const resumedPayload = formatResultsFile([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}], {
+		const resumedPayload = formatResultsFile([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, llm_metrics: llmMetrics(5)}], {
 			model: 'test-model',
 			debug: false,
 			compress: true,
@@ -186,8 +193,8 @@ describe('runCommand', () => {
 		writeFileSync(openPath, `${JSON.stringify(resumedPayload, undefined, 2)}\n`, 'utf8');
 
 		executeProblemsMock.mockResolvedValue([
-			{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5},
-			{problem: 'add', category: 'logic', program: 'code2', passed: true, duration_ms: 6},
+			{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, llm_metrics: llmMetrics(5)},
+			{problem: 'add', category: 'logic', program: 'code2', passed: true, llm_metrics: llmMetrics(6)},
 		]);
 
 		const runResult = await runCommand({
@@ -218,7 +225,7 @@ describe('runCommand', () => {
 
 		const openPath = join(tempDir, 'results', 'test-model.json');
 		mkdirSync(join(tempDir, 'results'), {recursive: true});
-		const mismatchedPayload = formatResultsFile([{problem: 'other', category: 'logic', program: 'code', passed: true, duration_ms: 5}], {
+		const mismatchedPayload = formatResultsFile([{problem: 'other', category: 'logic', program: 'code', passed: true, llm_metrics: llmMetrics(5)}], {
 			model: 'test-model',
 			debug: false,
 			compress: false,
@@ -256,7 +263,7 @@ describe('runCommand', () => {
 
 		const openPath = join(tempDir, 'results', 'test-model.json');
 		mkdirSync(join(tempDir, 'results'), {recursive: true});
-		const mismatchedPayload = formatResultsFile([{problem: 'other', category: 'logic', program: 'code', passed: true, duration_ms: 5}], {
+		const mismatchedPayload = formatResultsFile([{problem: 'other', category: 'logic', program: 'code', passed: true, llm_metrics: llmMetrics(5)}], {
 			model: 'test-model',
 			debug: false,
 			compress: false,
@@ -265,7 +272,7 @@ describe('runCommand', () => {
 			ollamaUrl: 'http://localhost:11434/v1',
 		});
 		writeFileSync(openPath, `${JSON.stringify(mismatchedPayload, undefined, 2)}\n`, 'utf8');
-		executeProblemsMock.mockResolvedValue([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}]);
+		executeProblemsMock.mockResolvedValue([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, llm_metrics: llmMetrics(5)}]);
 
 		await runCommand({
 			model: 'test-model',
@@ -287,8 +294,8 @@ describe('runCommand', () => {
 		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic'), makeProblem('add', 'logic')]);
 		const previousPayload = formatResultsFile(
 			[
-				{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: false, error: 'boom', duration_ms: 5},
-				{problem: 'add', category: 'logic', program: 'code', passed: true, duration_ms: 6},
+				{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: false, error: 'boom', llm_metrics: llmMetrics(5)},
+				{problem: 'add', category: 'logic', program: 'code', passed: true, llm_metrics: llmMetrics(6)},
 			],
 			{
 				model: 'test-model',
@@ -323,8 +330,8 @@ describe('runCommand', () => {
 		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic'), makeProblem('add', 'logic')]);
 		const previousPayload = formatResultsFile(
 			[
-				{problem: 'fizzbuzz', category: 'logic', program: 'old-code', passed: false, error: 'boom', duration_ms: 5},
-				{problem: 'add', category: 'logic', program: 'stable-code', passed: true, duration_ms: 6},
+				{problem: 'fizzbuzz', category: 'logic', program: 'old-code', passed: false, error: 'boom', llm_metrics: llmMetrics(5)},
+				{problem: 'add', category: 'logic', program: 'stable-code', passed: true, llm_metrics: llmMetrics(6)},
 			],
 			{
 				model: 'test-model',
@@ -341,8 +348,8 @@ describe('runCommand', () => {
 		writeFileSync(outputPath, `${JSON.stringify(previousPayload, undefined, 2)}\n`, 'utf8');
 
 		executeProblemsMock.mockResolvedValue([
-			{problem: 'add', category: 'logic', program: 'stable-code', passed: true, duration_ms: 6},
-			{problem: 'fizzbuzz', category: 'logic', program: 'new-code', passed: true, duration_ms: 7},
+			{problem: 'add', category: 'logic', program: 'stable-code', passed: true, llm_metrics: llmMetrics(6)},
+			{problem: 'fizzbuzz', category: 'logic', program: 'new-code', passed: true, llm_metrics: llmMetrics(7)},
 		]);
 
 		const context = createRerunFailedContext({

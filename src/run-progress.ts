@@ -1,7 +1,8 @@
 import {summarizeResults} from './core/results-summary.ts';
 import {formatMs, formatClockTime} from './core/time-format.ts';
 import {RUN_PHASE_LABELS, type RunPhase} from './run-phase.ts';
-import {type RunTransferStats} from './run-transfer.ts';
+import {calculateAverageTokensPerSecond, estimateTokensFromChars, type RunTransferStats} from './run-transfer.ts';
+import {type LlmMetrics} from './types.ts';
 import {STYLES, styleText} from './utils.ts';
 
 type CompletedProblemLineInput = {
@@ -34,16 +35,8 @@ const formatCompactCount = (value: number): string => {
 	return String(Math.max(0, value));
 };
 
-const CHARS_PER_TOKEN_ESTIMATE = 4;
-
-const estimateTokensFromChars = (chars: number): number => Math.max(0, Math.round(chars / CHARS_PER_TOKEN_ESTIMATE));
-
 const formatEstimatedTokensPerSecond = (responseChars: number, elapsedMs: number): string => {
-	if (elapsedMs <= 0) {
-		return '0 tok/s';
-	}
-
-	const tokensPerSecond = Math.round((estimateTokensFromChars(responseChars) * 1e3) / elapsedMs);
+	const tokensPerSecond = calculateAverageTokensPerSecond(estimateTokensFromChars(responseChars), elapsedMs);
 	return `${formatCompactCount(tokensPerSecond)} tok/s`;
 };
 
@@ -52,6 +45,9 @@ export const formatEstimatedTransferSummary = (transferStats: RunTransferStats, 
 	const responseTokens = estimateTokensFromChars(transferStats.responseChars);
 	return `↑${formatCompactCount(promptTokens)}t ↓${formatCompactCount(responseTokens)}t ~${formatEstimatedTokensPerSecond(transferStats.responseChars, elapsedMs)}`;
 };
+
+export const formatLlmMetricsSummary = (llmMetrics: LlmMetrics): string =>
+	`↑${formatCompactCount(llmMetrics.tokens_sent)}t ↓${formatCompactCount(llmMetrics.tokens_received)}t ~${formatCompactCount(llmMetrics.average_tokens_per_second)} tok/s`;
 
 export const formatProblemStartLine = (index: number, total: number, name: string): string =>
 	`${styleText(formatStep(index, total), STYLES.dim)} ${styleText(name, STYLES.bold)}`;

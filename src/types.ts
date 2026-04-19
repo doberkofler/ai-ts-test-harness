@@ -39,15 +39,31 @@ export type Problem = {
 };
 
 /** Result of running one problem */
-export type Result = {
+export type LlmMetrics = {
+	llm_duration_ms: number;
+	tokens_sent: number;
+	tokens_received: number;
+	average_tokens_per_second: number;
+};
+
+export type ProblemExecutionResult = {
 	problem: string;
 	category: string;
 	program?: string;
 	artifact?: ChangedFilesArtifact;
-	thinking?: string;
 	passed: boolean;
 	error?: string;
-	duration_ms: number;
+};
+
+export type Result = {
+	problem: ProblemExecutionResult['problem'];
+	category: ProblemExecutionResult['category'];
+	program?: ProblemExecutionResult['program'];
+	artifact?: ProblemExecutionResult['artifact'];
+	thinking?: string;
+	passed: ProblemExecutionResult['passed'];
+	error?: ProblemExecutionResult['error'];
+	llm_metrics: LlmMetrics;
 };
 
 export type RuntimeConfig = {

@@ -17,7 +17,7 @@ export const printSummary = (results: Result[]): void => {
 	console.log(styleText('─'.repeat(64), STYLES.dim));
 	for (const r of results) {
 		const status = r.passed ? styleText('PASS', STYLES.green) : styleText('FAIL', STYLES.red);
-		console.log(`${status}  ${r.problem.padEnd(30)} ${formatMs(r.duration_ms).padStart(8)}`);
+		console.log(`${status}  ${r.problem.padEnd(30)} ${formatMs(r.llm_metrics.llm_duration_ms).padStart(8)}`);
 		if (!r.passed && typeof r.error === 'string') {
 			const firstLine = r.error.split('\n')[0] ?? r.error;
 			console.log(`${styleText('      ->', STYLES.dim)} ${firstLine}`);
@@ -501,7 +501,7 @@ const render = () => {
 				? '<tr class="drilldown-row" data-parent-key="' + escapeHtml(resultKey) + '">'
 					+ '<td colspan="5">'
 					+ '<div class="drilldown-content">'
-					+ '<div class="drilldown-meta">' + statusText + ' • ' + escapeHtml(result.category) + ' • ' + formatDuration(result.duration_ms) + '</div>'
+					+ '<div class="drilldown-meta">' + statusText + ' • ' + escapeHtml(result.category) + ' • ' + formatDuration(result.llm_metrics.llm_duration_ms) + '</div>'
 					+ '<div class="error">' + escapeHtml(typeof result.error === 'string' && result.error.length > 0 ? result.error : 'No error output.') + '</div>'
 					+ thinkingBlock
 					+ artifactBlock
@@ -514,7 +514,7 @@ const render = () => {
 				+ '<td><span class="badge ' + statusClass + '">' + statusText + '</span></td>'
 				+ '<td>' + escapeHtml(result.problem) + '</td>'
 				+ '<td>' + escapeHtml(result.category) + '</td>'
-				+ '<td>' + formatDuration(result.duration_ms) + '</td>'
+				+ '<td>' + formatDuration(result.llm_metrics.llm_duration_ms) + '</td>'
 				+ '<td class="details-actions"><button type="button" class="details-open" data-toggle-key="' + escapeHtml(resultKey) + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '">' + actionLabel + '</button></td>'
 				+ '</tr>'
 				+ detailsRow;
