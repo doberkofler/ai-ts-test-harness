@@ -165,7 +165,7 @@ describe('executeProblems', () => {
 		expect(results).toEqual([resumedResult, expect.objectContaining({problem: 'two'})]);
 	});
 
-	test('waits for 50% of task duration between problems', async () => {
+	test('applies minimum cooldown duration between problems', async () => {
 		const log = vi.fn<(message: string) => void>();
 		const sleepMs = vi.fn<(durationMs: number) => Promise<void>>().mockResolvedValue();
 		solveProblemMock
@@ -187,8 +187,8 @@ describe('executeProblems', () => {
 			},
 		);
 
-		expect(sleepMs).toHaveBeenCalledExactlyOnceWith(5000);
-		expect(log).toHaveBeenCalledWith('Cooldown 5s');
+		expect(sleepMs).toHaveBeenCalledExactlyOnceWith(10_000);
+		expect(log).toHaveBeenCalledWith('Cooldown 10s');
 	});
 
 	test('caps dynamic cooldown at one minute', async () => {

@@ -30,7 +30,7 @@ describe('printRuntimeConfig', () => {
 
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('AI Test Harness'));
 		expect(logSpy).toHaveBeenCalledWith('Auth:       api-key');
-		expect(logSpy).toHaveBeenCalledWith('Cooldown:   50% task duration (max 1m)');
+		expect(logSpy).toHaveBeenCalledWith('Cooldown:   50% task duration (min 10s, max 1m)');
 		expect(logSpy).toHaveBeenCalledWith('Thinking:   stored');
 		expect(logSpy).toHaveBeenCalledWith('Categories: logic');
 		expect(loggedLines).toBeGreaterThan(0);

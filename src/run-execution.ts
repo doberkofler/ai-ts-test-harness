@@ -27,6 +27,7 @@ export type ExecuteRunOptions = {
 };
 
 const MAX_COOLDOWN_MS = 60_000;
+const MIN_COOLDOWN_MS = 10_000;
 const COOLDOWN_RATIO = 0.5;
 
 type ExecuteProblemsDeps = {
@@ -132,7 +133,8 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 		}
 
 		const hasRemainingUnfinishedProblem = problems.slice(index + 1).some((remainingProblem) => !completedProblemResults.has(remainingProblem.name));
-		const cooldownDurationMs = options.noCooldown ? 0 : Math.min(MAX_COOLDOWN_MS, Math.floor(result.duration_ms * COOLDOWN_RATIO));
+		const dynamicCooldownDurationMs = Math.min(MAX_COOLDOWN_MS, Math.floor(result.duration_ms * COOLDOWN_RATIO));
+		const cooldownDurationMs = options.noCooldown || dynamicCooldownDurationMs <= 0 ? 0 : Math.max(MIN_COOLDOWN_MS, dynamicCooldownDurationMs);
 		if (cooldownDurationMs > 0 && hasRemainingUnfinishedProblem) {
 			if (showLiveTimer) {
 				const cooldownStartedAt = now();
