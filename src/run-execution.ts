@@ -64,30 +64,16 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 	const preferUnicode = stream.isTTY;
 	const showLiveTimer = supportsLiveLine(stream) && !options.debug;
 	const completedProblemResults = new Map(initialResults.map((result) => [result.problem, result]));
+	const pendingProblems = problems.filter((problem) => !completedProblemResults.has(problem.name));
 	const observedProblemDurationsMs = initialResults
 		.map((result) => result.llm_metrics.llm_duration_ms)
 		.filter((durationMs) => Number.isFinite(durationMs) && durationMs >= 0);
 
-	for (const [index, problem] of problems.entries()) {
+	for (const [index, problem] of pendingProblems.entries()) {
 		const problemDisplayName = formatProblemDisplayName(problem.category, problem.name);
-		const completedResult = completedProblemResults.get(problem.name);
-		if (completedResult) {
-			log(
-				formatCompletedProblemLine({
-					index,
-					total: problems.length,
-					name: problemDisplayName,
-					passed: completedResult.passed,
-					durationMs: completedResult.llm_metrics.llm_duration_ms,
-					preferUnicode,
-					detail: completedResult.passed ? formatLlmMetricsSummary(completedResult.llm_metrics) : `[${classifyFailureKind(completedResult)}]`,
-				}),
-			);
-			continue;
-		}
 
 		if (!showLiveTimer) {
-			log(formatProblemStartLine(index, problems.length, problemDisplayName));
+			log(formatProblemStartLine(index, pendingProblems.length, problemDisplayName));
 		}
 
 		const startedAt = now();
@@ -105,7 +91,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			}
 
 			const elapsedMs = now() - startedAt;
-			const remainingAfterCurrent = problems.slice(index + 1).filter((remainingProblem) => !completedProblemResults.has(remainingProblem.name)).length;
+			const remainingAfterCurrent = pendingProblems.length - (index + 1);
 			const estimatedCurrentRemainingMs = Math.max(0, averageProblemDurationMs - elapsedMs);
 			const estimatedFutureProblemsMs = averageProblemDurationMs * remainingAfterCurrent;
 			const estimatedCooldownMs = estimateCooldownDurationMs(averageProblemDurationMs, options.noCooldown) * remainingAfterCurrent;
@@ -152,7 +138,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 		log(
 			formatCompletedProblemLine({
 				index,
-				total: problems.length,
+				total: pendingProblems.length,
 				name: problemDisplayName,
 				passed: result.passed,
 				durationMs: result.llm_metrics.llm_duration_ms,
@@ -168,7 +154,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			await onProblemComplete([...results]);
 		}
 
-		const hasRemainingUnfinishedProblem = problems.slice(index + 1).some((remainingProblem) => !completedProblemResults.has(remainingProblem.name));
+		const hasRemainingUnfinishedProblem = index < pendingProblems.length - 1;
 		const cooldownDurationMs = estimateCooldownDurationMs(result.llm_metrics.llm_duration_ms, options.noCooldown);
 		if (cooldownDurationMs > 0 && hasRemainingUnfinishedProblem) {
 			if (showLiveTimer) {

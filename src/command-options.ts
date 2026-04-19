@@ -12,9 +12,6 @@ export const toRunCommandOptions = (opts: CliOpts): RunCommandOptions => ({
 	llmTimeoutSecs: opts.llmTimeoutSecs,
 	vitestTimeoutSecs: opts.vitestTimeoutSecs,
 	noCooldown: opts.noCooldown,
-	ollamaUrl: opts.ollamaUrl,
-	...(typeof opts.apiKey === 'string' ? {apiKey: opts.apiKey} : {}),
-	...(typeof opts.oauthToken === 'string' ? {oauthToken: opts.oauthToken} : {}),
 	test: opts.test,
 	category: opts.category,
 });

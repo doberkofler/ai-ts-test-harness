@@ -19,12 +19,14 @@ describe('printRuntimeConfig', () => {
 
 		printRuntimeConfig([makeProblem('one')], {
 			model: 'model-a',
+			provider: 'openai',
+			connection: 'openai',
+			authType: 'api-key',
 			debug: true,
 			llmTimeoutSecs: 60,
 			vitestTimeoutSecs: 60,
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
-			apiKey: 'secret',
 			selectedCategories: ['logic'],
 		});
 

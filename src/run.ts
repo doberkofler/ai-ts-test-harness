@@ -2,6 +2,7 @@ import {mkdirSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs'
 import {join, resolve} from 'node:path';
 import {gunzipSync, gzipSync} from 'node:zlib';
 import {DEFAULT_RESULTS_DIR} from './config.ts';
+import {resolveModelFromAuth, toExecuteRunOptions, type ResolvedModel} from './model-resolution.ts';
 import {loadProblems} from './load-problems.ts';
 import {parseCategoryFilter, selectProblems, selectProblemsByFilters} from './core/problem-selection.ts';
 import {executeProblems, type ExecuteRunOptions} from './run-execution.ts';
@@ -270,8 +271,15 @@ const collectFailedProblemNamesFromPreviousRun = (model: string): Set<string> =>
 	return new Set(previousResults.payload.results.filter((result) => !result.passed).map((result) => result.problem));
 };
 
-export const buildRuntimeConfig = (parsedOptions: ParsedRunCommandOptions, selectedCategories: string[] | undefined): RuntimeConfig => ({
+export const buildRuntimeConfig = (
+	parsedOptions: ParsedRunCommandOptions,
+	selectedCategories: string[] | undefined,
+	resolvedModel: ResolvedModel,
+): RuntimeConfig => ({
 	model: parsedOptions.model,
+	provider: resolvedModel.provider,
+	connection: resolvedModel.connectionName,
+	authType: resolvedModel.authType,
 	debug: parsedOptions.debug,
 	storeThinking: parsedOptions.storeThinking,
 	compress: parsedOptions.compress,
@@ -279,23 +287,21 @@ export const buildRuntimeConfig = (parsedOptions: ParsedRunCommandOptions, selec
 	llmTimeoutSecs: parsedOptions.llmTimeoutSecs,
 	vitestTimeoutSecs: parsedOptions.vitestTimeoutSecs,
 	noCooldown: parsedOptions.noCooldown,
-	ollamaUrl: parsedOptions.ollamaUrl,
-	...(typeof parsedOptions.apiKey === 'string' ? {apiKey: parsedOptions.apiKey} : {}),
-	...(typeof parsedOptions.oauthToken === 'string' ? {oauthToken: parsedOptions.oauthToken} : {}),
+	ollamaUrl: resolvedModel.baseUrl,
 	...(Array.isArray(selectedCategories) ? {selectedCategories} : {}),
 });
 
-export const buildExecuteRunOptions = (parsedOptions: ParsedRunCommandOptions): ExecuteRunOptions => ({
-	model: parsedOptions.model,
-	debug: parsedOptions.debug,
-	storeThinking: parsedOptions.storeThinking,
-	llmTimeoutSecs: parsedOptions.llmTimeoutSecs,
-	vitestTimeoutSecs: parsedOptions.vitestTimeoutSecs,
-	noCooldown: parsedOptions.noCooldown,
-	ollamaUrl: parsedOptions.ollamaUrl,
-	...(typeof parsedOptions.apiKey === 'string' ? {apiKey: parsedOptions.apiKey} : {}),
-	...(typeof parsedOptions.oauthToken === 'string' ? {oauthToken: parsedOptions.oauthToken} : {}),
-});
+export const buildExecuteRunOptions = (parsedOptions: ParsedRunCommandOptions, resolvedModel: ResolvedModel): ExecuteRunOptions =>
+	toExecuteRunOptions(
+		{
+			debug: parsedOptions.debug,
+			storeThinking: parsedOptions.storeThinking,
+			llmTimeoutSecs: parsedOptions.llmTimeoutSecs,
+			vitestTimeoutSecs: parsedOptions.vitestTimeoutSecs,
+			noCooldown: parsedOptions.noCooldown,
+		},
+		resolvedModel,
+	);
 
 export const writeResultsFile = (results: Result[], outputPath: string, config: RuntimeConfig): string => {
 	const resolvedOutputPath = resolve(outputPath);
@@ -311,11 +317,12 @@ export const writeResultsFile = (results: Result[], outputPath: string, config: 
 
 export const createRunContext = (options: RunCommandOptions): RunContext => {
 	const parsedOptions = parseRunCommandOptions(options);
+	const resolvedModel = resolveModelFromAuth(parsedOptions.model);
 	const allProblems = loadProblems('./src/problems');
 	const selectedCategories = parseCategoryFilter(parsedOptions.category);
 	const problems = selectProblemsByFilters(allProblems, parsedOptions.test, selectedCategories);
-	const runtimeConfig = buildRuntimeConfig(parsedOptions, selectedCategories);
-	const executeOptions = buildExecuteRunOptions(parsedOptions);
+	const runtimeConfig = buildRuntimeConfig(parsedOptions, selectedCategories, resolvedModel);
+	const executeOptions = buildExecuteRunOptions(parsedOptions, resolvedModel);
 
 	return {
 		mode: 'run',
@@ -364,6 +371,8 @@ export const runCommandWithContext = async (context: RunContext): Promise<{resul
 		context.mode === 'rerun-failed' && Array.isArray(context.baselineResults)
 			? context.baselineResults.filter((result) => !plannedProblemNames.includes(result.problem))
 			: outputTargets.resumedResults;
+	const initialProblemNames = new Set(initialResults.map((result) => result.problem));
+	const pendingProblems = context.problems.filter((problem) => !initialProblemNames.has(problem.name));
 
 	const startMessage =
 		context.mode === 'rerun-failed'
@@ -376,7 +385,7 @@ export const runCommandWithContext = async (context: RunContext): Promise<{resul
 
 	writeResultsFile(initialResults, outputTargets.openOutputPath, context.runtimeConfig);
 
-	const results = await executeProblems(context.problems, context.executeOptions, {
+	const results = await executeProblems(pendingProblems, context.executeOptions, {
 		initialResults,
 		onProblemComplete: (currentResults) => {
 			writeResultsFile(currentResults, outputTargets.openOutputPath, context.runtimeConfig);

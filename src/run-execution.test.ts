@@ -169,9 +169,8 @@ describe('executeProblems', () => {
 		);
 
 		expect(solveProblemMock).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({name: 'two'}), expect.anything());
-		expect(log).toHaveBeenCalledWith(expect.stringContaining('PASS [ 1/2] logic/one (10ms)'));
-		expect(log).toHaveBeenCalledWith(expect.stringContaining('↑0t ↓0t ~0 tok/s'));
-		expect(log).not.toHaveBeenCalledWith(expect.stringContaining('(resumed)'));
+		expect(log).not.toHaveBeenCalledWith(expect.stringContaining('logic/one'));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('PASS [ 1/1] logic/two (12ms)'));
 		expect(results).toEqual([resumedResult, expect.objectContaining({problem: 'two'})]);
 	});
 
@@ -228,7 +227,7 @@ describe('executeProblems', () => {
 		expect(log).toHaveBeenCalledWith(expect.stringContaining('[assertion]'));
 	});
 
-	test('shows runtime failure kind tag for resumed failures', async () => {
+	test('does not log resumed failures', async () => {
 		const log = vi.fn<(message: string) => void>();
 		const resumedResult: Result = {
 			problem: 'one',
@@ -252,7 +251,8 @@ describe('executeProblems', () => {
 			{log, initialResults: [resumedResult]},
 		);
 
-		expect(log).toHaveBeenCalledWith(expect.stringContaining('[runtime]'));
+		expect(log.mock.calls.some(([message]) => message.includes('[runtime]'))).toBe(false);
+		expect(solveProblemMock).not.toHaveBeenCalled();
 	});
 
 	test('shows ETA in live running lines once prior durations exist', async () => {

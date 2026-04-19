@@ -1,6 +1,7 @@
 import {describe, expect, test} from 'vitest';
 import {buildExecuteRunOptions, buildRuntimeConfig, formatResultsFile, parseCategoryFilter, selectProblems, selectProblemsByFilters} from './run.ts';
 import {formatResultsHtmlFile, parseResultsFile} from './report.ts';
+import {toCliErrorMessage} from './index.ts';
 import {type Problem, type Result} from './types.ts';
 
 const llmMetrics = (llmDurationMs: number): Result['llm_metrics'] => ({
@@ -69,12 +70,13 @@ describe('formatResultsFile', () => {
 	test('does not persist auth credentials into result payload', () => {
 		const output = formatResultsFile([], {
 			model: 'test-model',
+			provider: 'openrouter',
+			connection: 'openrouter',
+			authType: 'api-key',
 			ollamaUrl: 'http://localhost:11434/v1',
 			llmTimeoutSecs: 5,
 			vitestTimeoutSecs: 60,
 			debug: false,
-			apiKey: 'secret-key',
-			oauthToken: 'secret-token',
 		});
 
 		expect(output).not.toHaveProperty('api_key');
@@ -110,16 +112,26 @@ describe('run context builders', () => {
 				llmTimeoutSecs: 90,
 				vitestTimeoutSecs: 60,
 				noCooldown: true,
-				ollamaUrl: 'http://localhost:11434/v1',
-				apiKey: 'secret',
 				test: 'fizzbuzz',
 				category: 'logic',
 			},
 			['logic'],
+			{
+				provider: 'ollama',
+				requestedModel: 'test-model',
+				resolvedModel: 'ollama/test-model',
+				modelId: 'test-model',
+				connectionName: 'ollama',
+				baseUrl: 'http://localhost:11434/v1',
+				authType: 'none',
+			},
 		);
 
 		expect(config).toEqual({
 			model: 'test-model',
+			provider: 'ollama',
+			connection: 'ollama',
+			authType: 'none',
 			debug: true,
 			storeThinking: false,
 			compress: false,
@@ -128,35 +140,44 @@ describe('run context builders', () => {
 			vitestTimeoutSecs: 60,
 			noCooldown: true,
 			ollamaUrl: 'http://localhost:11434/v1',
-			apiKey: 'secret',
 			selectedCategories: ['logic'],
 		});
 	});
 
 	test('buildExecuteRunOptions contains only execution options', () => {
-		const executeOptions = buildExecuteRunOptions({
-			model: 'test-model',
-			debug: false,
-			storeThinking: false,
-			compress: false,
-			overwriteResults: false,
-			llmTimeoutSecs: 90,
-			vitestTimeoutSecs: 60,
-			noCooldown: false,
-			ollamaUrl: 'http://localhost:11434/v1',
-			oauthToken: 'oauth-token',
-			test: undefined,
-			category: undefined,
-		});
+		const executeOptions = buildExecuteRunOptions(
+			{
+				model: 'test-model',
+				debug: false,
+				storeThinking: false,
+				compress: false,
+				overwriteResults: false,
+				llmTimeoutSecs: 90,
+				vitestTimeoutSecs: 60,
+				noCooldown: false,
+				test: undefined,
+				category: undefined,
+			},
+			{
+				provider: 'openrouter',
+				requestedModel: 'openrouter/anthropic/claude-3.7-sonnet',
+				resolvedModel: 'openrouter/anthropic/claude-3.7-sonnet',
+				modelId: 'anthropic/claude-3.7-sonnet',
+				connectionName: 'openrouter',
+				baseUrl: 'https://openrouter.ai/api/v1',
+				authType: 'oauth-token',
+				oauthToken: 'oauth-token',
+			},
+		);
 
 		expect(executeOptions).toEqual({
-			model: 'test-model',
+			model: 'anthropic/claude-3.7-sonnet',
 			debug: false,
 			storeThinking: false,
 			llmTimeoutSecs: 90,
 			vitestTimeoutSecs: 60,
 			noCooldown: false,
-			ollamaUrl: 'http://localhost:11434/v1',
+			ollamaUrl: 'https://openrouter.ai/api/v1',
 			oauthToken: 'oauth-token',
 		});
 	});
@@ -256,5 +277,15 @@ describe('selectProblemsByFilters', () => {
 
 	test('throws if no category matches', () => {
 		expect(() => selectProblemsByFilters(problems, undefined, ['unknown'])).toThrow('No problems matched --category values: unknown');
+	});
+});
+
+describe('toCliErrorMessage', () => {
+	test('returns error message for Error instances', () => {
+		expect(toCliErrorMessage(new TypeError('No configured connections found.'))).toBe('No configured connections found.');
+	});
+
+	test('returns fallback text for unknown values', () => {
+		expect(toCliErrorMessage(null)).toBe('null');
 	});
 });

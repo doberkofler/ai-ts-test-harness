@@ -26,12 +26,21 @@ A modern project built with ai-ts-test-harness, emphasizing type safety, perform
 
 ### CLI Runtime Options
 
-- `--model <model>`: LLM model identifier to query.
-- `--ollama-url <url>`: Ollama-compatible API base URL; default is `http://localhost:11434/v1`.
+- `--model <model>`: LLM model identifier to query (bare model id or `provider/model`).
 - `--debug`: Prints the full prompt and raw response for each LLM call.
 - `--llm-timeout <seconds>`: Per-request LLM timeout in seconds; default is `120` (2 minutes).
 - `--vitest-timeout <seconds>`: Per-test Vitest timeout in seconds; default is `60`.
 - `--test <name>`: Executes only the specified problem by exact name.
+
+### Connection/Auth Commands
+
+- `login [provider]`: Create/update a saved connection (`ollama`, `openai`, `openrouter`).
+- `logout <connection>`: Remove a saved connection.
+- `auth list`: Show configured connections and the default one.
+- `auth use <connection>`: Set default connection.
+- `models [search]`: List available models for saved connections.
+
+The CLI resolves endpoint and credentials from saved login connections in `~/.ai-ts-test-harness/auth.json`.
 
 The CLI prints the resolved runtime parameters at startup to make debugging runs reproducible.
 

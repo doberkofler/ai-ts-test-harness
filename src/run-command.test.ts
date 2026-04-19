@@ -43,11 +43,38 @@ const makeProblem = (name: string, category: string): Problem => ({
 describe('runCommand', () => {
 	let tempDir = '';
 	let originalCwd = '';
+	let originalHome = '';
 
 	beforeEach(() => {
 		tempDir = mkdtempSync(join(tmpdir(), 'run-command-'));
 		originalCwd = process.cwd();
+		originalHome = process.env['HOME'] ?? '';
+		process.env['HOME'] = tempDir;
 		process.chdir(tempDir);
+		mkdirSync(join(tempDir, '.ai-ts-test-harness'), {recursive: true});
+		writeFileSync(
+			join(tempDir, '.ai-ts-test-harness', 'auth.json'),
+			`${JSON.stringify(
+				{
+					version: 1,
+					defaultConnectionId: 'ollama:ollama',
+					connections: [
+						{
+							id: 'ollama:ollama',
+							name: 'ollama',
+							provider: 'ollama',
+							baseUrl: 'http://localhost:11434/v1',
+							authType: 'none',
+							createdAt: '2026-01-01T00:00:00.000Z',
+							updatedAt: '2026-01-01T00:00:00.000Z',
+						},
+					],
+				},
+				undefined,
+				2,
+			)}\n`,
+			'utf8',
+		);
 		loadProblemsMock.mockReset();
 		executeProblemsMock.mockReset();
 		getSystemInfoMock.mockReset();
@@ -62,6 +89,7 @@ describe('runCommand', () => {
 
 	afterEach(() => {
 		process.chdir(originalCwd);
+		process.env['HOME'] = originalHome;
 		if (tempDir.length > 0) {
 			rmSync(tempDir, {recursive: true, force: true});
 		}
@@ -80,7 +108,6 @@ describe('runCommand', () => {
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
-			ollamaUrl: 'http://localhost:11434/v1',
 			test: undefined,
 			category: 'logic',
 		});
@@ -115,7 +142,6 @@ describe('runCommand', () => {
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
-			ollamaUrl: 'http://localhost:11434/v1',
 			test: undefined,
 			category: 'logic',
 		});
@@ -135,7 +161,6 @@ describe('runCommand', () => {
 				llmTimeoutSecs: '0',
 				vitestTimeoutSecs: '60',
 				noCooldown: false,
-				ollamaUrl: 'http://localhost:11434/v1',
 				test: undefined,
 				category: undefined,
 			}),
@@ -157,7 +182,6 @@ describe('runCommand', () => {
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
-			ollamaUrl: 'http://localhost:11434/v1',
 			test: undefined,
 			category: 'logic',
 		});
@@ -205,13 +229,12 @@ describe('runCommand', () => {
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
-			ollamaUrl: 'http://localhost:11434/v1',
 			test: undefined,
 			category: 'logic',
 		});
 
 		expect(executeProblemsMock).toHaveBeenCalledWith(
-			expect.any(Array),
+			expect.arrayContaining([expect.objectContaining({name: 'add', category: 'logic'})]),
 			expect.any(Object),
 			expect.objectContaining({
 				initialResults: [expect.objectContaining({problem: 'fizzbuzz'})],
@@ -250,7 +273,6 @@ describe('runCommand', () => {
 				llmTimeoutSecs: '90',
 				vitestTimeoutSecs: '60',
 				noCooldown: false,
-				ollamaUrl: 'http://localhost:11434/v1',
 				test: undefined,
 				category: 'logic',
 			}),
@@ -282,7 +304,6 @@ describe('runCommand', () => {
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
-			ollamaUrl: 'http://localhost:11434/v1',
 			test: undefined,
 			category: 'logic',
 		});
@@ -318,7 +339,6 @@ describe('runCommand', () => {
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
-			ollamaUrl: 'http://localhost:11434/v1',
 			test: undefined,
 			category: 'logic',
 		});
@@ -360,7 +380,6 @@ describe('runCommand', () => {
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
-			ollamaUrl: 'http://localhost:11434/v1',
 			test: undefined,
 			category: 'logic',
 		});

@@ -72,6 +72,9 @@ export type Result = {
 
 export type RuntimeConfig = {
 	model: string;
+	provider?: string;
+	connection?: string;
+	authType?: 'none' | 'api-key' | 'oauth-token';
 	debug: boolean;
 	storeThinking?: boolean;
 	compress?: boolean;
@@ -80,8 +83,6 @@ export type RuntimeConfig = {
 	vitestTimeoutSecs: number;
 	noCooldown?: boolean;
 	ollamaUrl: string;
-	apiKey?: string;
-	oauthToken?: string;
 	selectedCategories?: string[];
 	systemInfo?: SystemInfo;
 };
@@ -97,6 +98,9 @@ export type SystemInfo = {
 export type ResultsFile = {
 	generated_at: string;
 	model: string;
+	provider?: string;
+	connection?: string;
+	auth_type?: 'none' | 'api-key' | 'oauth-token';
 	ollama_url?: string;
 	llm_timeout_secs?: number;
 	vitest_timeout_secs?: number;

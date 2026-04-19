@@ -3,7 +3,7 @@ import {formatMs} from './core/time-format.ts';
 import {type Problem, type RuntimeConfig} from './types.ts';
 
 export const printRuntimeConfig = (problems: Problem[], config: RuntimeConfig): void => {
-	const authMode = typeof config.apiKey === 'string' ? 'api-key' : typeof config.oauthToken === 'string' ? 'oauth-token' : 'ollama-default';
+	const authMode = config.authType ?? 'unknown';
 	const cooldown = config.noCooldown === true ? styleText('disabled', STYLES.yellow) : '50% task duration (min 10s, max 1m)';
 	const safeModelName = config.model.replaceAll(/[^a-z0-9.-]/gi, '_');
 	const resultsFileName = `${safeModelName}.json${config.compress === true ? '.gz' : ''}`;
@@ -13,7 +13,9 @@ export const printRuntimeConfig = (problems: Problem[], config: RuntimeConfig): 
 	console.log(styleText('AI Test Harness', STYLES.bold));
 	console.log(styleText('---------------', STYLES.dim));
 	console.log(formatLine('Model', styleText(config.model, STYLES.cyan)));
-	console.log(formatLine('Ollama URL', config.ollamaUrl));
+	console.log(formatLine('Provider', config.provider ?? 'unknown'));
+	console.log(formatLine('Connection', config.connection ?? 'unknown'));
+	console.log(formatLine('Endpoint', config.ollamaUrl));
 	console.log(formatLine('Auth', authMode));
 	console.log(formatLine('LLM timeout', formatMs(config.llmTimeoutSecs * 1000)));
 	console.log(formatLine('Test timeout', formatMs(config.vitestTimeoutSecs * 1000)));

@@ -15,7 +15,7 @@ Run the harness against all built-in problems:
 pnpm run run
 ```
 
-When you run the CLI without an explicit command, it now executes `validate`, `run`, and `report` in sequence.
+When you run the CLI without an explicit command, it behaves like `run`.
 
 Or run the built binary directly:
 
@@ -25,8 +25,7 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 
 ### CLI Options
 
-- `--model <model>`: Model name to use via the local Ollama-compatible endpoint.
-- `--ollama-url <url>`: Ollama-compatible API base URL. Default: `http://localhost:11434/v1`.
+- `--model <model>`: Model identifier to run. You can pass a bare model id (uses default connection) or `provider/model`.
 - `--debug`: Print the full LLM request and raw response for each problem.
 - `--no-store-thinking`: Do not store model reasoning/thinking text in saved JSON results.
 - `--compress`: Store JSON results as `.json.gz` (default: `false`, stores plain `.json`).
@@ -38,14 +37,43 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 
 ### CLI Commands
 
+- `login [provider]`: Create or update a provider connection. Supported providers: `ollama`, `openai`, `openrouter`.
+- `logout <connection>`: Remove a saved connection by id/name/provider.
+- `auth list`: List saved connections and show the active default.
+- `auth use <connection>`: Set the default connection used for bare model ids.
+- `models [search]`: List models available from saved connections (optional filter).
 - `validate`: Validates problem definitions by executing each problem's optional `solution` (if present) and confirming tests reject an intentionally invalid solution.
 - `run`: Queries the configured model and runs generated answers against tests.
 - `rerun-failed`: Re-runs only problems that failed in the previous run for the same model.
 - `report`: Generates a report from the latest results file for the configured model.
 
+### Authentication and Connections
+
+The CLI is login-centric. Configure connections once, then run with `--model`:
+
+```bash
+# local Ollama
+ai-ts-test-harness login ollama --url http://localhost:11434/v1
+
+# cloud key-based provider
+ai-ts-test-harness login openai --api-key sk-...
+
+# inspect and switch defaults
+ai-ts-test-harness auth list
+ai-ts-test-harness auth use ollama
+```
+
+Then run:
+
+```bash
+ai-ts-test-harness run --model gemma4:26b-a4b-it-q8_0
+# or explicit provider/model
+ai-ts-test-harness run --model openai/gpt-4.1-mini
+```
+
 Result files are written to the `results/` directory using the model name as the filename (`<model>.json` by default, or `<model>.json.gz` with `--compress`).
 
-When the harness starts, it prints the effective CLI parameters (`model`, `debug`, `llmTimeoutSecs`, `vitestTimeoutSecs`, `ollamaUrl`) so you can verify runtime settings immediately.
+When the harness starts, it prints resolved runtime settings (`model`, provider, connection, endpoint, auth mode, timeout values, and filters) so you can verify exactly what will run.
 
 After each run, the CLI saves both JSON and HTML reports, and prints a clickable `file://...` link for the HTML report so you can open it directly from your terminal.
 

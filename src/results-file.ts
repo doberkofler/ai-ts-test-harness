@@ -32,6 +32,9 @@ export const resultsFileSchema = z
 	.object({
 		generated_at: z.string(),
 		model: z.string(),
+		provider: z.string().optional(),
+		connection: z.string().optional(),
+		auth_type: z.enum(['none', 'api-key', 'oauth-token']).optional(),
 		ollama_url: z.string().optional(),
 		llm_timeout_secs: z.number().optional(),
 		vitest_timeout_secs: z.number().optional(),
@@ -104,6 +107,9 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 	return {
 		generated_at: parsed.generated_at,
 		model: parsed.model,
+		...(typeof parsed.provider === 'string' ? {provider: parsed.provider} : {}),
+		...(typeof parsed.connection === 'string' ? {connection: parsed.connection} : {}),
+		...(typeof parsed.auth_type === 'string' ? {auth_type: parsed.auth_type} : {}),
 		...(typeof parsed.ollama_url === 'string' ? {ollama_url: parsed.ollama_url} : {}),
 		...(typeof parsed.llm_timeout_secs === 'number' ? {llm_timeout_secs: parsed.llm_timeout_secs} : {}),
 		...(typeof parsed.vitest_timeout_secs === 'number' ? {vitest_timeout_secs: parsed.vitest_timeout_secs} : {}),
@@ -120,6 +126,9 @@ export const formatResultsFile = (results: Result[], config: RuntimeConfig): Res
 	return {
 		generated_at: new Date().toISOString(),
 		model: config.model,
+		...(typeof config.provider === 'string' ? {provider: config.provider} : {}),
+		...(typeof config.connection === 'string' ? {connection: config.connection} : {}),
+		...(typeof config.authType === 'string' ? {auth_type: config.authType} : {}),
 		ollama_url: config.ollamaUrl,
 		llm_timeout_secs: config.llmTimeoutSecs,
 		vitest_timeout_secs: config.vitestTimeoutSecs,

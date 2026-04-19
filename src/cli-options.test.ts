@@ -11,7 +11,6 @@ describe('normalizeCliOpts', () => {
 			llmTimeout: '75',
 			vitestTimeout: '90',
 			cooldown: true,
-			ollamaUrl: 'http://localhost:11434/v1',
 		});
 
 		expect(normalized).toEqual({
@@ -26,7 +25,6 @@ describe('normalizeCliOpts', () => {
 			llmTimeoutSecs: '75',
 			vitestTimeoutSecs: '90',
 			noCooldown: false,
-			ollamaUrl: 'http://localhost:11434/v1',
 		});
 	});
 
@@ -46,8 +44,6 @@ describe('command option mappers', () => {
 			llmTimeoutSecs: '120',
 			vitestTimeoutSecs: '60',
 			noCooldown: true,
-			ollamaUrl: 'http://localhost:11434/v1',
-			apiKey: 'secret',
 			htmlOutput: 'results.html',
 			test: 'fizzbuzz',
 			category: 'logic',
@@ -62,8 +58,6 @@ describe('command option mappers', () => {
 			llmTimeoutSecs: '120',
 			vitestTimeoutSecs: '60',
 			noCooldown: true,
-			ollamaUrl: 'http://localhost:11434/v1',
-			apiKey: 'secret',
 			test: 'fizzbuzz',
 			category: 'logic',
 		});

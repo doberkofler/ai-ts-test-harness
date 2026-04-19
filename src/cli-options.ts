@@ -1,5 +1,5 @@
 import {Command} from 'commander';
-import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_MODEL, DEFAULT_OLLAMA_URL, DEFAULT_VITEST_TIMEOUT_SECS} from './config.ts';
+import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_MODEL, DEFAULT_VITEST_TIMEOUT_SECS} from './config.ts';
 
 export type CliOpts = {
 	model: string;
@@ -10,9 +10,6 @@ export type CliOpts = {
 	llmTimeoutSecs: string;
 	vitestTimeoutSecs: string;
 	noCooldown: boolean;
-	ollamaUrl: string;
-	apiKey?: string;
-	oauthToken?: string;
 	htmlOutput?: string;
 	test?: string;
 	category?: string;
@@ -28,7 +25,6 @@ const isCliOpts = (data: unknown): data is CliOpts =>
 	'llmTimeoutSecs' in data &&
 	'vitestTimeoutSecs' in data &&
 	'noCooldown' in data &&
-	'ollamaUrl' in data &&
 	'compress' in data &&
 	'overwriteResults' in data;
 
@@ -41,9 +37,6 @@ export const registerGlobalCliOptions = (program: Command): void => {
 	program.option('--llm-timeout <seconds>', 'LLM response timeout in seconds', String(DEFAULT_LLM_TIMEOUT_SECS));
 	program.option('--vitest-timeout <seconds>', 'Vitest per-test timeout in seconds', String(DEFAULT_VITEST_TIMEOUT_SECS));
 	program.option('--no-cooldown', 'Disable cooldown between problems');
-	program.option('--ollama-url <url>', 'Ollama-compatible API base URL', DEFAULT_OLLAMA_URL);
-	program.option('--api-key <key>', 'API key for cloud model authorization');
-	program.option('--oauth-token <token>', 'OAuth token for cloud model authorization');
 	program.option('--html-output <file>', 'Write an HTML report file (defaults to result path with .html extension)');
 	program.option('--test <name>', 'Run a specific test by exact problem name');
 	program.option('--category <list>', 'Run only categories from a comma-separated list (for example, algorithms,refactor)');
