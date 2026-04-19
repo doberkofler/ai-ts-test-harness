@@ -1,6 +1,7 @@
-import {readdirSync, readFileSync, statSync, writeFileSync} from 'node:fs';
+import {readFileSync, statSync, writeFileSync} from 'node:fs';
 import {join, parse, resolve} from 'node:path';
 import {gunzipSync} from 'node:zlib';
+import {DEFAULT_RESULTS_DIR} from './config.ts';
 import {summarizeResults} from './core/results-summary.ts';
 import {type Result, type ResultsFile, type RuntimeConfig} from './types.ts';
 import {STYLES, styleText} from './utils.ts';
@@ -583,7 +584,7 @@ export const writeResultsPayloadHtmlFile = (payload: ResultsFile, jsonOutputPath
 };
 
 export type ReportCommandOptions = {
-	output: string;
+	model: string;
 	htmlOutput: string | undefined;
 };
 
@@ -593,27 +594,38 @@ type RunReportEntry = {
 	payload: ResultsFile;
 };
 
-const isResultsFilePath = (pathValue: string): boolean => {
-	const lowerCased = pathValue.toLowerCase();
-	return lowerCased.endsWith('.json') || lowerCased.endsWith('.json.gz');
+const toSafeModelName = (model: string): string => model.replaceAll(/[^a-z0-9.-]/gi, '_');
+
+const safeStat = (pathValue: string): ReturnType<typeof statSync> | undefined => {
+	try {
+		return statSync(pathValue);
+	} catch {
+		return undefined;
+	}
 };
 
-const collectJsonFiles = (pathValue: string): string[] => {
-	const resolvedPath = resolve(pathValue);
-	const stats = statSync(resolvedPath);
+const collectJsonFiles = (model: string): string[] => {
+	const outputDir = resolve(DEFAULT_RESULTS_DIR);
+	const baseName = toSafeModelName(model);
+	const jsonPath = resolve(join(outputDir, `${baseName}.json`));
+	const gzPath = `${jsonPath}.gz`;
+	const candidates = [jsonPath, gzPath]
+		.map((path) => ({path, stats: safeStat(path)}))
+		.filter((candidate): candidate is {path: string; stats: NonNullable<ReturnType<typeof safeStat>>} => {
+			const {stats} = candidate;
+			if (typeof stats === 'undefined') {
+				return false;
+			}
+			return stats.isFile();
+		})
+		.sort((left, right) => Number(right.stats.mtimeMs) - Number(left.stats.mtimeMs));
 
-	if (stats.isDirectory()) {
-		return readdirSync(resolvedPath)
-			.filter((entry) => isResultsFilePath(entry))
-			.map((entry) => resolve(join(resolvedPath, entry)))
-			.sort();
+	const [latest] = candidates;
+	if (typeof latest === 'undefined') {
+		throw new TypeError(`No .json/.json.gz result file found for model ${model} in ${outputDir}`);
 	}
 
-	if (!stats.isFile() || !isResultsFilePath(resolvedPath)) {
-		throw new TypeError(`--output must point to a .json/.json.gz file or a directory: ${pathValue}`);
-	}
-
-	return [resolvedPath];
+	return [latest.path];
 };
 
 const readRunPayload = (jsonPath: string): ResultsFile => {
@@ -764,13 +776,13 @@ const writeIndexHtml = (entries: RunReportEntry[], outputDir: string): string =>
 };
 
 export const reportCommand = (options: ReportCommandOptions): void => {
-	const jsonPaths = collectJsonFiles(options.output);
+	const jsonPaths = collectJsonFiles(options.model);
 	if (jsonPaths.length === 0) {
-		throw new TypeError(`No .json/.json.gz result files found in ${resolve(options.output)}`);
+		throw new TypeError(`No .json/.json.gz result files found for model ${options.model}`);
 	}
 
 	if (jsonPaths.length > 1 && typeof options.htmlOutput === 'string') {
-		throw new TypeError('--html-output can only be used when --output points to a single .json/.json.gz file');
+		throw new TypeError('--html-output can only be used when a single .json/.json.gz file is selected');
 	}
 
 	const runEntries: RunReportEntry[] = [];
@@ -786,7 +798,7 @@ export const reportCommand = (options: ReportCommandOptions): void => {
 		printSummary(latest.payload.results);
 	}
 	if (typeof latest === 'undefined') {
-		throw new TypeError(`No .json/.json.gz result files found in ${resolve(options.output)}`);
+		throw new TypeError(`No .json/.json.gz result files found for model ${options.model}`);
 	}
 
 	const outputDir = resolve(parse(latest.jsonPath).dir);

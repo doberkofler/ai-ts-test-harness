@@ -1,4 +1,4 @@
-import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {gzipSync} from 'node:zlib';
@@ -23,12 +23,16 @@ const sampleResults: Result[] = [
 
 describe('report helpers', () => {
 	let tempDir = '';
+	let originalCwd = '';
 
 	beforeEach(() => {
 		tempDir = mkdtempSync(join(tmpdir(), 'report-command-'));
+		originalCwd = process.cwd();
+		process.chdir(tempDir);
 	});
 
 	afterEach(() => {
+		process.chdir(originalCwd);
 		if (tempDir.length > 0) {
 			rmSync(tempDir, {recursive: true, force: true});
 		}
@@ -55,7 +59,8 @@ describe('report helpers', () => {
 
 	test('runs report command from json and writes html file', () => {
 		const payload = formatResultsFile(sampleResults, runtimeConfig);
-		const jsonPath = join(tempDir, 'results.json');
+		const jsonPath = join(tempDir, 'results', 'test-model.json');
+		mkdirSync(join(tempDir, 'results'), {recursive: true});
 		const customHtmlPath = join(tempDir, 'custom-report.html');
 		writeFileSync(jsonPath, `${JSON.stringify(payload, undefined, 2)}\n`, 'utf8');
 
@@ -64,7 +69,7 @@ describe('report helpers', () => {
 			loggedLines += 1;
 		});
 
-		reportCommand({output: jsonPath, htmlOutput: customHtmlPath});
+		reportCommand({model: 'test-model', htmlOutput: customHtmlPath});
 
 		expect(existsSync(customHtmlPath)).toBe(true);
 		expect(loggedLines).toBeGreaterThan(0);
@@ -74,7 +79,8 @@ describe('report helpers', () => {
 
 	test('runs report command from compressed json and writes html file', () => {
 		const payload = formatResultsFile(sampleResults, runtimeConfig);
-		const jsonPath = join(tempDir, 'results.json.gz');
+		const jsonPath = join(tempDir, 'results', 'test-model.json.gz');
+		mkdirSync(join(tempDir, 'results'), {recursive: true});
 		const customHtmlPath = join(tempDir, 'compressed-report.html');
 		writeFileSync(jsonPath, gzipSync(`${JSON.stringify(payload, undefined, 2)}\n`));
 
@@ -83,7 +89,7 @@ describe('report helpers', () => {
 			loggedLines += 1;
 		});
 
-		reportCommand({output: jsonPath, htmlOutput: customHtmlPath});
+		reportCommand({model: 'test-model', htmlOutput: customHtmlPath});
 
 		expect(existsSync(customHtmlPath)).toBe(true);
 		expect(loggedLines).toBeGreaterThan(0);

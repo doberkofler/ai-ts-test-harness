@@ -29,10 +29,10 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 - `--ollama-url <url>`: Ollama-compatible API base URL. Default: `http://localhost:11434/v1`.
 - `--debug`: Print the full LLM request and raw response for each problem.
 - `--no-store-thinking`: Do not store model reasoning/thinking text in saved JSON results.
+- `--compress`: Store JSON results as `.json.gz` (default: `false`, stores plain `.json`).
 - `--llm-timeout <seconds>`: Timeout for each LLM response in seconds. Default: `120` (2 minutes).
 - `--vitest-timeout <seconds>`: Per-test Vitest timeout in seconds. Default: `60`.
-- `--output <file>`: JSON file path for saving run results. Default: `results.json`.
-- `--html-output <file>`: Optional HTML report path. If omitted, the CLI writes one next to `--output` using the same filename and `.html` extension.
+- `--html-output <file>`: Optional HTML report path. If omitted, the CLI writes one next to the selected model result file using the same filename and `.html` extension.
 - `--test <name>`: Run only one specific problem by exact name (for example, `--test=boolean-expression-evaluator`).
 - `--category <list>`: Run only problems in the listed categories (comma-separated, for example, `--category=algorithms,refactor`).
 
@@ -40,7 +40,10 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 
 - `validate`: Validates problem definitions by executing each problem's optional `solution` (if present) and confirming tests reject an intentionally invalid solution.
 - `run`: Queries the configured model and runs generated answers against tests.
-- `report`: Generates reports from an existing JSON results file.
+- `rerun-failed`: Re-runs only problems that failed in the previous run for the same model.
+- `report`: Generates a report from the latest results file for the configured model.
+
+Result files are written to the `results/` directory using the model name as the filename (`<model>.json` by default, or `<model>.json.gz` with `--compress`).
 
 When the harness starts, it prints the effective CLI parameters (`model`, `debug`, `llmTimeoutSecs`, `vitestTimeoutSecs`, `ollamaUrl`) so you can verify runtime settings immediately.
 

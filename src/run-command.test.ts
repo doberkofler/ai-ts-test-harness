@@ -1,4 +1,4 @@
-import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {gunzipSync} from 'node:zlib';
@@ -23,7 +23,7 @@ vi.mock(import('./system-info.ts'), () => ({
 	getSystemInfo: getSystemInfoMock,
 }));
 
-const {runCommand} = await import('./run.ts');
+const {createRerunFailedContext, runCommand, runCommandWithContext} = await import('./run.ts');
 
 const makeProblem = (name: string, category: string): Problem => ({
 	name,
@@ -35,9 +35,12 @@ const makeProblem = (name: string, category: string): Problem => ({
 
 describe('runCommand', () => {
 	let tempDir = '';
+	let originalCwd = '';
 
 	beforeEach(() => {
 		tempDir = mkdtempSync(join(tmpdir(), 'run-command-'));
+		originalCwd = process.cwd();
+		process.chdir(tempDir);
 		loadProblemsMock.mockReset();
 		executeProblemsMock.mockReset();
 		getSystemInfoMock.mockReset();
@@ -51,6 +54,7 @@ describe('runCommand', () => {
 	});
 
 	afterEach(() => {
+		process.chdir(originalCwd);
 		if (tempDir.length > 0) {
 			rmSync(tempDir, {recursive: true, force: true});
 		}
@@ -60,15 +64,16 @@ describe('runCommand', () => {
 		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic'), makeProblem('add', 'arithmetic')]);
 		executeProblemsMock.mockResolvedValue([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}]);
 
-		const output = join(tempDir, 'results.json');
+		const output = join(tempDir, 'results', 'test-model.json');
 		const runResult = await runCommand({
 			model: 'test-model',
 			debug: false,
+			compress: false,
+			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
-			output,
 			test: undefined,
 			category: 'logic',
 		});
@@ -81,6 +86,7 @@ describe('runCommand', () => {
 		expect(runResult.config.llmTimeoutSecs).toBe(90);
 		expect(runResult.config).toMatchObject({noCooldown: false});
 		expect(runResult.config.selectedCategories).toEqual(['logic']);
+		expect(runResult.outputPath.endsWith('/results/test-model.json')).toBe(true);
 
 		const content = parseResultsFile(readFileSync(output, 'utf8'));
 		expect(content.results).toEqual([expect.objectContaining({problem: 'fizzbuzz', passed: true})]);
@@ -92,16 +98,17 @@ describe('runCommand', () => {
 			{problem: 'fizzbuzz', category: 'logic', program: 'code', thinking: 'internal chain', passed: true, duration_ms: 5},
 		]);
 
-		const output = join(tempDir, 'results.json');
+		const output = join(tempDir, 'results', 'test-model.json');
 		await runCommand({
 			model: 'test-model',
 			debug: false,
+			compress: false,
+			overwriteResults: false,
 			storeThinking: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
-			output,
 			test: undefined,
 			category: 'logic',
 		});
@@ -116,11 +123,12 @@ describe('runCommand', () => {
 			runCommand({
 				model: 'test-model',
 				debug: false,
+				compress: false,
+				overwriteResults: false,
 				llmTimeoutSecs: '0',
 				vitestTimeoutSecs: '60',
 				noCooldown: false,
 				ollamaUrl: 'http://localhost:11434/v1',
-				output: join(tempDir, 'results.json'),
 				test: undefined,
 				category: undefined,
 			}),
@@ -130,35 +138,38 @@ describe('runCommand', () => {
 		expect(executeProblemsMock).not.toHaveBeenCalled();
 	});
 
-	test('writes compressed JSON when output is a directory', async () => {
+	test('writes compressed JSON when compression is enabled', async () => {
 		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic')]);
 		executeProblemsMock.mockResolvedValue([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}]);
 
 		const runResult = await runCommand({
 			model: 'test-model',
 			debug: true,
+			compress: true,
+			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
-			output: tempDir,
 			test: undefined,
 			category: 'logic',
 		});
 
-		expect(runResult.outputPath.endsWith('.json.gz')).toBe(true);
+		expect(runResult.outputPath.endsWith('/results/test-model.json.gz')).toBe(true);
 		const uncompressed = gunzipSync(readFileSync(runResult.outputPath)).toString('utf8');
 		const content = parseResultsFile(uncompressed);
 		expect(content.results).toEqual([expect.objectContaining({problem: 'fizzbuzz', passed: true})]);
 	});
 
-	test('resumes from matching open json in output directory', async () => {
+	test('resumes from matching open json for same model', async () => {
 		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic'), makeProblem('add', 'logic')]);
 
-		const openPath = join(tempDir, 'run_20260101-000000_test-model.json');
+		const openPath = join(tempDir, 'results', 'test-model.json');
+		mkdirSync(join(tempDir, 'results'), {recursive: true});
 		const resumedPayload = formatResultsFile([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}], {
 			model: 'test-model',
 			debug: false,
+			compress: true,
 			llmTimeoutSecs: 90,
 			vitestTimeoutSecs: 60,
 			noCooldown: false,
@@ -182,11 +193,12 @@ describe('runCommand', () => {
 		const runResult = await runCommand({
 			model: 'test-model',
 			debug: false,
+			compress: true,
+			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
-			output: tempDir,
 			test: undefined,
 			category: 'logic',
 		});
@@ -198,16 +210,18 @@ describe('runCommand', () => {
 				initialResults: [expect.objectContaining({problem: 'fizzbuzz'})],
 			}),
 		);
-		expect(runResult.outputPath).toBe(`${openPath}.gz`);
+		expect(runResult.outputPath.endsWith('/results/test-model.json.gz')).toBe(true);
 	});
 
-	test('logs fresh run reason when open run does not match scope', async () => {
+	test('throws before starting a fresh run when output file already exists', async () => {
 		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic')]);
 
-		const openPath = join(tempDir, 'run_20260101-000000_test-model.json');
+		const openPath = join(tempDir, 'results', 'test-model.json');
+		mkdirSync(join(tempDir, 'results'), {recursive: true});
 		const mismatchedPayload = formatResultsFile([{problem: 'other', category: 'logic', program: 'code', passed: true, duration_ms: 5}], {
 			model: 'test-model',
 			debug: false,
+			compress: false,
 			llmTimeoutSecs: 90,
 			vitestTimeoutSecs: 60,
 			ollamaUrl: 'http://localhost:11434/v1',
@@ -220,27 +234,144 @@ describe('runCommand', () => {
 			},
 		});
 		writeFileSync(openPath, `${JSON.stringify(mismatchedPayload, undefined, 2)}\n`, 'utf8');
+		await expect(
+			runCommand({
+				model: 'test-model',
+				debug: false,
+				compress: false,
+				overwriteResults: false,
+				llmTimeoutSecs: '90',
+				vitestTimeoutSecs: '60',
+				noCooldown: false,
+				ollamaUrl: 'http://localhost:11434/v1',
+				test: undefined,
+				category: 'logic',
+			}),
+		).rejects.toThrow('Refusing to overwrite existing results file');
+		expect(executeProblemsMock).not.toHaveBeenCalled();
+	});
+
+	test('allows a fresh run when overwrite flag is enabled', async () => {
+		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic')]);
+
+		const openPath = join(tempDir, 'results', 'test-model.json');
+		mkdirSync(join(tempDir, 'results'), {recursive: true});
+		const mismatchedPayload = formatResultsFile([{problem: 'other', category: 'logic', program: 'code', passed: true, duration_ms: 5}], {
+			model: 'test-model',
+			debug: false,
+			compress: false,
+			llmTimeoutSecs: 90,
+			vitestTimeoutSecs: 60,
+			ollamaUrl: 'http://localhost:11434/v1',
+		});
+		writeFileSync(openPath, `${JSON.stringify(mismatchedPayload, undefined, 2)}\n`, 'utf8');
 		executeProblemsMock.mockResolvedValue([{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: true, duration_ms: 5}]);
 
-		let loggedLines = 0;
-		const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
-			loggedLines += 1;
-		});
 		await runCommand({
 			model: 'test-model',
 			debug: false,
+			compress: false,
+			overwriteResults: true,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
-			output: tempDir,
 			test: undefined,
 			category: 'logic',
 		});
 
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Starting fresh run'));
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('open run files exist but latest candidate mismatched'));
-		expect(loggedLines).toBeGreaterThan(0);
-		logSpy.mockRestore();
+		expect(executeProblemsMock).toHaveBeenCalled();
+	});
+
+	test('creates rerun-failed context with only previously failed problems', () => {
+		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic'), makeProblem('add', 'logic')]);
+		const previousPayload = formatResultsFile(
+			[
+				{problem: 'fizzbuzz', category: 'logic', program: 'code', passed: false, error: 'boom', duration_ms: 5},
+				{problem: 'add', category: 'logic', program: 'code', passed: true, duration_ms: 6},
+			],
+			{
+				model: 'test-model',
+				debug: false,
+				compress: false,
+				llmTimeoutSecs: 90,
+				vitestTimeoutSecs: 60,
+				noCooldown: false,
+				ollamaUrl: 'http://localhost:11434/v1',
+			},
+		);
+		mkdirSync(join(tempDir, 'results'), {recursive: true});
+		writeFileSync(join(tempDir, 'results', 'test-model.json'), `${JSON.stringify(previousPayload, undefined, 2)}\n`, 'utf8');
+
+		const context = createRerunFailedContext({
+			model: 'test-model',
+			debug: false,
+			compress: false,
+			overwriteResults: false,
+			llmTimeoutSecs: '90',
+			vitestTimeoutSecs: '60',
+			noCooldown: false,
+			ollamaUrl: 'http://localhost:11434/v1',
+			test: undefined,
+			category: 'logic',
+		});
+
+		expect(context.problems.map((problem) => problem.name)).toEqual(['fizzbuzz']);
+	});
+
+	test('rerun-failed keeps previous passing results and replaces rerun failures', async () => {
+		loadProblemsMock.mockReturnValue([makeProblem('fizzbuzz', 'logic'), makeProblem('add', 'logic')]);
+		const previousPayload = formatResultsFile(
+			[
+				{problem: 'fizzbuzz', category: 'logic', program: 'old-code', passed: false, error: 'boom', duration_ms: 5},
+				{problem: 'add', category: 'logic', program: 'stable-code', passed: true, duration_ms: 6},
+			],
+			{
+				model: 'test-model',
+				debug: false,
+				compress: false,
+				llmTimeoutSecs: 90,
+				vitestTimeoutSecs: 60,
+				noCooldown: false,
+				ollamaUrl: 'http://localhost:11434/v1',
+			},
+		);
+		mkdirSync(join(tempDir, 'results'), {recursive: true});
+		const outputPath = join(tempDir, 'results', 'test-model.json');
+		writeFileSync(outputPath, `${JSON.stringify(previousPayload, undefined, 2)}\n`, 'utf8');
+
+		executeProblemsMock.mockResolvedValue([
+			{problem: 'add', category: 'logic', program: 'stable-code', passed: true, duration_ms: 6},
+			{problem: 'fizzbuzz', category: 'logic', program: 'new-code', passed: true, duration_ms: 7},
+		]);
+
+		const context = createRerunFailedContext({
+			model: 'test-model',
+			debug: false,
+			compress: false,
+			overwriteResults: false,
+			llmTimeoutSecs: '90',
+			vitestTimeoutSecs: '60',
+			noCooldown: false,
+			ollamaUrl: 'http://localhost:11434/v1',
+			test: undefined,
+			category: 'logic',
+		});
+
+		await runCommandWithContext(context);
+
+		expect(executeProblemsMock).toHaveBeenCalledWith(
+			expect.any(Array),
+			expect.any(Object),
+			expect.objectContaining({
+				initialResults: [expect.objectContaining({problem: 'add'})],
+			}),
+		);
+
+		const content = parseResultsFile(readFileSync(outputPath, 'utf8'));
+		expect(content.results).toEqual([
+			expect.objectContaining({problem: 'add', program: 'stable-code', passed: true}),
+			expect.objectContaining({problem: 'fizzbuzz', program: 'new-code', passed: true}),
+		]);
 	});
 });

@@ -54,6 +54,8 @@ export type RuntimeConfig = {
 	model: string;
 	debug: boolean;
 	storeThinking?: boolean;
+	compress?: boolean;
+	overwriteResults?: boolean;
 	llmTimeoutSecs: number;
 	vitestTimeoutSecs: number;
 	noCooldown?: boolean;

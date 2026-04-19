@@ -14,6 +14,7 @@ import {type RunTransferStats} from './run-transfer.ts';
 import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
 import {solveProblem} from './solveProblem.ts';
 import {type Problem, type Result} from './types.ts';
+import {DEFAULT_MAX_COOLDOWN_MS, DEFAULT_MIN_COOLDOWN_MS, DEFAULT_COOLDOWN_RATIO} from './config.ts';
 
 export type ExecuteRunOptions = {
 	model: string;
@@ -27,17 +28,13 @@ export type ExecuteRunOptions = {
 	oauthToken?: string;
 };
 
-const MAX_COOLDOWN_MS = 60_000;
-const MIN_COOLDOWN_MS = 10_000;
-const COOLDOWN_RATIO = 0.5;
-
 const estimateCooldownDurationMs = (durationMs: number, noCooldown: boolean): number => {
-	const dynamicCooldownDurationMs = Math.min(MAX_COOLDOWN_MS, Math.floor(durationMs * COOLDOWN_RATIO));
+	const dynamicCooldownDurationMs = Math.min(DEFAULT_MAX_COOLDOWN_MS, Math.floor(durationMs * DEFAULT_COOLDOWN_RATIO));
 	if (noCooldown || dynamicCooldownDurationMs <= 0) {
 		return 0;
 	}
 
-	return Math.max(MIN_COOLDOWN_MS, dynamicCooldownDurationMs);
+	return Math.max(DEFAULT_MIN_COOLDOWN_MS, dynamicCooldownDurationMs);
 };
 
 const classifyFailureKind = (error: string | undefined): 'timeout' | 'vitest' | 'other' => {

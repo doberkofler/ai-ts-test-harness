@@ -2,7 +2,7 @@ import {createCliProgram, registerGlobalCliOptions, normalizeCliOpts} from './cl
 import {toReportCommandOptions, toRunCommandOptions, toValidateCommandOptions} from './command-options.ts';
 import {printRuntimeConfig} from './print-runtime-config.ts';
 import {reportCommand} from './report.ts';
-import {createRunContext, runCommandWithContext} from './run.ts';
+import {createRerunFailedContext, createRunContext, runCommandWithContext} from './run.ts';
 import {validateCommand} from './validate.ts';
 
 const main = async (): Promise<void> => {
@@ -41,7 +41,7 @@ const main = async (): Promise<void> => {
 
 	program
 		.command('report')
-		.description('Generate reports')
+		.description('Generate report from latest model results')
 		.action(() => {
 			commandExecuted = true;
 			const opts = normalizeCliOpts(program.optsWithGlobals());
@@ -50,6 +50,21 @@ const main = async (): Promise<void> => {
 			}
 
 			reportCommand(toReportCommandOptions(opts));
+		});
+
+	program
+		.command('rerun-failed')
+		.description('Re-run only problems that failed in previous run for this model')
+		.action(async () => {
+			commandExecuted = true;
+			const opts = normalizeCliOpts(program.optsWithGlobals());
+			if (typeof opts === 'undefined') {
+				throw new TypeError('Invalid CLI options');
+			}
+
+			const runContext = createRerunFailedContext(toRunCommandOptions(opts));
+			printRuntimeConfig(runContext.problems, runContext.runtimeConfig);
+			await runCommandWithContext(runContext);
 		});
 
 	program.action(async () => {

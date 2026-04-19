@@ -7,13 +7,14 @@ export const toRunCommandOptions = (opts: CliOpts): RunCommandOptions => ({
 	model: opts.model,
 	debug: opts.debug,
 	storeThinking: opts.storeThinking ?? true,
+	compress: opts.compress,
+	overwriteResults: opts.overwriteResults,
 	llmTimeoutSecs: opts.llmTimeoutSecs,
 	vitestTimeoutSecs: opts.vitestTimeoutSecs,
 	noCooldown: opts.noCooldown,
 	ollamaUrl: opts.ollamaUrl,
 	...(typeof opts.apiKey === 'string' ? {apiKey: opts.apiKey} : {}),
 	...(typeof opts.oauthToken === 'string' ? {oauthToken: opts.oauthToken} : {}),
-	output: opts.output,
 	test: opts.test,
 	category: opts.category,
 });
@@ -25,6 +26,6 @@ export const toValidateCommandOptions = (opts: CliOpts): ValidateCommandOptions 
 });
 
 export const toReportCommandOptions = (opts: CliOpts): ReportCommandOptions => ({
-	output: opts.output,
+	model: opts.model,
 	htmlOutput: opts.htmlOutput,
 });

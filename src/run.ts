@@ -1,6 +1,7 @@
-import {mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync} from 'node:fs';
+import {mkdirSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {join, resolve} from 'node:path';
-import {gzipSync} from 'node:zlib';
+import {gunzipSync, gzipSync} from 'node:zlib';
+import {DEFAULT_RESULTS_DIR} from './config.ts';
 import {loadProblems} from './load-problems.ts';
 import {parseCategoryFilter, selectProblems, selectProblemsByFilters} from './core/problem-selection.ts';
 import {executeProblems, type ExecuteRunOptions} from './run-execution.ts';
@@ -16,10 +17,13 @@ export {formatResultsFile};
 const AUTO_RESUME_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export type RunContext = {
+	mode: 'run' | 'rerun-failed';
 	parsedOptions: ParsedRunCommandOptions;
 	problems: Problem[];
 	runtimeConfig: RuntimeConfig;
 	executeOptions: ExecuteRunOptions;
+	previousResultsPath?: string;
+	baselineResults?: Result[];
 };
 
 type RunOutputTargets = {
@@ -29,25 +33,21 @@ type RunOutputTargets = {
 	resumeReason: string;
 };
 
-const isResultsOutputFilePath = (value: string): boolean => {
-	const lowerCased = value.toLowerCase();
-	return lowerCased.endsWith('.json') || lowerCased.endsWith('.json.gz');
+type PreviousModelResults = {
+	path: string;
+	payload: ResultsFile;
 };
 
-const isOpenResultsFilePath = (value: string): boolean => value.toLowerCase().endsWith('.json') && !value.toLowerCase().endsWith('.json.gz');
+const getResultsDirectory = (): string => resolve(DEFAULT_RESULTS_DIR);
 
-const getTimestampString = (timestampMs = Date.now()): string => {
-	const now = new Date(timestampMs);
-	const yyyy = now.getFullYear();
-	const mm = String(now.getMonth() + 1).padStart(2, '0');
-	const dd = String(now.getDate()).padStart(2, '0');
-	const hh = String(now.getHours()).padStart(2, '0');
-	const min = String(now.getMinutes()).padStart(2, '0');
-	const ss = String(now.getSeconds()).padStart(2, '0');
-	return `${yyyy}${mm}${dd}-${hh}${min}${ss}`;
+const toSafeModelName = (model: string): string => model.replaceAll(/[^a-z0-9.-]/gi, '_');
+
+const isCompressedResultsPath = (value: string): boolean => value.toLowerCase().endsWith('.json.gz');
+
+const readResultsPayload = (pathValue: string): ResultsFile => {
+	const content = isCompressedResultsPath(pathValue) ? gunzipSync(readFileSync(pathValue)).toString('utf8') : readFileSync(pathValue, 'utf8');
+	return parseResultsFile(content);
 };
-
-const readResultsPayload = (pathValue: string): ResultsFile => parseResultsFile(readFileSync(pathValue, 'utf8'));
 
 const safeStat = (pathValue: string): ReturnType<typeof statSync> | undefined => {
 	try {
@@ -55,6 +55,70 @@ const safeStat = (pathValue: string): ReturnType<typeof statSync> | undefined =>
 	} catch {
 		return undefined;
 	}
+};
+
+const getModelResultPaths = (
+	outputDirectory: string,
+	model: string,
+	compress: boolean,
+): {
+	openOutputPath: string;
+	finalOutputPath: string;
+	jsonPath: string;
+	gzPath: string;
+} => {
+	const jsonPath = resolve(join(outputDirectory, `${toSafeModelName(model)}.json`));
+	return {
+		openOutputPath: jsonPath,
+		finalOutputPath: compress ? `${jsonPath}.gz` : jsonPath,
+		jsonPath,
+		gzPath: `${jsonPath}.gz`,
+	};
+};
+
+const findLatestModelResultsPath = (outputDirectory: string, model: string): string | undefined => {
+	const paths = getModelResultPaths(outputDirectory, model, false);
+	const candidates = [paths.jsonPath, paths.gzPath]
+		.map((pathValue) => ({path: pathValue, stats: safeStat(pathValue)}))
+		.filter((candidate): candidate is {path: string; stats: NonNullable<ReturnType<typeof safeStat>>} => {
+			const {stats} = candidate;
+			if (typeof stats === 'undefined') {
+				return false;
+			}
+			return stats.isFile();
+		})
+		.sort((left, right) => Number(right.stats.mtimeMs) - Number(left.stats.mtimeMs));
+
+	const [latest] = candidates;
+	if (typeof latest === 'undefined') {
+		return undefined;
+	}
+	return latest.path;
+};
+
+const loadLatestModelResults = (outputDirectory: string, model: string): PreviousModelResults | undefined => {
+	const latestModelResultsPath = findLatestModelResultsPath(outputDirectory, model);
+	if (typeof latestModelResultsPath === 'undefined') {
+		return undefined;
+	}
+
+	return {
+		path: latestModelResultsPath,
+		payload: readResultsPayload(latestModelResultsPath),
+	};
+};
+
+const shouldBlockFreshOverwrite = (outputPath: string, overwriteResults: boolean): boolean => {
+	if (overwriteResults) {
+		return false;
+	}
+
+	const stats = safeStat(outputPath);
+	if (typeof stats === 'undefined') {
+		return false;
+	}
+
+	return stats.isFile();
 };
 
 const areStringArraysEqual = (left: readonly string[] | undefined, right: readonly string[] | undefined): boolean => {
@@ -117,155 +181,101 @@ const evaluateResumeCandidate = (
 	return {resumable: true, reason: `resuming with ${completedCount}/${plannedProblemNames.length} completed`};
 };
 
-const findResumableOpenResults = (
-	outputDirectory: string,
+const resolveOutputTargets = (
 	config: RuntimeConfig,
 	plannedProblemNames: readonly string[],
 	nowMs: number,
-): {path: string; results: Result[]; mismatchReason?: string; mismatchPath?: string} | undefined => {
-	const entries: {path: string; mtimeMs: number}[] = [];
-	for (const entry of readdirSync(outputDirectory)) {
-		if (!isOpenResultsFilePath(entry)) {
-			continue;
-		}
-		const entryPath = resolve(join(outputDirectory, entry));
-		const entryStats = safeStat(entryPath);
-		if (typeof entryStats === 'undefined' || !entryStats.isFile()) {
-			continue;
-		}
-		entries.push({path: entryPath, mtimeMs: Number(entryStats.mtimeMs)});
-	}
-	entries.sort((left, right) => right.mtimeMs - left.mtimeMs);
+	options: {preferredExistingPath?: string} = {},
+): RunOutputTargets => {
+	const outputDirectory = getResultsDirectory();
+	mkdirSync(outputDirectory, {recursive: true});
+	const modelPaths = getModelResultPaths(outputDirectory, config.model, config.compress === true);
+	const latestModelResultsPath = options.preferredExistingPath ?? findLatestModelResultsPath(outputDirectory, config.model);
 
-	let latestMismatchReason: string | undefined;
-	let latestMismatchPath: string | undefined;
-
-	for (const entry of entries) {
-		try {
-			const payload = readResultsPayload(entry.path);
-			const candidate = evaluateResumeCandidate(payload, config, plannedProblemNames, nowMs);
-			if (!candidate.resumable) {
-				if (typeof latestMismatchReason === 'undefined') {
-					latestMismatchReason = candidate.reason;
-					latestMismatchPath = entry.path;
-				}
-				continue;
-			}
-			return {path: entry.path, results: payload.results};
-		} catch {
-			if (typeof latestMismatchReason === 'undefined') {
-				latestMismatchReason = 'open run file is invalid JSON';
-				latestMismatchPath = entry.path;
-			}
-			continue;
+	if (typeof latestModelResultsPath === 'undefined') {
+		if (
+			shouldBlockFreshOverwrite(modelPaths.openOutputPath, config.overwriteResults === true) ||
+			shouldBlockFreshOverwrite(modelPaths.finalOutputPath, config.overwriteResults === true)
+		) {
+			throw new TypeError(`Refusing to overwrite existing results file. Re-run with --overwrite-results to replace ${modelPaths.finalOutputPath}`);
 		}
-	}
 
-	if (typeof latestMismatchReason === 'string') {
 		return {
-			path: '',
-			results: [],
-			mismatchReason: latestMismatchReason,
-			...(typeof latestMismatchPath === 'string' ? {mismatchPath: latestMismatchPath} : {}),
+			openOutputPath: modelPaths.openOutputPath,
+			finalOutputPath: modelPaths.finalOutputPath,
+			resumedResults: [],
+			resumeReason: 'no previous run file found for model',
 		};
 	}
 
-	return undefined;
+	let payload: ResultsFile;
+	try {
+		payload = readResultsPayload(latestModelResultsPath);
+	} catch {
+		return {
+			openOutputPath: modelPaths.openOutputPath,
+			finalOutputPath: modelPaths.finalOutputPath,
+			resumedResults: [],
+			resumeReason: `previous run file is invalid JSON: ${latestModelResultsPath}`,
+		};
+	}
+
+	const candidate = evaluateResumeCandidate(payload, config, plannedProblemNames, nowMs);
+	if (!candidate.resumable) {
+		if (typeof options.preferredExistingPath === 'string') {
+			const openOutputPath = isCompressedResultsPath(latestModelResultsPath) ? latestModelResultsPath.slice(0, -'.gz'.length) : latestModelResultsPath;
+			const finalOutputPath = config.compress === true ? `${openOutputPath}.gz` : openOutputPath;
+			return {
+				openOutputPath,
+				finalOutputPath,
+				resumedResults: [],
+				resumeReason: `${candidate.reason} (${latestModelResultsPath})`,
+			};
+		}
+
+		if (
+			shouldBlockFreshOverwrite(modelPaths.openOutputPath, config.overwriteResults === true) ||
+			shouldBlockFreshOverwrite(modelPaths.finalOutputPath, config.overwriteResults === true)
+		) {
+			throw new TypeError(`Refusing to overwrite existing results file. Re-run with --overwrite-results to replace ${modelPaths.finalOutputPath}`);
+		}
+
+		return {
+			openOutputPath: modelPaths.openOutputPath,
+			finalOutputPath: modelPaths.finalOutputPath,
+			resumedResults: [],
+			resumeReason: `${candidate.reason} (${latestModelResultsPath})`,
+		};
+	}
+
+	const openOutputPath = isCompressedResultsPath(latestModelResultsPath) ? latestModelResultsPath.slice(0, -'.gz'.length) : latestModelResultsPath;
+	const finalOutputPath = config.compress === true ? `${openOutputPath}.gz` : openOutputPath;
+	const completedCount = uniqueCompletedProblemNames(payload.results, plannedProblemNames).length;
+	return {
+		openOutputPath,
+		finalOutputPath,
+		resumedResults: payload.results,
+		resumeReason: `resuming with ${completedCount}/${plannedProblemNames.length} completed`,
+	};
 };
 
-const resolveOutputTargets = (output: string, config: RuntimeConfig, plannedProblemNames: readonly string[], nowMs: number): RunOutputTargets => {
-	if (!isResultsOutputFilePath(output)) {
-		mkdirSync(output, {recursive: true});
-		const openFiles = readdirSync(output).filter((entry) => isOpenResultsFilePath(entry));
-		if (openFiles.length === 0) {
-			const safeModelName = config.model.replaceAll(/[^a-z0-9.-]/gi, '_');
-			const runBasePath = resolve(join(output, `run_${getTimestampString(nowMs)}_${safeModelName}`));
-			return {
-				openOutputPath: `${runBasePath}.json`,
-				finalOutputPath: `${runBasePath}.json.gz`,
-				resumedResults: [],
-				resumeReason: 'no open run file found',
-			};
-		}
-
-		const resumeCandidate = findResumableOpenResults(output, config, plannedProblemNames, nowMs);
-		if (typeof resumeCandidate !== 'undefined') {
-			if (resumeCandidate.path.length === 0) {
-				const safeModelName = config.model.replaceAll(/[^a-z0-9.-]/gi, '_');
-				const runBasePath = resolve(join(output, `run_${getTimestampString(nowMs)}_${safeModelName}`));
-				const mismatchSource = typeof resumeCandidate.mismatchPath === 'string' ? ` in ${resumeCandidate.mismatchPath}` : '';
-				return {
-					openOutputPath: `${runBasePath}.json`,
-					finalOutputPath: `${runBasePath}.json.gz`,
-					resumedResults: [],
-					resumeReason: `open run files exist but latest candidate mismatched${mismatchSource}: ${resumeCandidate.mismatchReason ?? 'unknown reason'}`,
-				};
-			}
-			const completedCount = uniqueCompletedProblemNames(resumeCandidate.results, plannedProblemNames).length;
-			return {
-				openOutputPath: resumeCandidate.path,
-				finalOutputPath: `${resumeCandidate.path}.gz`,
-				resumedResults: resumeCandidate.results,
-				resumeReason: `resuming with ${completedCount}/${plannedProblemNames.length} completed`,
-			};
-		}
-
-		const safeModelName = config.model.replaceAll(/[^a-z0-9.-]/gi, '_');
-		const runBasePath = resolve(join(output, `run_${getTimestampString(nowMs)}_${safeModelName}`));
-		return {
-			openOutputPath: `${runBasePath}.json`,
-			finalOutputPath: `${runBasePath}.json.gz`,
-			resumedResults: [],
-			resumeReason: 'open run files exist but none match current model/config/system/scope',
-		};
+const collectFailedProblemNamesFromPreviousRun = (model: string): Set<string> => {
+	const outputDirectory = getResultsDirectory();
+	mkdirSync(outputDirectory, {recursive: true});
+	const previousResults = loadLatestModelResults(outputDirectory, model);
+	if (typeof previousResults === 'undefined') {
+		throw new TypeError(`No previous results file found for model ${model} in ${outputDirectory}`);
 	}
 
-	const resolvedOutputPath = resolve(output);
-	const dir = resolve(resolvedOutputPath, '..');
-	mkdirSync(dir, {recursive: true});
-
-	if (resolvedOutputPath.toLowerCase().endsWith('.json')) {
-		const fileStats = safeStat(resolvedOutputPath);
-		// eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-		if ((fileStats && fileStats.isFile()) === true) {
-			try {
-				const payload = readResultsPayload(resolvedOutputPath);
-				const candidate = evaluateResumeCandidate(payload, config, plannedProblemNames, nowMs);
-				if (candidate.resumable) {
-					return {openOutputPath: resolvedOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: payload.results, resumeReason: candidate.reason};
-				}
-				return {openOutputPath: resolvedOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: candidate.reason};
-			} catch {
-				return {openOutputPath: resolvedOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: 'open run file is invalid JSON'};
-			}
-		}
-
-		return {openOutputPath: resolvedOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: 'open run file does not exist yet'};
-	}
-
-	const openOutputPath = resolvedOutputPath.slice(0, -'.gz'.length);
-	const openStats = safeStat(openOutputPath);
-	// eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-	if ((openStats && openStats.isFile()) === true) {
-		try {
-			const payload = readResultsPayload(openOutputPath);
-			const candidate = evaluateResumeCandidate(payload, config, plannedProblemNames, nowMs);
-			if (candidate.resumable) {
-				return {openOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: payload.results, resumeReason: candidate.reason};
-			}
-			return {openOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: candidate.reason};
-		} catch {
-			return {openOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: 'open run file is invalid JSON'};
-		}
-	}
-
-	return {openOutputPath, finalOutputPath: resolvedOutputPath, resumedResults: [], resumeReason: 'open run file not found'};
+	return new Set(previousResults.payload.results.filter((result) => !result.passed).map((result) => result.problem));
 };
 
 export const buildRuntimeConfig = (parsedOptions: ParsedRunCommandOptions, selectedCategories: string[] | undefined): RuntimeConfig => ({
 	model: parsedOptions.model,
 	debug: parsedOptions.debug,
 	storeThinking: parsedOptions.storeThinking,
+	compress: parsedOptions.compress,
+	overwriteResults: parsedOptions.overwriteResults,
 	llmTimeoutSecs: parsedOptions.llmTimeoutSecs,
 	vitestTimeoutSecs: parsedOptions.vitestTimeoutSecs,
 	noCooldown: parsedOptions.noCooldown,
@@ -308,10 +318,34 @@ export const createRunContext = (options: RunCommandOptions): RunContext => {
 	const executeOptions = buildExecuteRunOptions(parsedOptions);
 
 	return {
+		mode: 'run',
 		parsedOptions,
 		problems,
 		runtimeConfig,
 		executeOptions,
+	};
+};
+
+export const createRerunFailedContext = (options: RunCommandOptions): RunContext => {
+	const context = createRunContext(options);
+	const outputDirectory = getResultsDirectory();
+	mkdirSync(outputDirectory, {recursive: true});
+	const previousResults = loadLatestModelResults(outputDirectory, context.runtimeConfig.model);
+	if (typeof previousResults === 'undefined') {
+		throw new TypeError(`No previous results file found for model ${context.runtimeConfig.model} in ${outputDirectory}`);
+	}
+	const failedProblemNames = collectFailedProblemNamesFromPreviousRun(context.runtimeConfig.model);
+	const failedProblems = context.problems.filter((problem) => failedProblemNames.has(problem.name));
+	if (failedProblems.length === 0) {
+		throw new TypeError('No previously failed problems matched the current filter scope');
+	}
+
+	return {
+		...context,
+		mode: 'rerun-failed',
+		problems: failedProblems,
+		previousResultsPath: previousResults.path,
+		baselineResults: previousResults.payload.results,
 	};
 };
 
@@ -320,18 +354,30 @@ export const runCommandWithContext = async (context: RunContext): Promise<{resul
 	context.runtimeConfig.systemInfo = await getSystemInfo();
 
 	const plannedProblemNames = context.problems.map((problem) => problem.name);
-	const outputTargets = resolveOutputTargets(context.parsedOptions.output, context.runtimeConfig, plannedProblemNames, nowMs);
+	const rerunOutputOptions = typeof context.previousResultsPath === 'string' ? {preferredExistingPath: context.previousResultsPath} : undefined;
+	const outputTargets =
+		context.mode === 'rerun-failed'
+			? resolveOutputTargets(context.runtimeConfig, plannedProblemNames, nowMs, rerunOutputOptions)
+			: resolveOutputTargets(context.runtimeConfig, plannedProblemNames, nowMs);
 
-	if (outputTargets.resumedResults.length > 0) {
-		console.log(`Resuming open run from ${outputTargets.openOutputPath} (${outputTargets.resumeReason})`);
-	} else {
-		console.log(`Starting fresh run (${outputTargets.resumeReason})`);
-	}
+	const initialResults =
+		context.mode === 'rerun-failed' && Array.isArray(context.baselineResults)
+			? context.baselineResults.filter((result) => !plannedProblemNames.includes(result.problem))
+			: outputTargets.resumedResults;
 
-	writeResultsFile(outputTargets.resumedResults, outputTargets.openOutputPath, context.runtimeConfig);
+	const startMessage =
+		context.mode === 'rerun-failed'
+			? `Updating existing run from ${outputTargets.openOutputPath} (re-running ${plannedProblemNames.length} previously failed problem${plannedProblemNames.length === 1 ? '' : 's'})`
+			: outputTargets.resumedResults.length > 0
+				? `Resuming open run from ${outputTargets.openOutputPath} (${outputTargets.resumeReason})`
+				: `Starting fresh run (${outputTargets.resumeReason})`;
+
+	console.log(startMessage);
+
+	writeResultsFile(initialResults, outputTargets.openOutputPath, context.runtimeConfig);
 
 	const results = await executeProblems(context.problems, context.executeOptions, {
-		initialResults: outputTargets.resumedResults,
+		initialResults,
 		onProblemComplete: (currentResults) => {
 			writeResultsFile(currentResults, outputTargets.openOutputPath, context.runtimeConfig);
 		},
@@ -343,7 +389,7 @@ export const runCommandWithContext = async (context: RunContext): Promise<{resul
 	}
 
 	console.log(`Saved JSON results to ${outputPath}`);
-	reportCommand({output: outputPath, htmlOutput: undefined});
+	reportCommand({model: context.runtimeConfig.model, htmlOutput: undefined});
 
 	return {results, outputPath, config: context.runtimeConfig};
 };

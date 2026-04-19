@@ -7,17 +7,19 @@ describe('normalizeCliOpts', () => {
 		const normalized = normalizeCliOpts({
 			model: 'test-model',
 			debug: true,
+			compress: true,
 			llmTimeout: '75',
 			vitestTimeout: '90',
 			cooldown: true,
 			ollamaUrl: 'http://localhost:11434/v1',
-			output: 'results.json',
 		});
 
 		expect(normalized).toEqual({
 			model: 'test-model',
 			debug: true,
 			storeThinking: true,
+			compress: true,
+			overwriteResults: false,
 			llmTimeout: '75',
 			vitestTimeout: '90',
 			cooldown: true,
@@ -25,7 +27,6 @@ describe('normalizeCliOpts', () => {
 			vitestTimeoutSecs: '90',
 			noCooldown: false,
 			ollamaUrl: 'http://localhost:11434/v1',
-			output: 'results.json',
 		});
 	});
 
@@ -40,12 +41,13 @@ describe('command option mappers', () => {
 			model: 'model-a',
 			debug: false,
 			storeThinking: false,
+			compress: true,
+			overwriteResults: true,
 			llmTimeoutSecs: '120',
 			vitestTimeoutSecs: '60',
 			noCooldown: true,
 			ollamaUrl: 'http://localhost:11434/v1',
 			apiKey: 'secret',
-			output: 'results.json',
 			htmlOutput: 'results.html',
 			test: 'fizzbuzz',
 			category: 'logic',
@@ -55,12 +57,13 @@ describe('command option mappers', () => {
 			model: 'model-a',
 			debug: false,
 			storeThinking: false,
+			compress: true,
+			overwriteResults: true,
 			llmTimeoutSecs: '120',
 			vitestTimeoutSecs: '60',
 			noCooldown: true,
 			ollamaUrl: 'http://localhost:11434/v1',
 			apiKey: 'secret',
-			output: 'results.json',
 			test: 'fizzbuzz',
 			category: 'logic',
 		});
@@ -72,7 +75,7 @@ describe('command option mappers', () => {
 		});
 
 		expect(toReportCommandOptions(opts)).toEqual({
-			output: 'results.json',
+			model: 'model-a',
 			htmlOutput: 'results.html',
 		});
 	});

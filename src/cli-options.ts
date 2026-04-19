@@ -5,13 +5,14 @@ export type CliOpts = {
 	model: string;
 	debug: boolean;
 	storeThinking?: boolean;
+	compress: boolean;
+	overwriteResults: boolean;
 	llmTimeoutSecs: string;
 	vitestTimeoutSecs: string;
 	noCooldown: boolean;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;
-	output: string;
 	htmlOutput?: string;
 	test?: string;
 	category?: string;
@@ -28,20 +29,22 @@ const isCliOpts = (data: unknown): data is CliOpts =>
 	'vitestTimeoutSecs' in data &&
 	'noCooldown' in data &&
 	'ollamaUrl' in data &&
-	'output' in data;
+	'compress' in data &&
+	'overwriteResults' in data;
 
 export const registerGlobalCliOptions = (program: Command): void => {
 	program.option('--model <model>', 'Model to use', DEFAULT_MODEL);
 	program.option('--debug', 'Print LLM request/response for each problem', false);
 	program.option('--no-store-thinking', 'Do not persist model thinking/reasoning in result files');
+	program.option('--compress', 'Compress result JSON files as .json.gz', false);
+	program.option('--overwrite-results', 'Allow replacing an existing results file when a fresh run starts', false);
 	program.option('--llm-timeout <seconds>', 'LLM response timeout in seconds', String(DEFAULT_LLM_TIMEOUT_SECS));
 	program.option('--vitest-timeout <seconds>', 'Vitest per-test timeout in seconds', String(DEFAULT_VITEST_TIMEOUT_SECS));
 	program.option('--no-cooldown', 'Disable cooldown between problems');
 	program.option('--ollama-url <url>', 'Ollama-compatible API base URL', DEFAULT_OLLAMA_URL);
 	program.option('--api-key <key>', 'API key for cloud model authorization');
 	program.option('--oauth-token <token>', 'OAuth token for cloud model authorization');
-	program.option('--output <path>', 'Directory to write results to, or file/directory to read from', 'results');
-	program.option('--html-output <file>', 'Write an HTML report file (defaults to output path with .html extension)');
+	program.option('--html-output <file>', 'Write an HTML report file (defaults to result path with .html extension)');
 	program.option('--test <name>', 'Run a specific test by exact problem name');
 	program.option('--category <list>', 'Run only categories from a comma-separated list (for example, algorithms,refactor)');
 };
@@ -55,10 +58,14 @@ export const normalizeCliOpts = (data: unknown): CliOpts | undefined => {
 	const vitestTimeoutValue: unknown = Reflect.get(data, 'vitestTimeout');
 	const cooldownValue: unknown = Reflect.get(data, 'cooldown');
 	const storeThinkingValue: unknown = Reflect.get(data, 'storeThinking');
+	const compressValue: unknown = Reflect.get(data, 'compress');
+	const overwriteResultsValue: unknown = Reflect.get(data, 'overwriteResults');
 	const noCooldown = cooldownValue === false;
 	const normalized = {
 		...data,
 		storeThinking: typeof storeThinkingValue === 'boolean' ? storeThinkingValue : true,
+		compress: typeof compressValue === 'boolean' ? compressValue : false,
+		overwriteResults: typeof overwriteResultsValue === 'boolean' ? overwriteResultsValue : false,
 		llmTimeoutSecs: llmTimeoutValue,
 		vitestTimeoutSecs: vitestTimeoutValue,
 		noCooldown,

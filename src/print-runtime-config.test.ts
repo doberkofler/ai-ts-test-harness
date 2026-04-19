@@ -32,6 +32,7 @@ describe('printRuntimeConfig', () => {
 		expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^Auth:\s+api-key$/));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^Cooldown:\s+50% task duration \(min 10s, max 1m\)$/));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^Thinking:\s+stored$/));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^Results file:\s+model-a\.json$/));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^Categories:\s+logic$/));
 		expect(loggedLines).toBeGreaterThan(0);
 		logSpy.mockRestore();
