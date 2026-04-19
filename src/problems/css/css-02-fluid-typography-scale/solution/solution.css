@@ -1,0 +1,20 @@
+:root {
+	--fluid-min: 20rem;
+	--fluid-max: 90rem;
+
+	--text-xs: clamp(0.64rem, calc(0.64rem + (0.72rem - 0.64rem) * ((100vw - var(--fluid-min)) / (var(--fluid-max) - var(--fluid-min)))), 0.72rem);
+	--text-sm: clamp(0.8rem, calc(0.8rem + (0.9rem - 0.8rem) * ((100vw - var(--fluid-min)) / (var(--fluid-max) - var(--fluid-min)))), 0.9rem);
+	--text-base: clamp(1rem, calc(1rem + (1.125rem - 1rem) * ((100vw - var(--fluid-min)) / (var(--fluid-max) - var(--fluid-min)))), 1.125rem);
+	--text-lg: clamp(1.25rem, calc(1.25rem + (1.406rem - 1.25rem) * ((100vw - var(--fluid-min)) / (var(--fluid-max) - var(--fluid-min)))), 1.406rem);
+	--text-xl: clamp(1.563rem, calc(1.563rem + (1.758rem - 1.563rem) * ((100vw - var(--fluid-min)) / (var(--fluid-max) - var(--fluid-min)))), 1.758rem);
+	--text-2xl: clamp(1.953rem, calc(1.953rem + (2.197rem - 1.953rem) * ((100vw - var(--fluid-min)) / (var(--fluid-max) - var(--fluid-min)))), 2.197rem);
+	--text-3xl: clamp(2.441rem, calc(2.441rem + (2.746rem - 2.441rem) * ((100vw - var(--fluid-min)) / (var(--fluid-max) - var(--fluid-min)))), 2.746rem);
+}
+
+.text-xs { font-size: var(--text-xs); }
+.text-sm { font-size: var(--text-sm); }
+.text-base { font-size: var(--text-base); }
+.text-lg { font-size: var(--text-lg); }
+.text-xl { font-size: var(--text-xl); }
+.text-2xl { font-size: var(--text-2xl); }
+.text-3xl { font-size: var(--text-3xl); }

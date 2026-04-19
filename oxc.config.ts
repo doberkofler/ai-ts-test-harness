@@ -4,9 +4,7 @@ import {configs as regexpConfigs} from 'eslint-plugin-regexp';
 /** Filter out core ESLint rules bundled into eslint-plugin-regexp recommended config */
 const regexpPluginRules = Object.fromEntries(Object.entries(regexpConfigs.recommended.rules).filter(([key]) => key.startsWith('regexp/')));
 
-const commonIgnore = ['**/.*', 'node_modules/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**', 'public/**', 'src/problems/**', '**/*.md', '**/*.json'];
-
-const fixtureSourceIgnore = ['src/problems/**'];
+const commonIgnore = ['**/.*', 'node_modules/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**', 'public/**', '**/*.md', '**/*.json'];
 
 export const linter = defineConfig({
 	options: {
@@ -159,12 +157,6 @@ export const linter = defineConfig({
 				'typescript/no-unsafe-member-access': 'off',
 			},
 		},
-		{
-			files: ['tests/e2e/**/*.e2e-test.ts', '**/*.e2e-test.ts'],
-			rules: {
-				'vitest/prefer-importing-vitest-globals': 'off',
-			},
-		},
 	],
 	settings: {
 		'jsx-a11y': {
@@ -199,7 +191,7 @@ export const linter = defineConfig({
 		node: true,
 	},
 	globals: {},
-	ignorePatterns: [...commonIgnore, ...fixtureSourceIgnore],
+	ignorePatterns: [...commonIgnore, 'src/problems/**', 'src/problems.prepare/**'],
 });
 
 export const formatter = {
@@ -208,7 +200,7 @@ export const formatter = {
 	useTabs: true,
 	singleQuote: true,
 	bracketSpacing: false,
-	ignorePatterns: commonIgnore,
+	ignorePatterns: [...commonIgnore, 'src/problems/**', 'src/problems.prepare/**'],
 	overrides: [
 		{
 			files: ['src/**/*.{scss,css}'],

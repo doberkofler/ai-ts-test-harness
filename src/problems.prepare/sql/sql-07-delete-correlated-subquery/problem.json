@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Delete orders where status is pending, created more than 90 days ago, and the customer has more than 10 total orders.\nUse a correlated subquery.",
+  "timeout_ms": 5000
+}

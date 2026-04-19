@@ -1,0 +1,36 @@
+.layout {
+	display: grid;
+	grid-template-columns: 260px minmax(0, 1fr);
+	gap: 1.5rem;
+	align-items: start;
+}
+
+.layout > aside,
+.layout__sidebar {
+	width: 260px;
+	position: sticky;
+	top: 1rem;
+	overflow-y: auto;
+	max-height: calc(100vh - 2rem);
+	align-self: start;
+}
+
+.layout > main,
+.layout__content {
+	min-width: 0;
+}
+
+@media (max-width: 767px) {
+	.layout {
+		grid-template-columns: 1fr;
+	}
+
+	.layout > aside,
+	.layout__sidebar {
+		width: 100%;
+		position: static;
+		top: auto;
+		max-height: none;
+		overflow-y: visible;
+	}
+}

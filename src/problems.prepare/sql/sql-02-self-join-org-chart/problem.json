@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return every employee alongside their manager's name.\nEmployees with no manager must still appear with NULL manager_name.\nExpected columns: employee_name, manager_name.",
+  "timeout_ms": 5000
+}

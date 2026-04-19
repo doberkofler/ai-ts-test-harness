@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Generate CSS for an animated hamburger button where three spans morph into a close icon when aria-expanded=true, using transform transitions and reduced-motion support.",
+  "timeout_ms": 5000
+}

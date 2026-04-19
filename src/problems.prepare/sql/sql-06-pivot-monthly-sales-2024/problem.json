@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Pivot sales into monthly totals for each product for year 2024 using conditional aggregation only.\nExpected columns: product_id, jan, feb, mar, apr, may, jun, jul, aug, sep, oct, nov, dec.",
+  "timeout_ms": 5000
+}

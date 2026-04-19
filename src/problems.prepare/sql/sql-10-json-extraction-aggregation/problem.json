@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "PostgreSQL JSONB extraction and aggregation.\nReturn event type from payload and event count for events in calendar year 2024.\nIgnore events where payload.type is missing. Expected columns: event_type, event_count.",
+  "timeout_ms": 5000
+}

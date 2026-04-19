@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Implement pure TypeScript converters between JSON, CSV, and XML for tabular rows, including all six conversion directions and strict input validation.",
+  "timeout_ms": 5000
+}

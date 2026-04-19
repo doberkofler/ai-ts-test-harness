@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Generate framework-free CSS for a responsive 12-column grid system with container sizing, span and offset utilities, and 4/8/12 column breakpoints.",
+  "timeout_ms": 5000
+}

@@ -1,0 +1,53 @@
+.hamburger-btn {
+	position: relative;
+	width: 2.5rem;
+	height: 2.5rem;
+	border: 1px solid #ccd3de;
+	border-radius: 0.5rem;
+	background: #ffffff;
+	cursor: pointer;
+}
+
+.hamburger-btn > span {
+	position: absolute;
+	left: 0.5rem;
+	right: 0.5rem;
+	height: 2px;
+	background: #0f172a;
+	transform-origin: center;
+	transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.hamburger-btn > span:nth-child(1) {
+	top: 0.8rem;
+	transform: translateY(0);
+}
+
+.hamburger-btn > span:nth-child(2) {
+	top: 1.2rem;
+	transform: translateY(0);
+}
+
+.hamburger-btn > span:nth-child(3) {
+	top: 1.6rem;
+	transform: translateY(0);
+}
+
+.hamburger-btn[aria-expanded='true'] > span:nth-child(1) {
+	transform: translateY(6px) rotate(45deg);
+}
+
+.hamburger-btn[aria-expanded='true'] > span:nth-child(2) {
+	opacity: 0;
+	transform: translateY(0) rotate(0deg);
+}
+
+.hamburger-btn[aria-expanded='true'] > span:nth-child(3) {
+	transform: translateY(-6px) rotate(-45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hamburger-btn > span {
+		transition: none;
+	}
+}

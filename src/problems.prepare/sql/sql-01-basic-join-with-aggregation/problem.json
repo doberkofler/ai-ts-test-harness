@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Return each department name and the average salary of its employees.\nInclude departments with no employees (NULL average) and order by average salary descending.\nExpected columns: department_name, avg_salary.",
+  "timeout_ms": 5000
+}

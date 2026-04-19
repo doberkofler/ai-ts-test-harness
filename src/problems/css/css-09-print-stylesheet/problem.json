@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Generate a @media print stylesheet for report pages that hides non-print UI, enforces black-on-white output, handles pagination, and exposes link/abbr metadata.",
+  "timeout_ms": 5000
+}

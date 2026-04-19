@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Convert a generic class implementing an interface into ES2022 JavaScript while preserving LRU cache behavior.",
+  "timeout_ms": 5000
+}

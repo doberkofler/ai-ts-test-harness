@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Generate a complete CSS theming system using custom properties with light defaults, dark overrides via prefers-color-scheme and [data-theme=\"dark\"], transitions, and a .theme-toggle mode indicator.",
+  "timeout_ms": 5000
+}

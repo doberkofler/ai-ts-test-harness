@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Generate a fade-in-on-scroll animation using CSS view timelines with animation-fill-mode: both, plus an IntersectionObserver fallback and reduced-motion handling.",
+  "timeout_ms": 5000
+}

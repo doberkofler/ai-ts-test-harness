@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "For each department, return employee rows at the second-highest salary.\nDepartments with fewer than two distinct salaries must be excluded.\nExpected columns: dept_id, employee_name, salary.",
+  "timeout_ms": 5000
+}

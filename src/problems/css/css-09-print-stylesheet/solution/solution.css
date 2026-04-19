@@ -1,0 +1,41 @@
+@media print {
+	* , *::before, *::after {
+		background: #ffffff !important;
+		color: #000000 !important;
+		box-shadow: none !important;
+		text-shadow: none !important;
+	}
+
+	body {
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 12pt;
+		line-height: 1.5;
+	}
+
+	nav,
+	.sidebar,
+	.ads,
+	footer,
+	.no-print {
+		display: none !important;
+	}
+
+	h1 {
+		break-before: page;
+		page-break-before: always;
+	}
+
+	table,
+	figure {
+		break-inside: avoid;
+		page-break-inside: avoid;
+	}
+
+	a[href]::after {
+		content: ' (' attr(href) ')';
+	}
+
+	abbr[title]::after {
+		content: ' (' attr(title) ')';
+	}
+}

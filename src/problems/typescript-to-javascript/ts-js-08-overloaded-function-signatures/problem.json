@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Convert overloaded TypeScript function signatures into a single ES2022 JavaScript implementation.",
+  "timeout_ms": 5000
+}

@@ -14,6 +14,8 @@ export default defineConfig({
 		target: 'node22',
 	},
 	test: {
+		include: ['src/**/*.{test,spec}.ts'],
+		exclude: ['src/problems.prepare'],
 		coverage: {
 			provider: 'v8',
 			reporter: ['text', 'json', 'html', 'lcov'],

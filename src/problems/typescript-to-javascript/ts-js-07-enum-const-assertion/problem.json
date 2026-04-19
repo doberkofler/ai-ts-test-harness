@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Convert const-assertion pseudo-enum TypeScript code to ES2022 JavaScript while preserving opposite-direction logic.",
+  "timeout_ms": 5000
+}

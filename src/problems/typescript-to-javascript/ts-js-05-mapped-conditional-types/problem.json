@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Convert mapped and conditional TypeScript utility usage into equivalent ES2022 JavaScript behavior.",
+  "timeout_ms": 5000
+}

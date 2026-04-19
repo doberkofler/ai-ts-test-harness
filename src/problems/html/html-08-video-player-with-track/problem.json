@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Generate an accessible HTML video player with metadata loading and text tracks.\nMust include controls, preload metadata, mp4+webm sources, subtitles and captions tracks, poster image, and aria-label.",
+  "timeout_ms": 5000
+}

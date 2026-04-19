@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Update products.price from price_updates.new_price where SKUs match.\nRows without a matching sku in price_updates must remain unchanged.",
+  "timeout_ms": 5000
+}

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Generate HTML for an accessible quarterly revenue table by region.\nMust include caption, thead/tbody/tfoot, proper scope attributes, table aria-label, and no inline styles.",
+  "timeout_ms": 5000
+}

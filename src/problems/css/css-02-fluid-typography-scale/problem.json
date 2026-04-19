@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Generate a custom-property based fluid type scale from --text-xs to --text-3xl using clamp() and vw between 320px and 1440px, with utility classes for each step.",
+  "timeout_ms": 5000
+}

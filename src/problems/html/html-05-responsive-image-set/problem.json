@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Generate responsive product photo markup using picture/srcset/sizes with modern image loading hints.\nInclude WebP source with JPEG fallback, descriptive alt text, lazy loading, async decoding, and explicit width/height.",
+  "timeout_ms": 5000
+}

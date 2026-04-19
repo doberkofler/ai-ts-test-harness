@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Write a CONNECT BY PRIOR query that returns the full management chain from root to employee id 42, including level, name, and SYS_CONNECT_BY_PATH output.",
+  "timeout_ms": 5000
+}

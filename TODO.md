@@ -2,31 +2,11 @@
 
 ## ux
 
-- add thinking to the results
+- enable linting the src/problems directory
 
-- Add first-class multi-file support
-
-## problems
-
-- sql related problems
-
-- identify ciclic dependencies in multiple source files
-
-- generate html
-
-- convert ts, json, xml, cvn between each other
-
-- typescript to javascript
-
-- convert compressed javaascript to javascript
-
-- word wrapping
-
-- create histogram
+## create problems that can be used to test the quality of a llm
 
 - create a neuronal network to add integers
-
-- convert javascript to typescript with typing
 
 - improve performance
 
