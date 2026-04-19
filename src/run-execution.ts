@@ -12,6 +12,7 @@ import {
 import {type RunPhase} from './run-phase.ts';
 import {type RunTransferStats} from './run-transfer.ts';
 import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
+import {inferFailureKindFromErrorText} from './failure-kind.ts';
 import {solveProblem} from './solveProblem.ts';
 import {type Problem, type Result} from './types.ts';
 import {DEFAULT_MAX_COOLDOWN_MS, DEFAULT_MIN_COOLDOWN_MS, DEFAULT_COOLDOWN_RATIO} from './config.ts';
@@ -37,21 +38,7 @@ const estimateCooldownDurationMs = (durationMs: number, noCooldown: boolean): nu
 	return Math.max(DEFAULT_MIN_COOLDOWN_MS, dynamicCooldownDurationMs);
 };
 
-const classifyFailureKind = (error: string | undefined): 'timeout' | 'vitest' | 'other' => {
-	if (typeof error !== 'string' || error.length === 0) {
-		return 'other';
-	}
-
-	if (/timed?\s*out|request timed out|abort/i.test(error)) {
-		return 'timeout';
-	}
-
-	if (/vitest|failed tests:|no tests were executed/i.test(error)) {
-		return 'vitest';
-	}
-
-	return 'other';
-};
+const classifyFailureKind = (result: Pick<Result, 'failure_kind' | 'error'>): string => result.failure_kind ?? inferFailureKindFromErrorText(result.error);
 
 type ExecuteProblemsDeps = {
 	stream?: NodeJS.WriteStream;
@@ -93,7 +80,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 					passed: completedResult.passed,
 					durationMs: completedResult.llm_metrics.llm_duration_ms,
 					preferUnicode,
-					detail: completedResult.passed ? formatLlmMetricsSummary(completedResult.llm_metrics) : `[${classifyFailureKind(completedResult.error)}]`,
+					detail: completedResult.passed ? formatLlmMetricsSummary(completedResult.llm_metrics) : `[${classifyFailureKind(completedResult)}]`,
 				}),
 			);
 			continue;
@@ -161,7 +148,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			}
 		}
 
-		const detail = result.passed ? formatLlmMetricsSummary(result.llm_metrics) : `[${classifyFailureKind(result.error)}]`;
+		const detail = result.passed ? formatLlmMetricsSummary(result.llm_metrics) : `[${classifyFailureKind(result)}]`;
 		log(
 			formatCompletedProblemLine({
 				index,

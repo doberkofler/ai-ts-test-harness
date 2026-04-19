@@ -19,6 +19,7 @@ export const resultSchema = z.object({
 	thinking: z.string().optional(),
 	passed: z.boolean(),
 	error: z.string().optional(),
+	failure_kind: z.enum(['timeout', 'assertion', 'runtime', 'vitest', 'other']).optional(),
 	llm_metrics: z.object({
 		llm_duration_ms: z.number(),
 		tokens_sent: z.number(),
@@ -64,6 +65,7 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 					...(typeof result.thinking === 'string' ? {thinking: result.thinking} : {}),
 					passed: result.passed,
 					error: result.error,
+					...(typeof result.failure_kind === 'string' ? {failure_kind: result.failure_kind} : {}),
 					llm_metrics: {
 						llm_duration_ms: result.llm_metrics.llm_duration_ms,
 						tokens_sent: result.llm_metrics.tokens_sent,
@@ -78,6 +80,7 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 					...(typeof result.artifact === 'undefined' ? {} : {artifact: result.artifact}),
 					...(typeof result.thinking === 'string' ? {thinking: result.thinking} : {}),
 					passed: result.passed,
+					...(typeof result.failure_kind === 'string' ? {failure_kind: result.failure_kind} : {}),
 					llm_metrics: {
 						llm_duration_ms: result.llm_metrics.llm_duration_ms,
 						tokens_sent: result.llm_metrics.tokens_sent,

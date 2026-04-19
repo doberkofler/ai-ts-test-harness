@@ -1,4 +1,5 @@
 import {generate, type GenerateOptions} from './generate.ts';
+import {inferFailureKindFromErrorText} from './failure-kind.ts';
 import {type RunPhase} from './run-phase.ts';
 import {calculateAverageTokensPerSecond, estimateTokensFromChars, type RunTransferStats} from './run-transfer.ts';
 import {runProblem} from './runner.ts';
@@ -67,6 +68,7 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 		};
 	} catch (error) {
 		const errorText = error instanceof Error ? error.message : String(error);
+		const failureKind = typeof llmFinishedAtMs === 'number' ? 'vitest' : inferFailureKindFromErrorText(errorText);
 
 		return {
 			problem: problem.name,
@@ -74,6 +76,7 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 			...(shouldStoreThinking && thinking.length > 0 ? {thinking} : {}),
 			passed: false,
 			error: errorText,
+			failure_kind: failureKind,
 			llm_metrics: buildLlmMetrics(),
 		};
 	}

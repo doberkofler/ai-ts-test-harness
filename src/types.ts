@@ -24,6 +24,8 @@ export type ChangedFilesArtifact = {
 	files: WorkspaceFile[];
 };
 
+export type FailureKind = 'timeout' | 'assertion' | 'runtime' | 'vitest' | 'other';
+
 export type Problem = {
 	name: string;
 	category: string;
@@ -53,6 +55,7 @@ export type ProblemExecutionResult = {
 	artifact?: ChangedFilesArtifact;
 	passed: boolean;
 	error?: string;
+	failure_kind?: FailureKind;
 };
 
 export type Result = {
@@ -63,6 +66,7 @@ export type Result = {
 	thinking?: string;
 	passed: ProblemExecutionResult['passed'];
 	error?: ProblemExecutionResult['error'];
+	failure_kind?: ProblemExecutionResult['failure_kind'];
 	llm_metrics: LlmMetrics;
 };
 

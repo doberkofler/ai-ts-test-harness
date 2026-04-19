@@ -201,6 +201,60 @@ describe('executeProblems', () => {
 		expect(log).toHaveBeenCalledWith(expect.stringContaining('[timeout]'));
 	});
 
+	test('uses structured assertion failure kind tag when provided', async () => {
+		const log = vi.fn<(message: string) => void>();
+		solveProblemMock.mockResolvedValueOnce({
+			problem: 'one',
+			category: 'logic',
+			passed: false,
+			error: 'Expected values to be strictly equal',
+			failure_kind: 'assertion',
+			llm_metrics: llmMetrics(42),
+		});
+
+		await executeProblems(
+			[makeProblem('one')],
+			{
+				model: 'model-a',
+				debug: true,
+				llmTimeoutSecs: 75,
+				vitestTimeoutSecs: 60,
+				noCooldown: true,
+				ollamaUrl: 'http://localhost:11434/v1',
+			},
+			{log},
+		);
+
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('[assertion]'));
+	});
+
+	test('shows runtime failure kind tag for resumed failures', async () => {
+		const log = vi.fn<(message: string) => void>();
+		const resumedResult: Result = {
+			problem: 'one',
+			category: 'logic',
+			passed: false,
+			error: 'Assignment to constant variable.',
+			failure_kind: 'runtime',
+			llm_metrics: llmMetrics(10),
+		};
+
+		await executeProblems(
+			[makeProblem('one')],
+			{
+				model: 'model-a',
+				debug: true,
+				llmTimeoutSecs: 75,
+				vitestTimeoutSecs: 60,
+				noCooldown: true,
+				ollamaUrl: 'http://localhost:11434/v1',
+			},
+			{log, initialResults: [resumedResult]},
+		);
+
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('[runtime]'));
+	});
+
 	test('shows ETA in live running lines once prior durations exist', async () => {
 		supportsLiveLineMock.mockReturnValue(true);
 		solveProblemMock.mockResolvedValueOnce({

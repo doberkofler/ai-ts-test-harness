@@ -105,6 +105,7 @@ describe('solveProblem', () => {
 			category: 'arithmetic',
 			passed: false,
 			error: 'llm unavailable',
+			failure_kind: 'other',
 		});
 		expect(runProblemMock).not.toHaveBeenCalled();
 	});
@@ -120,6 +121,7 @@ describe('solveProblem', () => {
 			category: 'arithmetic',
 			passed: false,
 			error: 'runner crashed',
+			failure_kind: 'vitest',
 		});
 	});
 

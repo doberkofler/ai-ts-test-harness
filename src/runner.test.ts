@@ -84,6 +84,20 @@ describe('runProblem', () => {
 
 		expect(result.passed).toBe(false);
 		expect(result.error).toContain('AssertionError: expected 3');
+		expect(result.failure_kind).toBe('assertion');
+	});
+
+	test('classifies runtime errors from vitest task output', async () => {
+		const result = await runProblem(problem, artifact, {
+			startVitest: async () => {
+				await Promise.resolve();
+				return createVitestMock({files: [{result: {errors: [new Error('Assignment to constant variable.')]}}], unhandledErrors: []});
+			},
+		});
+
+		expect(result.passed).toBe(false);
+		expect(result.error).toContain('Assignment to constant variable.');
+		expect(result.failure_kind).toBe('runtime');
 	});
 
 	test('fails when vitest executes no files', async () => {
@@ -96,6 +110,7 @@ describe('runProblem', () => {
 
 		expect(result.passed).toBe(false);
 		expect(result.error).toBe('No tests were executed by Vitest');
+		expect(result.failure_kind).toBe('vitest');
 	});
 
 	test('falls back to thrown error message', async () => {
@@ -108,5 +123,6 @@ describe('runProblem', () => {
 
 		expect(result.passed).toBe(false);
 		expect(result.error).toBe('runner crashed');
+		expect(result.failure_kind).toBe('vitest');
 	});
 });

@@ -3,7 +3,8 @@ import {tmpdir} from 'node:os';
 import {dirname, isAbsolute, join, resolve} from 'node:path';
 import {type CliOptions, startVitest} from 'vitest/node';
 import {DEFAULT_VITEST_TIMEOUT_SECS} from './config.ts';
-import {type ChangedFilesArtifact, type Problem, type ProblemExecutionResult, type WorkspaceFile} from './types.ts';
+import {isTimeoutErrorText} from './failure-kind.ts';
+import {type ChangedFilesArtifact, type FailureKind, type Problem, type ProblemExecutionResult, type WorkspaceFile} from './types.ts';
 
 type VitestTaskLike = {
 	result?: {errors?: unknown[]};
@@ -89,6 +90,46 @@ const getErrorsFromTask = (task: VitestTaskLike): unknown[] => {
 	return errors;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+
+const readErrorStringField = (error: unknown, field: 'name' | 'code' | 'message'): string | undefined => {
+	if (!isRecord(error)) {
+		return undefined;
+	}
+
+	const raw = error[field];
+	return typeof raw === 'string' ? raw : undefined;
+};
+
+const isAssertionError = (error: unknown): boolean => {
+	const name = readErrorStringField(error, 'name') ?? (error instanceof Error ? error.name : undefined);
+	if (typeof name === 'string' && name.toLowerCase().includes('assertion')) {
+		return true;
+	}
+
+	const code = readErrorStringField(error, 'code');
+	if (typeof code === 'string' && code.toUpperCase().includes('ASSERT')) {
+		return true;
+	}
+
+	const message = readErrorStringField(error, 'message') ?? (error instanceof Error ? error.message : String(error));
+	const normalized = message.toLowerCase();
+	return (
+		normalized.includes('assertionerror') ||
+		normalized.includes('expected values to be') ||
+		normalized.includes('did not match the regular expression') ||
+		normalized.includes('!==')
+	);
+};
+
+const classifyVitestErrors = (errors: readonly unknown[]): FailureKind => {
+	if (errors.some((error) => isAssertionError(error))) {
+		return 'assertion';
+	}
+
+	return 'runtime';
+};
+
 const getVitestFailureOutput = (runnerInstance: VitestRunLike): string => {
 	const messages = new Set<string>();
 
@@ -113,6 +154,20 @@ const getVitestFailureOutput = (runnerInstance: VitestRunLike): string => {
 	}
 
 	return 'Vitest run failed';
+};
+
+const collectVitestErrors = (runnerInstance: VitestRunLike): unknown[] => {
+	const errors: unknown[] = [];
+	for (const unhandledError of runnerInstance.state.getUnhandledErrors()) {
+		errors.push(unhandledError);
+	}
+
+	const failedFiles = runnerInstance.state.getFiles(runnerInstance.state.getFailedFilepaths());
+	for (const failedFile of failedFiles) {
+		errors.push(...getErrorsFromTask(failedFile));
+	}
+
+	return errors;
 };
 
 const withMutedOutput = async <T>(run: () => Promise<T>): Promise<T> => {
@@ -169,9 +224,11 @@ const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact,
 			artifact,
 			passed: false,
 			error: 'No tests were executed by Vitest',
+			failure_kind: 'vitest',
 		};
 	}
 
+	const vitestErrors = collectVitestErrors(runnerInstance);
 	const hasTaskErrors = executedFiles.some((task) => getErrorsFromTask(task).length > 0);
 	if (hasTaskErrors || runnerInstance.state.getUnhandledErrors().length > 0) {
 		return {
@@ -180,6 +237,18 @@ const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact,
 			artifact,
 			passed: false,
 			error: getVitestFailureOutput(runnerInstance),
+			failure_kind: classifyVitestErrors(vitestErrors),
+		};
+	}
+
+	if (runnerInstance.state.getCountOfFailedTests() > 0) {
+		return {
+			problem: problem.name,
+			category: problem.category,
+			artifact,
+			passed: false,
+			error: getVitestFailureOutput(runnerInstance),
+			failure_kind: 'assertion',
 		};
 	}
 
@@ -234,6 +303,7 @@ export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifac
 			artifact,
 			passed: false,
 			error: errorText,
+			failure_kind: isTimeoutErrorText(errorText) ? 'timeout' : 'vitest',
 		};
 	} finally {
 		if (runnerInstance) {
