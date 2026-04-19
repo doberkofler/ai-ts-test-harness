@@ -83,7 +83,7 @@ describe('executeProblems', () => {
 		expect(log).toHaveBeenCalledWith(expect.stringContaining('PASS [ 1/2] logic/one (10ms)'));
 		expect(log).toHaveBeenCalledWith(expect.stringContaining('FAIL [ 2/2] logic/two (12ms)'));
 		expect(log).toHaveBeenCalledWith('Run Summary');
-		expect(log).toHaveBeenCalledWith('Duration   : 50ms');
+		expect(log).toHaveBeenCalledWith(expect.stringMatching(/^Duration\s+:\s+\d+ms$/));
 		expect(onProblemComplete).toHaveBeenCalledTimes(2);
 		expect(onProblemComplete).toHaveBeenNthCalledWith(1, [expect.objectContaining({problem: 'one'})]);
 		expect(onProblemComplete).toHaveBeenNthCalledWith(2, [expect.objectContaining({problem: 'one'}), expect.objectContaining({problem: 'two'})]);
@@ -140,7 +140,7 @@ describe('executeProblems', () => {
 		);
 
 		expect(writeLiveLineMock).toHaveBeenCalledExactlyOnceWith(expect.anything(), expect.stringContaining('Thinking logic/one 0s'));
-		expect(replaceLiveLineMock).toHaveBeenCalledExactlyOnceWith(expect.anything(), expect.stringContaining('↑1.2k ↓25'));
+		expect(replaceLiveLineMock).toHaveBeenCalledExactlyOnceWith(expect.anything(), expect.stringContaining('↑300t ↓6t ~0 tok/s'));
 	});
 
 	test('skips already completed problems from resumed results', async () => {
@@ -163,8 +163,69 @@ describe('executeProblems', () => {
 
 		expect(solveProblemMock).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({name: 'two'}), expect.anything());
 		expect(log).toHaveBeenCalledWith(expect.stringContaining('PASS [ 1/2] logic/one (10ms)'));
-		expect(log).toHaveBeenCalledWith(expect.stringContaining('(resumed)'));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('↑0t ↓0t ~0 tok/s'));
+		expect(log).not.toHaveBeenCalledWith(expect.stringContaining('(resumed)'));
 		expect(results).toEqual([resumedResult, expect.objectContaining({problem: 'two'})]);
+	});
+
+	test('adds timeout failure kind tag to failed problems', async () => {
+		const log = vi.fn<(message: string) => void>();
+		solveProblemMock.mockResolvedValueOnce({
+			problem: 'one',
+			category: 'logic',
+			passed: false,
+			error: 'Request timed out.',
+			duration_ms: 42,
+		});
+
+		await executeProblems(
+			[makeProblem('one')],
+			{
+				model: 'model-a',
+				debug: true,
+				llmTimeoutSecs: 75,
+				vitestTimeoutSecs: 60,
+				noCooldown: true,
+				ollamaUrl: 'http://localhost:11434/v1',
+			},
+			{log},
+		);
+
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('[timeout]'));
+	});
+
+	test('shows ETA in live running lines once prior durations exist', async () => {
+		supportsLiveLineMock.mockReturnValue(true);
+		solveProblemMock.mockResolvedValueOnce({
+			problem: 'two',
+			category: 'logic',
+			program: 'code-2',
+			passed: true,
+			duration_ms: 12,
+		});
+
+		await executeProblems(
+			[makeProblem('one'), makeProblem('two')],
+			{
+				model: 'model-a',
+				debug: false,
+				llmTimeoutSecs: 75,
+				vitestTimeoutSecs: 60,
+				noCooldown: false,
+				ollamaUrl: 'http://localhost:11434/v1',
+			},
+			{
+				stream: {isTTY: true} as NodeJS.WriteStream,
+				initialResults: [{problem: 'one', category: 'logic', program: 'code-1', passed: true, duration_ms: 10_000}],
+				setIntervalFn: () => 1 as unknown as ReturnType<typeof setInterval>,
+				clearIntervalFn: () => {
+					// no-op
+				},
+				now: () => 1000,
+			},
+		);
+
+		expect(writeLiveLineMock).toHaveBeenCalledWith(expect.anything(), expect.stringContaining('ETA'));
 	});
 
 	test('applies minimum cooldown duration between problems', async () => {

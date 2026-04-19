@@ -16,7 +16,8 @@ describe('run progress formatting', () => {
 		expect(formatRunningLiveLine('sum', 4200)).toContain('Running sum 4s');
 		expect(formatRunningLiveLine('sum', 4200, 'thinking')).toContain('Thinking sum 4s');
 		expect(formatRunningLiveLine('sum', 4200, 'testing')).toContain('Testing sum 4s');
-		expect(formatRunningLiveLine('sum', 4200, 'running', {promptChars: 1500, responseChars: 84})).toContain('↑1.5k ↓84 20/s');
+		expect(formatRunningLiveLine('sum', 4200, 'running', {promptChars: 1500, responseChars: 84})).toContain('↑375t ↓21t ~5 tok/s');
+		expect(formatRunningLiveLine('sum', 4200, 'running', {promptChars: 1500, responseChars: 84}, 61_000)).toContain('ETA 1m 1s');
 		expect(formatRunningLiveLine('sum', 61_000)).toContain('Running sum 1m 1s');
 		expect(formatCooldownLiveLine(3000)).toBe('Cooldown 3s');
 		expect(formatCooldownLiveLine(420)).toBe('Cooldown 0s');
@@ -45,6 +46,17 @@ describe('run progress formatting', () => {
 
 		expect(passLine).toContain('✓ [ 1/2] sum (4ms)');
 		expect(failLine).toContain('FAIL [ 2/2] fizzbuzz (12ms)');
+
+		const passWithDetailsLine = formatCompletedProblemLine({
+			index: 0,
+			total: 1,
+			name: 'sum',
+			passed: true,
+			durationMs: 1500,
+			preferUnicode: true,
+			detail: '↓120t ~80 tok/s',
+		});
+		expect(passWithDetailsLine).toContain('↓120t ~80 tok/s');
 	});
 
 	test('formats footer summary lines', () => {
