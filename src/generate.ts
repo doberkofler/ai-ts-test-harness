@@ -108,7 +108,7 @@ const stripFences = (text: string): string =>
 const renderWorkspace = (files: readonly WorkspaceFile[]): string =>
 	files.map((file) => [`--- FILE: ${file.path} ---`, file.content, `--- END FILE ---`].join('\n')).join('\n\n');
 
-const parseArtifact = (responseText: string): ChangedFilesArtifact => {
+const parseArtifact = (responseText: string, fallbackPath: string): ChangedFilesArtifact => {
 	const cleaned = stripFences(responseText);
 	try {
 		const parsedJson: unknown = JSON.parse(cleaned);
@@ -116,7 +116,7 @@ const parseArtifact = (responseText: string): ChangedFilesArtifact => {
 	} catch {
 		return {
 			kind: 'changed-files-v1',
-			files: [{path: 'solution.ts', content: cleaned}],
+			files: [{path: fallbackPath, content: cleaned}],
 		};
 	}
 };
@@ -284,23 +284,42 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 
 	setPhase('thinking');
 
-	const prompt = [
-		`You are working in a TypeScript workspace benchmark.`,
-		`Apply the requested changes to the provided files.`,
-		`Return ONLY valid JSON matching this exact schema:`,
-		`{`,
-		`  "kind": "changed-files-v1",`,
-		`  "files": [{"path": "relative/path.ts", "content": "full file content"}]`,
-		`}`,
-		`Do not include markdown fences, prose, or extra keys.`,
-		``,
-		`Problem: ${problem.category}/${problem.name}`,
-		`Description: ${description}`,
-		`Timeout (ms): ${timeoutMs}`,
-		``,
-		`Initial files:`,
-		renderWorkspace(workspaceFiles),
-	].join('\n');
+	const targetFiles = workspaceFiles.filter((f) => f.path !== 'original.ts');
+	const isSingleFile = targetFiles.length === 1;
+	const [firstTargetFile] = targetFiles;
+	const fallbackPath = firstTargetFile ? firstTargetFile.path : 'solution.ts';
+
+	const prompt =
+		isSingleFile && firstTargetFile
+			? [
+					`You are working in a TypeScript workspace benchmark.`,
+					`Apply the requested changes to the following file: ${fallbackPath}`,
+					`Return ONLY the valid TypeScript code for this file.`,
+					`Do not include markdown fences or any explanation.`,
+					``,
+					`Problem: ${problem.category}/${problem.name}`,
+					`Description: ${description}`,
+					``,
+					`Initial file content:`,
+					firstTargetFile.content,
+				].join('\n')
+			: [
+					`You are working in a TypeScript workspace benchmark.`,
+					`Apply the requested changes to the provided files.`,
+					`Return ONLY valid JSON matching this exact schema:`,
+					`{`,
+					`  "kind": "changed-files-v1",`,
+					`  "files": [{"path": "relative/path.ts", "content": "full file content"}]`,
+					`}`,
+					`Do not include markdown fences, prose, or extra keys.`,
+					``,
+					`Problem: ${problem.category}/${problem.name}`,
+					`Description: ${description}`,
+					`Timeout (ms): ${timeoutMs}`,
+					``,
+					`Initial files:`,
+					renderWorkspace(targetFiles),
+				].join('\n');
 
 	if (options.debug === true) {
 		printDebugBlock('LLM request', prompt, [`problem: ${problem.name}`, `model: ${options.model}`]);
@@ -444,7 +463,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 				printDebugBlock('LLM response', fallbackText, [`problem: ${problem.name}`]);
 			}
 
-			return parseArtifact(fallbackText);
+			return parseArtifact(fallbackText, fallbackPath);
 		}
 
 		if (!markedRunning) {
@@ -464,7 +483,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 			throw new TypeError(`Empty response for problem: ${problem.name}`);
 		}
 
-		return parseArtifact(generatedCode);
+		return parseArtifact(generatedCode, fallbackPath);
 	}
 
 	const res = await completion(request, {timeout: remainingTimeoutMs(), signal: AbortSignal.timeout(remainingTimeoutMs())}).catch((error: unknown) =>
@@ -494,5 +513,5 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		printDebugBlock('LLM response', text, [`problem: ${problem.name}`]);
 	}
 
-	return parseArtifact(text);
+	return parseArtifact(text, fallbackPath);
 };

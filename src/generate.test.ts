@@ -209,7 +209,7 @@ describe('generate', () => {
 			createCompletion,
 		});
 
-		expect(capturedPrompt).toContain('Initial files:');
+		expect(capturedPrompt).toContain('Initial file content:');
 	});
 
 	test('accepts single-string descriptions', async () => {
