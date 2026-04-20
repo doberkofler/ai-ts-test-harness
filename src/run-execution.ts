@@ -117,11 +117,12 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			const estimatedCooldownMs = estimateCooldownDurationMs(averageProblemDurationMs, options.noCooldown) * remainingAfterCurrent;
 			return Math.max(0, Math.round(estimatedCurrentRemainingMs + estimatedFutureProblemsMs + estimatedCooldownMs));
 		};
+		const transferStatsForLiveLine = (): RunTransferStats | undefined => (currentPhase === 'testing' ? undefined : currentTransferStats);
 		let timerId: ReturnType<typeof setInterval> | undefined;
 		if (showLiveTimer) {
-			writeLiveLine(stream, formatRunningLiveLine(problemDisplayName, 0, currentPhase, currentTransferStats, computeEtaMs()));
+			writeLiveLine(stream, formatRunningLiveLine(problemDisplayName, 0, currentPhase, transferStatsForLiveLine(), computeEtaMs()));
 			timerId = setIntervalFn(() => {
-				replaceLiveLine(stream, formatRunningLiveLine(problemDisplayName, now() - startedAt, currentPhase, currentTransferStats, computeEtaMs()));
+				replaceLiveLine(stream, formatRunningLiveLine(problemDisplayName, now() - startedAt, currentPhase, transferStatsForLiveLine(), computeEtaMs()));
 			}, 1000);
 		}
 
@@ -141,7 +142,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 				onPhaseChange: (phase) => {
 					currentPhase = phase;
 					if (showLiveTimer) {
-						replaceLiveLine(stream, formatRunningLiveLine(problemDisplayName, now() - startedAt, currentPhase, currentTransferStats, computeEtaMs()));
+						replaceLiveLine(stream, formatRunningLiveLine(problemDisplayName, now() - startedAt, currentPhase, transferStatsForLiveLine(), computeEtaMs()));
 					}
 				},
 				onTransferProgress: (stats) => {

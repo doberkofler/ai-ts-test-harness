@@ -16,6 +16,7 @@ describe('run progress formatting', () => {
 		expect(formatRunningLiveLine('sum', 4200)).toContain('Running sum 4s');
 		expect(formatRunningLiveLine('sum', 4200, 'thinking')).toContain('Thinking sum 4s');
 		expect(formatRunningLiveLine('sum', 4200, 'testing')).toContain('Testing sum 4s');
+		expect(formatRunningLiveLine('sum', 4200, 'testing', {promptChars: 1500, responseChars: 84})).not.toContain('tok/s');
 		expect(formatRunningLiveLine('sum', 4200, 'running', {promptChars: 1500, responseChars: 84})).toContain('↑375t ↓21t ~5 tok/s');
 		expect(formatRunningLiveLine('sum', 4200, 'running', {promptChars: 1500, responseChars: 84}, 61_000)).toContain('ETA 1m 1s');
 		expect(formatRunningLiveLine('sum', 61_000)).toContain('Running sum 1m 1s');

@@ -173,4 +173,35 @@ describe('solveProblem', () => {
 			nowSpy.mockRestore();
 		}
 	});
+
+	test('stores average tokens per second from llm wait time only', async () => {
+		generateMock.mockImplementation(async (_problem, options) => {
+			if (typeof options.onTransferProgress === 'function') {
+				options.onTransferProgress({promptChars: 1200, responseChars: 400});
+			}
+			await Promise.resolve();
+			return generatedArtifact;
+		});
+		runProblemMock.mockImplementation(async () => {
+			await Promise.resolve();
+			return {
+				problem: 'sum',
+				category: 'arithmetic',
+				artifact: {kind: 'changed-files-v1', files: []},
+				passed: true,
+			};
+		});
+
+		const nowSpy = vi.spyOn(Date, 'now');
+		nowSpy.mockReturnValueOnce(1000).mockReturnValueOnce(2000).mockReturnValue(9000);
+
+		try {
+			const result = await solveProblem(problem, {model: 'test-model'});
+			expect(result.llm_metrics.llm_duration_ms).toBe(1000);
+			expect(result.llm_metrics.tokens_received).toBe(100);
+			expect(result.llm_metrics.average_tokens_per_second).toBe(100);
+		} finally {
+			nowSpy.mockRestore();
+		}
+	});
 });

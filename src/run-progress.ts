@@ -61,7 +61,7 @@ export const formatRunningLiveLine = (
 ): string => {
 	const elapsedLabel = styleText(formatMs(elapsedMs, {style: 'timer'}), STYLES.dim);
 	const etaLabel = typeof etaMs === 'number' && Number.isFinite(etaMs) ? styleText(`ETA ${formatMs(Math.max(0, etaMs), {style: 'timer'})}`, STYLES.dim) : '';
-	if (typeof transferStats === 'undefined') {
+	if (phase === 'testing' || typeof transferStats === 'undefined') {
 		return `${RUN_PHASE_LABELS[phase]} ${styleText(name, STYLES.bold)} ${elapsedLabel}${etaLabel.length > 0 ? ` ${etaLabel}` : ''}`;
 	}
 

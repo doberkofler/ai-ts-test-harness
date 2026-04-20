@@ -150,6 +150,66 @@ describe('executeProblems', () => {
 		expect(replaceLiveLineMock).toHaveBeenCalledExactlyOnceWith(expect.anything(), expect.stringContaining('↑300t ↓6t ~0 tok/s'));
 	});
 
+	test('hides transfer rate after switching to testing phase', async () => {
+		supportsLiveLineMock.mockReturnValue(true);
+		let timerCallback: (() => void) | undefined;
+		solveProblemMock.mockImplementationOnce(async (_problem, options) => {
+			const {onPhaseChange, onTransferProgress} = options as {
+				onPhaseChange?: (phase: 'thinking' | 'running' | 'testing') => void;
+				onTransferProgress?: (stats: {promptChars: number; responseChars: number}) => void;
+			};
+			if (typeof onTransferProgress !== 'function' || typeof onPhaseChange !== 'function') {
+				throw new TypeError('expected phase and transfer callbacks');
+			}
+
+			onTransferProgress({promptChars: 1200, responseChars: 84});
+			onPhaseChange('running');
+			if (typeof timerCallback === 'function') {
+				timerCallback();
+			}
+			onPhaseChange('testing');
+			if (typeof timerCallback === 'function') {
+				timerCallback();
+			}
+
+			await Promise.resolve();
+
+			return {
+				problem: 'one',
+				category: 'logic',
+				program: 'code-1',
+				passed: true,
+				llm_metrics: llmMetrics(10, 300, 21),
+			};
+		});
+
+		await executeProblems(
+			[makeProblem('one')],
+			{
+				model: 'model-a',
+				debug: false,
+				llmTimeoutSecs: 75,
+				vitestTimeoutSecs: 60,
+				noCooldown: false,
+				ollamaUrl: 'http://localhost:11434/v1',
+			},
+			{
+				stream: {isTTY: true} as NodeJS.WriteStream,
+				setIntervalFn: (tick) => {
+					timerCallback = tick;
+					return 1 as unknown as ReturnType<typeof setInterval>;
+				},
+				clearIntervalFn: () => {
+					// no-op
+				},
+				now: () => 1000,
+			},
+		);
+
+		expect(replaceLiveLineMock.mock.calls.some(([, line]) => line.includes('Running logic/one') && line.includes('tok/s'))).toBe(true);
+		expect(replaceLiveLineMock.mock.calls.some(([, line]) => line.includes('Testing logic/one') && line.includes('tok/s'))).toBe(false);
+	});
+
 	test('skips already completed problems from resumed results', async () => {
 		const log = vi.fn<(message: string) => void>();
 		solveProblemMock.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, llm_metrics: llmMetrics(12)});
