@@ -191,6 +191,8 @@ describe('formatResultsHtmlFile', () => {
 		expect(html).toContain('const data = ');
 		expect(html).toContain('Search by problem or category...');
 		expect(html).toContain('Pass Rate');
+		expect(html).toContain('Total LLM Duration');
+		expect(html).toContain('Avg Tokens/Sec');
 		expect(html).toContain('test-model');
 		expect(html).toContain('Category');
 		expect(html).toContain('Details');

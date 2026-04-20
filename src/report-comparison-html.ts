@@ -12,8 +12,7 @@ const renderComparisonHtml = (entries: RunReportEntry[], directoryPath: string):
 			const totalDurationMs = entry.payload.results.reduce((sum, result) => sum + result.llm_metrics.llm_duration_ms, 0);
 			const totalTokensSent = entry.payload.results.reduce((sum, result) => sum + result.llm_metrics.tokens_sent, 0);
 			const totalTokensReceived = entry.payload.results.reduce((sum, result) => sum + result.llm_metrics.tokens_received, 0);
-			const averageTokensPerSecond =
-				summary.total === 0 ? 0 : entry.payload.results.reduce((sum, result) => sum + result.llm_metrics.average_tokens_per_second, 0) / summary.total;
+			const averageTokensPerSecond = totalDurationMs > 0 ? (totalTokensReceived * 1000) / totalDurationMs : 0;
 			const averageDurationMs = summary.total === 0 ? 0 : totalDurationMs / summary.total;
 			const scopeCategories = Array.isArray(entry.payload.selected_categories)
 				? [...entry.payload.selected_categories].sort((left, right) => left.localeCompare(right))

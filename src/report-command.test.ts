@@ -140,10 +140,14 @@ describe('report helpers', () => {
 
 		const indexHtml = readFileSync(join(resultsDir, 'index.html'), 'utf8');
 		expect(indexHtml).toContain('Open model comparison');
+		expect(indexHtml).toContain('Total LLM Duration');
+		expect(indexHtml).toContain('Avg Tokens/Sec');
 
 		const comparisonHtml = readFileSync(join(resultsDir, 'comparison.html'), 'utf8');
 		expect(comparisonHtml).toContain('<title>AI Test Harness Model Comparison</title>');
 		expect(comparisonHtml).toContain('Pass Rate');
+		expect(comparisonHtml).toContain('Total LLM Duration');
+		expect(comparisonHtml).toContain('Average Tokens/Sec');
 		expect(comparisonHtml).toContain('model-a');
 		expect(comparisonHtml).toContain('model-b');
 		expect(comparisonHtml).toContain('different scopes');
@@ -256,6 +260,8 @@ describe('report helpers', () => {
 
 		expect(capturedOutput).toContain('first line');
 		expect(capturedOutput).not.toContain('second line');
+		expect(capturedOutput).toContain('Total LLM Time');
+		expect(capturedOutput).toContain('Avg Tokens/Sec');
 		logSpy.mockRestore();
 	});
 });

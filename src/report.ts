@@ -13,8 +13,19 @@ import {parseResultsFile} from './results-file.ts';
 
 export {isResultsFile, parseResultsFile} from './results-file.ts';
 
+const formatMetricValue = (value: number, fractionDigits = 0): string =>
+	Number.isFinite(value)
+		? value.toLocaleString(undefined, {
+				maximumFractionDigits: fractionDigits,
+				minimumFractionDigits: fractionDigits,
+			})
+		: 'n/a';
+
 export const printSummary = (results: Result[]): void => {
 	const summary = summarizeResults(results);
+	const totalDurationMs = results.reduce((sum, result) => sum + result.llm_metrics.llm_duration_ms, 0);
+	const totalTokensReceived = results.reduce((sum, result) => sum + result.llm_metrics.tokens_received, 0);
+	const averageTokensPerSecond = totalDurationMs > 0 ? (totalTokensReceived * 1000) / totalDurationMs : 0;
 
 	console.log(styleText('Results', STYLES.bold));
 	console.log(styleText('─'.repeat(64), STYLES.dim));
@@ -28,6 +39,9 @@ export const printSummary = (results: Result[]): void => {
 	}
 	console.log(styleText('─'.repeat(64), STYLES.dim));
 	console.log(`Pass@1: ${styleText(`${summary.passed}/${summary.total}`, STYLES.bold)} (${summary.passRatePercent}%)  Failed: ${summary.failed}\n`);
+	console.log(
+		`Total LLM Time: ${styleText(formatMs(totalDurationMs), STYLES.bold)}  Avg Tokens/Sec: ${styleText(formatMetricValue(averageTokensPerSecond, 2), STYLES.bold)}\n`,
+	);
 };
 
 export const deriveHtmlOutputPath = (jsonOutputPath: string): string => {
@@ -43,6 +57,9 @@ export const deriveHtmlOutputPath = (jsonOutputPath: string): string => {
 
 export const renderResultsHtml = (payload: ResultsFile): string => {
 	const summary = summarizeResults(payload.results);
+	const totalDurationMs = payload.results.reduce((sum, result) => sum + result.llm_metrics.llm_duration_ms, 0);
+	const totalTokensReceived = payload.results.reduce((sum, result) => sum + result.llm_metrics.tokens_received, 0);
+	const averageTokensPerSecond = totalDurationMs > 0 ? (totalTokensReceived * 1000) / totalDurationMs : 0;
 	const escapedPayload = JSON.stringify(payload)
 		.replaceAll('<', String.raw`\u003c`)
 		.replaceAll('>', String.raw`\u003e`)
@@ -467,6 +484,8 @@ tbody tr:hover {
 			<div class="card"><div class="label">Passed</div><div class="value">${summary.passed}</div></div>
 			<div class="card"><div class="label">Failed</div><div class="value">${summary.failed}</div></div>
 			<div class="card"><div class="label">Total</div><div class="value">${summary.total}</div></div>
+			<div class="card"><div class="label">Total LLM Duration</div><div class="value">${formatMs(totalDurationMs)}</div></div>
+			<div class="card"><div class="label">Avg Tokens/Sec</div><div class="value">${formatMetricValue(averageTokensPerSecond, 2)}</div></div>
 		</div>
 	</section>
 

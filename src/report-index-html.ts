@@ -10,6 +10,9 @@ const renderIndexHtml = (entries: RunReportEntry[], directoryPath: string): stri
 		entries.map((entry) => {
 			const systemInfo = entry.payload.system_info;
 			const summary = summarizeResults(entry.payload.results);
+			const totalDurationMs = entry.payload.results.reduce((sum, result) => sum + result.llm_metrics.llm_duration_ms, 0);
+			const totalTokensReceived = entry.payload.results.reduce((sum, result) => sum + result.llm_metrics.tokens_received, 0);
+			const averageTokensPerSecond = totalDurationMs > 0 ? (totalTokensReceived * 1000) / totalDurationMs : 0;
 			return {
 				jsonFile: parse(entry.jsonPath).base,
 				htmlFile: parse(entry.htmlPath).base,
@@ -18,6 +21,8 @@ const renderIndexHtml = (entries: RunReportEntry[], directoryPath: string): stri
 				passRate: summary.passRatePercent,
 				passed: summary.passed,
 				total: summary.total,
+				totalDurationMs,
+				averageTokensPerSecond,
 				hostname: typeof systemInfo === 'undefined' ? '' : systemInfo.hostname,
 				cpu: typeof systemInfo === 'undefined' ? '' : systemInfo.cpu,
 				gpu: typeof systemInfo === 'undefined' || typeof systemInfo.gpu !== 'string' ? '' : systemInfo.gpu,
@@ -134,6 +139,8 @@ a:hover { text-decoration: underline; }
 						<th>Generated</th>
 						<th>Model</th>
 						<th>Pass Rate</th>
+						<th>Total LLM Duration</th>
+						<th>Avg Tokens/Sec</th>
 						<th>Host</th>
 						<th>Hardware</th>
 						<th>Report</th>
@@ -148,6 +155,18 @@ a:hover { text-decoration: underline; }
 const rows = ${escapedEntries};
 rows.sort((a, b) => Date.parse(b.generatedAt) - Date.parse(a.generatedAt));
 
+const formatDuration = (durationMs) => durationMs < 1000
+	? Math.round(durationMs) + 'ms'
+	: (durationMs / 1000).toFixed(2) + 's';
+
+const formatNumber = (value, fractionDigits = 0) =>
+	Number.isFinite(value)
+		? Number(value).toLocaleString(undefined, {
+			maximumFractionDigits: fractionDigits,
+			minimumFractionDigits: fractionDigits,
+		})
+		: 'n/a';
+
 const tbody = document.getElementById('rows');
 tbody.innerHTML = rows.map((row) => {
 	const statusClass = row.passRate === 100 ? 'pass' : 'fail';
@@ -159,6 +178,8 @@ tbody.innerHTML = rows.map((row) => {
 		+ '<td>' + new Date(row.generatedAt).toLocaleString() + '</td>'
 		+ '<td><div>' + row.model + '</div><div class="muted">' + row.jsonFile + '</div></td>'
 		+ '<td><span class="badge ' + statusClass + '">' + row.passRate + '%</span> (' + row.passed + '/' + row.total + ')</td>'
+		+ '<td>' + formatDuration(row.totalDurationMs) + '</td>'
+		+ '<td>' + formatNumber(row.averageTokensPerSecond, 2) + '</td>'
 		+ '<td>' + (row.hostname || 'n/a') + '</td>'
 		+ '<td>' + (hardware || 'n/a') + '</td>'
 		+ '<td><a href="' + row.htmlFile + '">Open report</a></td>'
