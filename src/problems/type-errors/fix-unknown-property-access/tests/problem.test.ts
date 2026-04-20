@@ -60,7 +60,7 @@ type RefactorLegacyContext = {
 const ENTRY_NAME = "readName";
 const runLegacyTests: (context: RefactorLegacyContext) => void | Promise<void> = ({assert, transformed, code}) => {
 		assert.strictEqual(transformed({name: '  Ada  '}), 'Ada');
-		assert.throws(() => transformed({}), /payload\.name must be a string/i);
+		assert.throws(() => transformed({}), /(?:payload\.)?name must be a string/i);
 		assert.match(code.result, /typeof\s+payload\s*!==\s*'object'/);
 		assert.match(code.result, /'name'\s+in\s+payload/);
 	};

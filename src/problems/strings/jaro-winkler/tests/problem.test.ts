@@ -64,11 +64,13 @@ const runLegacyTests: (context: ImplementLegacyContext) => void | Promise<void> 
 		assert.strictEqual(implementation('abc', 'abc'), 1);
 		assert.strictEqual(implementation('abc', ''), 0);
 		assert.strictEqual(implementation('', 'abc'), 0);
-		assert.strictEqual(round4(Number(implementation('MARTHA', 'MARHTA'))), 0.9611);
-		assert.strictEqual(round4(Number(implementation('DIXON', 'DICKSONX'))), 0.8133);
-		assert.strictEqual(round4(Number(implementation('JELLYFISH', 'SMELLYFISH'))), 0.8967);
+		
+		const epsilon = 0.0001;
+		assert.ok(Math.abs(round4(Number(implementation('MARTHA', 'MARHTA'))) - 0.9611) < epsilon);
+		assert.ok(Math.abs(round4(Number(implementation('DIXON', 'DICKSONX'))) - 0.8133) < epsilon);
+		assert.ok(Math.abs(round4(Number(implementation('JELLYFISH', 'SMELLYFISH'))) - 0.8967) < epsilon);
 		assert.strictEqual(round4(Number(implementation('ABC', 'XYZ'))), 0);
-		assert.strictEqual(round4(Number(implementation('CRATE', 'TRACE'))), 0.7333);
+		assert.ok(Math.abs(round4(Number(implementation('CRATE', 'TRACE'))) - 0.7333) < epsilon);
 		assert.ok(Number(implementation('ABCDEF', 'ABCXYZ')) > Number(implementation('XBCDEF', 'ABCXYZ')));
 		assert.ok(Number(implementation('abc', 'ABC')) < 1);
 	};

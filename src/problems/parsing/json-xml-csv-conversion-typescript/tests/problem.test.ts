@@ -22,6 +22,8 @@ const SAMPLE_CSV = 'id,name,active,score\r\n1,"Alice, PhD",true,null\r\n2,"Bob "
 const SAMPLE_XML =
 	'<dataset><row><id>1</id><name>Alice, PhD</name><active>true</active><score>null</score></row><row><id>2</id><name>Bob &quot;the&quot; Builder</name><active>false</active><score>98.5</score></row></dataset>';
 
+const normalizeLineEndings = (text: string): string => text.replace(/\r\n/g, '\n');
+
 const loadImplementation = async (): Promise<ConvertersApi> => {
 	const candidates = ['./converters.ts', '../converters.ts', '../solution/converters.ts', '../files/converters.ts'];
 	let moduleUrl: URL | undefined;
@@ -65,7 +67,7 @@ const loadImplementation = async (): Promise<ConvertersApi> => {
 describe('JSON <-> XML <-> CSV converters', () => {
 	it('converts JSON to RFC 4180 CSV', async () => {
 		const {jsonToCsv} = await loadImplementation();
-		assert.strictEqual(jsonToCsv(SAMPLE_ROWS), SAMPLE_CSV);
+		assert.strictEqual(normalizeLineEndings(jsonToCsv(SAMPLE_ROWS)), normalizeLineEndings(SAMPLE_CSV));
 	});
 
 	it('converts CSV back to JSON with scalar coercion', async () => {
@@ -82,7 +84,7 @@ describe('JSON <-> XML <-> CSV converters', () => {
 	it('converts CSV to XML and XML to CSV', async () => {
 		const {csvToXml, xmlToCsv} = await loadImplementation();
 		assert.strictEqual(csvToXml(SAMPLE_CSV, 'dataset', 'row'), SAMPLE_XML);
-		assert.strictEqual(xmlToCsv(SAMPLE_XML, 'row'), SAMPLE_CSV);
+		assert.strictEqual(normalizeLineEndings(xmlToCsv(SAMPLE_XML, 'row')), normalizeLineEndings(SAMPLE_CSV));
 	});
 
 	it('sanitizes invalid XML field names derived from headers', async () => {

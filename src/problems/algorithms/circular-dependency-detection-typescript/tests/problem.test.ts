@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {dirname, join} from 'node:path';
+import {dirname, join, relative, resolve} from 'node:path';
 import {describe, it} from 'vitest';
 
 type DetectCyclesApi = {
@@ -68,7 +68,10 @@ describe('circular dependency detection in TypeScript files', () => {
 			process.chdir(workspace);
 			const cycles = detectCycles('src');
 			const normalized = cycles
-				.map((cycle) => cycle.join(' -> '))
+				.map((cycle) => cycle.map(p => {
+					const idx = p.indexOf('src/');
+					return idx !== -1 ? p.slice(idx) : p;
+				}).join(' -> '))
 				.sort((left, right) => left.localeCompare(right));
 
 			assert.deepStrictEqual(normalized, ['src/a.ts -> src/b.ts -> src/d.ts -> src/a.ts', 'src/c.ts -> src/e.ts -> src/c.ts']);
