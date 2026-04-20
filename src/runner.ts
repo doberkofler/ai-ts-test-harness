@@ -1,4 +1,4 @@
-import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, symlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, isAbsolute, join, resolve} from 'node:path';
 import {type CliOptions, startVitest} from 'vitest/node';
@@ -273,6 +273,12 @@ export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifac
 		writeWorkspaceFiles(tempWorkspace, problemFiles);
 		writeWorkspaceFiles(tempWorkspace, artifact.files);
 		writeWorkspaceFiles(tempWorkspace, problemTests);
+
+		try {
+			symlinkSync(resolve('node_modules'), join(tempWorkspace, 'node_modules'), 'junction');
+		} catch {
+			// ignore symlink failures
+		}
 
 		const testPaths = problemTests.map((testFile) => resolve(join(tempWorkspace, ensureSafeRelativePath(testFile.path))));
 		if (testPaths.length === 0) {

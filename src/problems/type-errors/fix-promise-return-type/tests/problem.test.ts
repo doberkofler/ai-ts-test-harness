@@ -60,7 +60,7 @@ type RefactorLegacyContext = {
 const ENTRY_NAME = "getCount";
 const runLegacyTests: (context: RefactorLegacyContext) => void | Promise<void> = async ({assert, transformed, code}) => {
 		assert.strictEqual(await transformed(), 123);
-		assert.match(code.result, /await\s+fetchCount\(/);
+		assert.match(code.result, /Promise\s*<\s*number\s*>/);
 		assert.match(code.result, /Number\(raw\)/);
 	};
 

@@ -66,12 +66,20 @@ const runLegacyTests: (context: ImplementLegacyContext) => void | Promise<void> 
 
 		const redact = (s: string): string =>
 			s.replace(regexp, (match) => {
-				const parts = match.split(/[\s-]/);
-				return parts.map((p, i) => (i === parts.length - 1 ? p : '*'.repeat(p.length))).join(' ');
+				const prefixMatch = match.match(/^([A-Za-z]+:\s)(.*)/);
+				const prefix = prefixMatch ? prefixMatch[1] : '';
+				const card = prefixMatch ? prefixMatch[2] : match;
+
+				if (card.includes(' ') || card.includes('-')) {
+					const parts = card.split(/[\s-]/);
+					return prefix + parts.map((p, i) => (i === parts.length - 1 ? p : '*'.repeat(p.length))).join(' ');
+				} else {
+					return prefix + '*'.repeat(card.length - 4) + card.slice(-4);
+				}
 			});
 
 		assert.strictEqual(redact('Card: 4111 1111 1111 1111'), 'Card: **** **** **** 1111');
-		assert.notStrictEqual(redact('Num: 4111111111111111'), 'Num: 4111111111111111');
+		assert.strictEqual(redact('Num: 4111111111111111'), 'Num: ************1111');
 	};
 
 const loadExportedFunction = async (modulePath: string, entry: string): Promise<(...args: readonly unknown[]) => unknown> => {

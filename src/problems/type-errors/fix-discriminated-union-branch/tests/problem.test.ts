@@ -61,7 +61,7 @@ const ENTRY_NAME = "eventLabel";
 const runLegacyTests: (context: RefactorLegacyContext) => void | Promise<void> = ({assert, transformed, code}) => {
 		assert.strictEqual(transformed({type: 'user', userId: 'u1'}), 'user:u1');
 		assert.strictEqual(transformed({type: 'payment', amount: 42}), 'payment:42');
-		assert.match(code.result, /event\.type\s*===\s*'user'/);
+		assert.match(code.result, /event\.type\s*===\s*['"]user['"]/);
 		assert.match(code.result, /event\.userId/);
 		assert.match(code.result, /event\.amount/);
 	};

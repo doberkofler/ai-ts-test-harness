@@ -21,7 +21,7 @@ describe('responsive-12-column-grid', () => {
 		assert.match(css, /--columns\s*:\s*12\s*;/i);
 		assert.match(css, /--gap\s*:\s*1rem\s*;/i);
 		assert.match(css, /--margin\s*:\s*2rem\s*;/i);
-		assert.match(css, /\.container\s*\{[\s\S]*max-width\s*:\s*1280px\s*;|\.container\s*\{[\s\S]*min\(1280px/i);
+		assert.match(css, /\.container\s*\{[\s\S]*(?:max-width|width)\s*:\s*(?:min\(1280px|1280px)/i);
 		assert.match(css, /\.container\s*\{[\s\S]*margin-inline\s*:\s*auto\s*;/i);
 
 		for (let index = 1; index <= 12; index += 1) {

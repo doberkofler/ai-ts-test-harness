@@ -20,7 +20,7 @@ describe('sticky-sidebar-layout', () => {
 
 		assert.match(css, /grid-template-columns\s*:\s*260px\s+minmax\(0,\s*1fr\)/i);
 		assert.match(css, /aside|\.layout__sidebar/i);
-		assert.match(css, /width\s*:\s*260px\s*;/i);
+		assert.match(css, /(?:width|inline-size)\s*:\s*260px\s*;/i);
 		assert.match(css, /position\s*:\s*sticky\s*;/i);
 		assert.match(css, /top\s*:\s*1rem\s*;/i);
 		assert.match(css, /overflow-y\s*:\s*auto\s*;/i);

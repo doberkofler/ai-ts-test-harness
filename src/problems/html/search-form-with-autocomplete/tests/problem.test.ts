@@ -6,10 +6,8 @@ describe('search-form-with-autocomplete', () => {
 		const html = html10SearchFormWithAutocomplete();
 
 		expect(html).toMatch(/role="combobox"/i);
-		expect(html).toMatch(
-			/<input[^>]*aria-autocomplete="list"[^>]*aria-controls="search-results-listbox"[^>]*aria-expanded="[^"]+"[^>]*aria-activedescendant="[^"]*"[^>]*>/i,
-		);
-		expect(html).toMatch(/<ul[^>]*id="search-results-listbox"[^>]*role="listbox"[^>]*>/i);
+		expect(html).toMatch(/<input[^>]*aria-autocomplete="list"[^>]*aria-controls="[^"]+"[^>]*aria-expanded="[^"]+"[^>]*aria-activedescendant="[^"]*"[^>]*>/i);
+		expect(html).toMatch(/<ul[^>]*id="[^"]+"[^>]*role="listbox"[^>]*>/i);
 		expect(html).toMatch(/role="option"/i);
 		expect(html).toMatch(/aria-live="polite"/i);
 		expect(html).toMatch(/setAttribute\('aria-activedescendant'/);

@@ -11,7 +11,7 @@ describe('semantic-page-skeleton', () => {
 		expect(html).toMatch(/<meta[^>]*name="viewport"[^>]*>/i);
 		expect(html).toMatch(/<body>[\s\S]*<a[^>]*href="#main-content"[^>]*>[\s\S]*<\/a>/i);
 		expect(html).toMatch(/<header>[\s\S]*<nav[\s\S]*<\/nav>[\s\S]*<\/header>/i);
-		expect(html).toMatch(/<main[^>]*id="main-content"[^>]*>[\s\S]*<article>[\s\S]*<\/article>[\s\S]*<aside>[\s\S]*<\/aside>[\s\S]*<\/main>/i);
+		expect(html).toMatch(/<main[^>]*id="main-content"[^>]*>[\s\S]*<article[^>]*>[\s\S]*<\/article>[\s\S]*<aside[^>]*>[\s\S]*<\/aside>[\s\S]*<\/main>/i);
 		expect(html).toMatch(/<footer>[\s\S]*<nav[\s\S]*<\/nav>[\s\S]*copyright|&copy;/i);
 		const h1Matches = html.match(/<h1\b/gi) ?? [];
 		expect(h1Matches).toHaveLength(1);

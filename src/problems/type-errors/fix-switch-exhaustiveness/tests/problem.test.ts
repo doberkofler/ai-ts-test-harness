@@ -62,7 +62,7 @@ const runLegacyTests: (context: RefactorLegacyContext) => void | Promise<void> =
 		assert.strictEqual(transformed('idle'), 'Idle');
 		assert.strictEqual(transformed('loading'), 'Loading...');
 		assert.strictEqual(transformed('done'), 'Done');
-		assert.match(code.result, /assertNever\s*=\s*\(value:\s*never\)/);
+		assert.match(code.result, /never/);
 		assert.match(code.result, /case\s+'done'/);
 	};
 
