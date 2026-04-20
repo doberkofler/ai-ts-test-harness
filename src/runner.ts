@@ -286,6 +286,7 @@ export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifac
 		}
 
 		const runVitestOnce = async (): Promise<VitestRunLike> => {
+			process.env['NODE_PRESERVE_SYMLINKS'] = '1';
 			const runner = await runVitest('test', testPaths, {
 				run: true,
 				watch: false,
@@ -294,11 +295,32 @@ export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifac
 				testTimeout: timeoutMs,
 				reporters: ['dot'],
 				root: tempWorkspace,
+				// @ts-expect-error nodeOptions is valid
+				nodeOptions: ['--preserve-symlinks'],
 			});
 			return runner;
 		};
 
-		runnerInstance = options.debug === true ? await runVitestOnce() : await withMutedOutput(runVitestOnce);
+		const runVitestWithTimeout = async (): Promise<VitestRunLike> => {
+			const overallTimeoutMs = Math.max(timeoutMs * 2, 120_000);
+			let timeoutId: NodeJS.Timeout | undefined;
+			// eslint-disable-next-line promise/avoid-new, promise/param-names
+			const timeoutPromise = new Promise<never>((_resolve, reject) => {
+				timeoutId = setTimeout(() => {
+					reject(new Error(`Vitest run timed out after ${overallTimeoutMs}ms`));
+				}, overallTimeoutMs);
+			});
+			const vitestPromise = options.debug === true ? runVitestOnce() : withMutedOutput(runVitestOnce);
+			try {
+				return await Promise.race([vitestPromise, timeoutPromise]);
+			} finally {
+				if (timeoutId !== undefined) {
+					clearTimeout(timeoutId);
+				}
+			}
+		};
+
+		runnerInstance = await runVitestWithTimeout();
 		const persistedArtifact = readArtifactFromWorkspace(tempWorkspace, artifact.files);
 		return buildResultFromRunner(problem, persistedArtifact, runnerInstance);
 	} catch (error) {

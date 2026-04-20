@@ -62,7 +62,8 @@
 		"vite": "8.0.8",
 		"vitest": "4.1.4"
 	},
-	"create-template-project": {
-		"template": "cli"
-	}
+  "create-template-project": {
+    "template": "cli"
+  },
+  "packages": []
 }
