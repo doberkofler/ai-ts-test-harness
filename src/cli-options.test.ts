@@ -28,6 +28,32 @@ describe('normalizeCliOpts', () => {
 		});
 	});
 
+	test('forces cooldown off when --no-cooldown is set', () => {
+		const normalized = normalizeCliOpts({
+			model: 'test-model',
+			debug: false,
+			compress: false,
+			llmTimeout: '75',
+			vitestTimeout: '90',
+			cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
+			cooldown: false,
+		});
+
+		expect(normalized).toEqual({
+			model: 'test-model',
+			debug: false,
+			storeThinking: true,
+			compress: false,
+			overwriteResults: false,
+			llmTimeout: '75',
+			vitestTimeout: '90',
+			cooldownTemp: '0',
+			cooldown: false,
+			llmTimeoutSecs: '75',
+			vitestTimeoutSecs: '90',
+		});
+	});
+
 	test('returns undefined for invalid option shape', () => {
 		expect(normalizeCliOpts({debug: true})).toBeUndefined();
 	});

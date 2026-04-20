@@ -39,10 +39,12 @@
 		"@mariozechner/pi-ai": "0.67.6",
 		"commander": "14.0.3",
 		"debug": "4.4.3",
-		"macos-temperature-sensor": "1.0.4",
 		"openai": "6.34.0",
 		"systeminformation": "5.31.5",
 		"zod": "4.3.6"
+	},
+	"optionalDependencies": {
+		"macos-temperature-sensor": "1.0.4"
 	},
 	"devDependencies": {
 		"@commitlint/cli": "20.5.0",

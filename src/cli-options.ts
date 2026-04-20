@@ -37,6 +37,7 @@ export const registerGlobalCliOptions = (program: Command): void => {
 	program.option('--llm-timeout <seconds>', 'LLM response timeout in seconds', String(DEFAULT_LLM_TIMEOUT_SECS));
 	program.option('--vitest-timeout <seconds>', 'Vitest per-test timeout in seconds', String(DEFAULT_VITEST_TIMEOUT_SECS));
 	program.option('--cooldown-temp <celsius>', 'Cooldown temperature threshold in Celsius', String(DEFAULT_COOLDOWN_TEMP_THRESHOLD));
+	program.option('--no-cooldown', 'Disable cooldown between problems');
 	program.option('--html-output <file>', 'Write an HTML report file (defaults to result path with .html extension)');
 	program.option('--test <name>', 'Run a specific test by exact problem name');
 	program.option('--category <list>', 'Run only categories from a comma-separated list (for example, algorithms,refactor)');
@@ -50,6 +51,7 @@ export const normalizeCliOpts = (data: unknown): CliOpts | undefined => {
 	const llmTimeoutValue: unknown = Reflect.get(data, 'llmTimeout');
 	const vitestTimeoutValue: unknown = Reflect.get(data, 'vitestTimeout');
 	const cooldownTempValue: unknown = Reflect.get(data, 'cooldownTemp');
+	const cooldownEnabledValue: unknown = Reflect.get(data, 'cooldown');
 	const storeThinkingValue: unknown = Reflect.get(data, 'storeThinking');
 	const compressValue: unknown = Reflect.get(data, 'compress');
 	const overwriteResultsValue: unknown = Reflect.get(data, 'overwriteResults');
@@ -60,7 +62,12 @@ export const normalizeCliOpts = (data: unknown): CliOpts | undefined => {
 		overwriteResults: typeof overwriteResultsValue === 'boolean' ? overwriteResultsValue : false,
 		llmTimeoutSecs: llmTimeoutValue,
 		vitestTimeoutSecs: vitestTimeoutValue,
-		cooldownTemp: cooldownTempValue === undefined ? String(DEFAULT_COOLDOWN_TEMP_THRESHOLD) : cooldownTempValue,
+		cooldownTemp:
+			typeof cooldownEnabledValue === 'boolean' && !cooldownEnabledValue
+				? '0'
+				: cooldownTempValue === undefined
+					? String(DEFAULT_COOLDOWN_TEMP_THRESHOLD)
+					: cooldownTempValue,
 	};
 
 	if (!isCliOpts(normalized)) {
