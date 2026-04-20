@@ -58,10 +58,17 @@ ai-ts-test-harness login ollama --url http://localhost:11434/v1
 # cloud key-based provider
 ai-ts-test-harness login openai --api-key sk-...
 
+# openrouter browser oauth (opens browser and saves returned key)
+ai-ts-test-harness login openrouter --oauth
+
 # inspect and switch defaults
 ai-ts-test-harness auth list
 ai-ts-test-harness auth use ollama
 ```
+
+Notes:
+- `openrouter` supports browser-based OAuth (`--oauth`) or API keys.
+- `openai` currently uses API keys (`--api-key`).
 
 Then run:
 

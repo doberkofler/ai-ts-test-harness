@@ -27,7 +27,7 @@ const PROVIDERS: readonly ProviderDefinition[] = [
 	{
 		id: 'openrouter',
 		name: 'OpenRouter',
-		auth: 'api-key',
+		auth: 'oauth-or-api-key',
 		defaultBaseUrl: 'https://openrouter.ai/api/v1',
 	},
 ];

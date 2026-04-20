@@ -2,6 +2,7 @@ import {stdin as input, stdout as output} from 'node:process';
 import {createInterface} from 'node:readline/promises';
 import OpenAI from 'openai';
 import {getAuthConfigPath} from './config.ts';
+import {loginWithOpenRouterOAuth} from './openrouter-oauth.ts';
 import {
 	getDefaultConnection,
 	loadAuthStore,
@@ -16,6 +17,7 @@ import {getProviderById, getProviders, type ProviderDefinition, type ProviderId}
 type LoginOptions = {
 	apiKey?: string;
 	oauthToken?: string;
+	oauth?: boolean;
 	url?: string;
 	name?: string;
 	defaultModel?: string;
@@ -67,6 +69,28 @@ const promptForSecret = async (message: string): Promise<string> => {
 	}
 };
 
+const promptForAuthChoice = async (): Promise<'oauth' | 'api-key'> => {
+	if (!input.isTTY || !output.isTTY) {
+		throw new TypeError('Missing credentials in non-interactive mode. Provide --api-key, --oauth-token, or --oauth.');
+	}
+
+	const prompt = createPrompt();
+	try {
+		const rawAnswer = await prompt.question('Authentication method (oauth/api-key) [oauth]: ');
+		const answer = rawAnswer.trim().toLowerCase();
+		if (answer.length === 0 || answer === 'oauth') {
+			return 'oauth';
+		}
+		if (answer === 'api-key') {
+			return 'api-key';
+		}
+
+		throw new TypeError('Invalid auth method. Use "oauth" or "api-key".');
+	} finally {
+		prompt.close();
+	}
+};
+
 const buildConnectionInput = async (provider: ProviderDefinition, options: LoginOptions): Promise<UpsertConnectionInput> => {
 	const baseUrl = typeof options.url === 'string' && options.url.trim().length > 0 ? options.url.trim() : provider.defaultBaseUrl;
 	const name = typeof options.name === 'string' && options.name.trim().length > 0 ? options.name.trim() : provider.id;
@@ -90,6 +114,21 @@ const buildConnectionInput = async (provider: ProviderDefinition, options: Login
 			oauthToken: options.oauthToken.trim(),
 			...(typeof options.defaultModel === 'string' && options.defaultModel.trim().length > 0 ? {defaultModel: options.defaultModel.trim()} : {}),
 		};
+	}
+
+	if (provider.auth === 'oauth-or-api-key') {
+		const shouldUseOAuth = options.oauth === true ? true : !input.isTTY || !output.isTTY ? false : (await promptForAuthChoice()) === 'oauth';
+		if (shouldUseOAuth) {
+			const oauthResult = await loginWithOpenRouterOAuth();
+			return {
+				provider: provider.id,
+				name,
+				baseUrl,
+				authType: 'api-key',
+				apiKey: oauthResult.apiKey,
+				...(typeof options.defaultModel === 'string' && options.defaultModel.trim().length > 0 ? {defaultModel: options.defaultModel.trim()} : {}),
+			};
+		}
 	}
 
 	const apiKey = typeof options.apiKey === 'string' && options.apiKey.trim().length > 0 ? options.apiKey.trim() : await promptForSecret('API key: ');

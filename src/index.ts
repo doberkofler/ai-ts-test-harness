@@ -26,6 +26,7 @@ const main = async (): Promise<void> => {
 		.description('Create or update a provider connection')
 		.option('--api-key <key>', 'API key for the provider')
 		.option('--oauth-token <token>', 'OAuth token for the provider')
+		.option('--oauth', 'Use browser OAuth flow when supported', false)
 		.option('--url <url>', 'Provider endpoint URL')
 		.option('--name <name>', 'Connection name (defaults to provider id)')
 		.option('--default-model <model>', 'Default model for this connection')
@@ -36,6 +37,7 @@ const main = async (): Promise<void> => {
 				options: {
 					apiKey?: string;
 					oauthToken?: string;
+					oauth?: boolean;
 					url?: string;
 					name?: string;
 					defaultModel?: string;
@@ -46,6 +48,7 @@ const main = async (): Promise<void> => {
 				const loginOptions = {
 					...(typeof options.apiKey === 'string' ? {apiKey: options.apiKey} : {}),
 					...(typeof options.oauthToken === 'string' ? {oauthToken: options.oauthToken} : {}),
+					...(options.oauth === true ? {oauth: true} : {}),
 					...(typeof options.url === 'string' ? {url: options.url} : {}),
 					...(typeof options.name === 'string' ? {name: options.name} : {}),
 					...(typeof options.defaultModel === 'string' ? {defaultModel: options.defaultModel} : {}),

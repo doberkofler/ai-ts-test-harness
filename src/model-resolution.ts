@@ -51,7 +51,7 @@ export const resolveModelFromAuth = (requestedModel: string, authPath: string = 
 	const resolvedModelId = providerModel ? providerModel.model : requestedModel;
 	const resolvedModel = `${provider}/${resolvedModelId}`;
 
-	if (providerDefinition.auth === 'api-key' && selectedConnection.authType === 'none') {
+	if ((providerDefinition.auth === 'api-key' || providerDefinition.auth === 'oauth-or-api-key') && selectedConnection.authType === 'none') {
 		throw new TypeError(`Connection ${selectedConnection.name} requires an API key. Run \`ai-ts-test-harness login ${provider}\`.`);
 	}
 

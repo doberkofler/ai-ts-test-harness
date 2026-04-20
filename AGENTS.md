@@ -42,6 +42,10 @@ A modern project built with ai-ts-test-harness, emphasizing type safety, perform
 
 The CLI resolves endpoint and credentials from saved login connections in `~/.ai-ts-test-harness/auth.json`.
 
+Authentication notes:
+- `openrouter` supports browser OAuth (`login openrouter --oauth`) and API keys.
+- `openai` currently uses API keys.
+
 The CLI prints the resolved runtime parameters at startup to make debugging runs reproducible.
 
 ### Targeted Testing
