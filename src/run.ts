@@ -2,7 +2,7 @@ import {mkdirSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs'
 import {join, resolve} from 'node:path';
 import {gunzipSync, gzipSync} from 'node:zlib';
 import {DEFAULT_RESULTS_DIR} from './config.ts';
-import {resolveModelFromAuth, toExecuteRunOptions, type ResolvedModel} from './model-resolution.ts';
+import {resolveModelFromAuth, resolveRuntimeAuth, toExecuteRunOptions, type ResolvedModel} from './model-resolution.ts';
 import {loadProblems} from './load-problems.ts';
 import {parseCategoryFilter, selectProblems, selectProblemsByFilters} from './core/problem-selection.ts';
 import {executeProblems, type ExecuteRunOptions} from './run-execution.ts';
@@ -20,6 +20,7 @@ const AUTO_RESUME_WINDOW_MS = 24 * 60 * 60 * 1000;
 export type RunContext = {
 	mode: 'run' | 'rerun-failed';
 	parsedOptions: ParsedRunCommandOptions;
+	resolvedModel: ResolvedModel;
 	problems: Problem[];
 	runtimeConfig: RuntimeConfig;
 	executeOptions: ExecuteRunOptions;
@@ -327,6 +328,7 @@ export const createRunContext = (options: RunCommandOptions): RunContext => {
 	return {
 		mode: 'run',
 		parsedOptions,
+		resolvedModel,
 		problems,
 		runtimeConfig,
 		executeOptions,
@@ -357,6 +359,10 @@ export const createRerunFailedContext = (options: RunCommandOptions): RunContext
 };
 
 export const runCommandWithContext = async (context: RunContext): Promise<{results: Result[]; outputPath: string; config: RuntimeConfig}> => {
+	context.resolvedModel = await resolveRuntimeAuth(context.resolvedModel);
+	context.executeOptions = buildExecuteRunOptions(context.parsedOptions, context.resolvedModel);
+	context.runtimeConfig.authType = context.resolvedModel.authType;
+
 	const nowMs = Date.now();
 	context.runtimeConfig.systemInfo = await getSystemInfo();
 

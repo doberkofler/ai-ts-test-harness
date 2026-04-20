@@ -37,7 +37,7 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 
 ### CLI Commands
 
-- `login [provider]`: Create or update a provider connection. Supported providers: `ollama`, `openai`, `openrouter`.
+- `login [provider]`: Create or update a provider connection. Supports `ollama` plus PI provider IDs from `@mariozechner/pi-ai` (e.g. `openai`, `openai-codex`, `anthropic`, `github-copilot`, `openrouter`, `google-gemini-cli`, ...).
 - `logout <connection>`: Remove a saved connection by id/name/provider.
 - `auth list`: List saved connections and show the active default.
 - `auth use <connection>`: Set the default connection used for bare model ids.
@@ -58,6 +58,9 @@ ai-ts-test-harness login ollama --url http://localhost:11434/v1
 # cloud key-based provider
 ai-ts-test-harness login openai --api-key sk-...
 
+# OpenAI Codex subscription OAuth (ChatGPT Plus/Pro)
+ai-ts-test-harness login openai-codex --oauth
+
 # openrouter browser oauth (opens browser and saves returned key)
 ai-ts-test-harness login openrouter --oauth
 
@@ -67,6 +70,8 @@ ai-ts-test-harness auth use ollama
 ```
 
 Notes:
+- `openai-codex` uses browser OAuth (`--oauth`) for ChatGPT Plus/Pro subscription auth.
+- OAuth-capable providers from PI are shown automatically when using `login --oauth`.
 - `openrouter` supports browser-based OAuth (`--oauth`) or API keys.
 - `openai` currently uses API keys (`--api-key`).
 

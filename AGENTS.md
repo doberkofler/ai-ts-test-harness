@@ -34,7 +34,7 @@ A modern project built with ai-ts-test-harness, emphasizing type safety, perform
 
 ### Connection/Auth Commands
 
-- `login [provider]`: Create/update a saved connection (`ollama`, `openai`, `openrouter`).
+- `login [provider]`: Create/update a saved connection (`ollama` + PI provider ids from `@mariozechner/pi-ai`, such as `openai`, `openai-codex`, `anthropic`, `github-copilot`, `openrouter`, ...).
 - `logout <connection>`: Remove a saved connection.
 - `auth list`: Show configured connections and the default one.
 - `auth use <connection>`: Set default connection.
@@ -43,6 +43,8 @@ A modern project built with ai-ts-test-harness, emphasizing type safety, perform
 The CLI resolves endpoint and credentials from saved login connections in `~/.ai-ts-test-harness/auth.json`.
 
 Authentication notes:
+- `openai-codex` supports browser OAuth (`login openai-codex --oauth`) for ChatGPT Plus/Pro subscriptions.
+- Other PI OAuth providers (for example `anthropic`, `github-copilot`, `google-gemini-cli`, `google-antigravity`) are also available via `login <provider> --oauth`.
 - `openrouter` supports browser OAuth (`login openrouter --oauth`) and API keys.
 - `openai` currently uses API keys.
 

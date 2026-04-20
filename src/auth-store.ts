@@ -4,6 +4,16 @@ import {z} from 'zod';
 import {ensureConfigDir, getAuthConfigPath} from './config.ts';
 import {type ProviderId} from './provider-registry.ts';
 
+const storedOAuthCredentialsSchema = z
+	.object({
+		refresh: z.string().min(1),
+		access: z.string().min(1),
+		expires: z.number(),
+	})
+	.catchall(z.unknown());
+
+export type StoredOAuthCredentials = z.infer<typeof storedOAuthCredentialsSchema>;
+
 const authConnectionSchema = z.discriminatedUnion('authType', [
 	z.object({
 		authType: z.literal('none'),
@@ -16,13 +26,18 @@ const authConnectionSchema = z.discriminatedUnion('authType', [
 		authType: z.literal('oauth-token'),
 		oauthToken: z.string().min(1),
 	}),
+	z.object({
+		authType: z.literal('oauth-credentials'),
+		oauthProvider: z.string().min(1),
+		oauthCredentials: storedOAuthCredentialsSchema,
+	}),
 ]);
 
 const connectionSchema = z
 	.object({
 		id: z.string().min(1),
 		name: z.string().min(1),
-		provider: z.enum(['ollama', 'openai', 'openrouter']),
+		provider: z.string().min(1),
 		baseUrl: z.string().min(1),
 		defaultModel: z.string().min(1).optional(),
 		createdAt: z.string().min(1),
@@ -64,6 +79,16 @@ export type UpsertConnectionInput =
 			defaultModel?: string;
 			authType: 'oauth-token';
 			oauthToken: string;
+	  }
+	| {
+			id?: string;
+			name: string;
+			provider: ProviderId;
+			baseUrl: string;
+			defaultModel?: string;
+			authType: 'oauth-credentials';
+			oauthProvider: string;
+			oauthCredentials: StoredOAuthCredentials;
 	  };
 
 export const emptyAuthStore = (): AuthStore => ({

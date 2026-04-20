@@ -41,7 +41,7 @@ export const buildOpenRouterAuthUrl = (callbackUrl: string, codeChallenge: strin
 	return authUrl.toString();
 };
 
-const openBrowser = (url: string): void => {
+export const openBrowserUrl = (url: string): void => {
 	const {platform} = process;
 	const command = platform === 'darwin' ? 'open' : platform === 'win32' ? 'cmd' : 'xdg-open';
 	const args = platform === 'darwin' ? [url] : platform === 'win32' ? ['/c', 'start', '', url] : [url];
@@ -183,7 +183,7 @@ export const loginWithOpenRouterOAuth = async (): Promise<OpenRouterOAuthResult>
 	console.log('Opening browser for OpenRouter login...');
 	console.log(`If the browser does not open, use this URL:\n${authUrl}`);
 
-	openBrowser(authUrl);
+	openBrowserUrl(authUrl);
 
 	try {
 		const code = await callbackWaiter.codePromise;

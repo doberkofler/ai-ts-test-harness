@@ -1,14 +1,17 @@
 import {stdin as input, stdout as output} from 'node:process';
 import {createInterface} from 'node:readline/promises';
 import OpenAI from 'openai';
+import {getModels as getPiModels, getProviders as getPiProviders, type KnownProvider} from '@mariozechner/pi-ai';
+import {getOAuthProvider, loginOpenAICodex} from '@mariozechner/pi-ai/oauth';
 import {getAuthConfigPath} from './config.ts';
-import {loginWithOpenRouterOAuth} from './openrouter-oauth.ts';
+import {loginWithOpenRouterOAuth, openBrowserUrl} from './openrouter-oauth.ts';
 import {
 	getDefaultConnection,
 	loadAuthStore,
 	removeConnection,
 	saveAuthStore,
 	setDefaultConnection,
+	type StoredOAuthCredentials,
 	type UpsertConnectionInput,
 	upsertConnection,
 } from './auth-store.ts';
@@ -25,14 +28,30 @@ type LoginOptions = {
 };
 
 const createPrompt = (): ReturnType<typeof createInterface> => createInterface({input, output});
+const knownPiProviders = new Set<KnownProvider>(getPiProviders());
+const isKnownPiProvider = (provider: string): provider is KnownProvider => {
+	for (const knownProvider of knownPiProviders) {
+		if (knownProvider === provider) {
+			return true;
+		}
+	}
 
-const pickProviderInteractively = async (): Promise<ProviderDefinition> => {
+	return false;
+};
+
+const isOAuthCapableProvider = (provider: ProviderDefinition): boolean => provider.auth === 'oauth' || provider.auth === 'oauth-or-api-key';
+
+const pickProviderInteractively = async (options: {oauthOnly?: boolean} = {}): Promise<ProviderDefinition> => {
 	if (!input.isTTY || !output.isTTY) {
 		throw new TypeError('Provider is required in non-interactive mode. Example: `ai-ts-test-harness login ollama --url http://localhost:11434/v1`.');
 	}
 
-	const providers = getProviders();
-	console.log('Available providers:');
+	const providers = options.oauthOnly === true ? getProviders().filter((provider) => isOAuthCapableProvider(provider)) : getProviders();
+	if (providers.length === 0) {
+		throw new TypeError('No OAuth-capable providers are configured.');
+	}
+
+	console.log(options.oauthOnly === true ? 'Available OAuth providers:' : 'Available providers:');
 	for (const provider of providers) {
 		console.log(`- ${provider.id} (${provider.name})`);
 	}
@@ -91,6 +110,59 @@ const promptForAuthChoice = async (): Promise<'oauth' | 'api-key'> => {
 	}
 };
 
+const loginWithOpenAICodexOAuth = async (): Promise<StoredOAuthCredentials> => {
+	const credentials = await loginOpenAICodex({
+		onAuth: ({url, instructions}) => {
+			console.log('Opening browser for OpenAI Codex login...');
+			console.log(`If the browser does not open, use this URL:\n${url}`);
+			if (typeof instructions === 'string' && instructions.length > 0) {
+				console.log(instructions);
+			}
+			openBrowserUrl(url);
+		},
+		onPrompt: async (prompt) => {
+			const secret = await promptForSecret(`${prompt.message} `);
+			return secret;
+		},
+		onProgress: (message) => {
+			console.log(message);
+		},
+	});
+
+	return {
+		...credentials,
+	};
+};
+
+const loginWithPiOAuthProvider = async (providerId: string): Promise<StoredOAuthCredentials> => {
+	const oauthProvider = getOAuthProvider(providerId);
+	if (typeof oauthProvider === 'undefined') {
+		throw new TypeError(`OAuth provider ${providerId} is not available.`);
+	}
+
+	const credentials = await oauthProvider.login({
+		onAuth: ({url, instructions}) => {
+			console.log(`Opening browser for ${oauthProvider.name} login...`);
+			console.log(`If the browser does not open, use this URL:\n${url}`);
+			if (typeof instructions === 'string' && instructions.length > 0) {
+				console.log(instructions);
+			}
+			openBrowserUrl(url);
+		},
+		onPrompt: async (prompt) => {
+			const secret = await promptForSecret(`${prompt.message} `);
+			return secret;
+		},
+		onProgress: (message) => {
+			console.log(message);
+		},
+	});
+
+	return {
+		...credentials,
+	};
+};
+
 const buildConnectionInput = async (provider: ProviderDefinition, options: LoginOptions): Promise<UpsertConnectionInput> => {
 	const baseUrl = typeof options.url === 'string' && options.url.trim().length > 0 ? options.url.trim() : provider.defaultBaseUrl;
 	const name = typeof options.name === 'string' && options.name.trim().length > 0 ? options.name.trim() : provider.id;
@@ -101,6 +173,41 @@ const buildConnectionInput = async (provider: ProviderDefinition, options: Login
 			name,
 			baseUrl,
 			authType: 'none',
+			...(typeof options.defaultModel === 'string' && options.defaultModel.trim().length > 0 ? {defaultModel: options.defaultModel.trim()} : {}),
+		};
+	}
+
+	if (provider.auth === 'api-key' && options.oauth === true) {
+		if (provider.id === 'openai') {
+			throw new TypeError(
+				'OpenAI subscription OAuth uses `openai-codex`. Run `ai-ts-test-harness login openai-codex --oauth`, or use `ai-ts-test-harness login openai --api-key` for API keys.',
+			);
+		}
+		throw new TypeError(`Provider ${provider.id} does not support OAuth login.`);
+	}
+
+	if (provider.auth === 'oauth') {
+		if (provider.id === 'openai-codex') {
+			const oauthCredentials = await loginWithOpenAICodexOAuth();
+			return {
+				provider: provider.id,
+				name,
+				baseUrl,
+				authType: 'oauth-credentials',
+				oauthProvider: 'openai-codex',
+				oauthCredentials,
+				...(typeof options.defaultModel === 'string' && options.defaultModel.trim().length > 0 ? {defaultModel: options.defaultModel.trim()} : {}),
+			};
+		}
+
+		const oauthCredentials = await loginWithPiOAuthProvider(provider.id);
+		return {
+			provider: provider.id,
+			name,
+			baseUrl,
+			authType: 'oauth-credentials',
+			oauthProvider: provider.id,
+			oauthCredentials,
 			...(typeof options.defaultModel === 'string' && options.defaultModel.trim().length > 0 ? {defaultModel: options.defaultModel.trim()} : {}),
 		};
 	}
@@ -144,7 +251,8 @@ const buildConnectionInput = async (provider: ProviderDefinition, options: Login
 };
 
 export const loginCommand = async (providerArg: string | undefined, options: LoginOptions): Promise<void> => {
-	const provider = typeof providerArg === 'string' ? getProviderById(providerArg.trim().toLowerCase()) : await pickProviderInteractively();
+	const provider =
+		typeof providerArg === 'string' ? getProviderById(providerArg.trim().toLowerCase()) : await pickProviderInteractively({oauthOnly: options.oauth === true});
 	if (!provider) {
 		throw new TypeError(`Unknown provider: ${providerArg}`);
 	}
@@ -209,12 +317,33 @@ const listConnectionModels = async (connection: {
 	provider: ProviderId;
 	name: string;
 	baseUrl: string;
-	authType: 'none' | 'api-key' | 'oauth-token';
+	authType: 'none' | 'api-key' | 'oauth-token' | 'oauth-credentials';
 	apiKey?: string;
 	oauthToken?: string;
+	oauthCredentials?: StoredOAuthCredentials;
 }): Promise<ModelListEntry> => {
+	if (isKnownPiProvider(connection.provider)) {
+		const {provider} = connection;
+		const models = getPiModels(provider)
+			.map((model) => `${provider}/${model.id}`)
+			.sort((left, right) => left.localeCompare(right));
+		return {
+			provider,
+			connection: connection.name,
+			models,
+		};
+	}
+
 	try {
-		const apiKey = connection.authType === 'api-key' ? connection.apiKey : connection.authType === 'oauth-token' ? connection.oauthToken : undefined;
+		const oauthCredentialsAccess = typeof connection.oauthCredentials === 'undefined' ? undefined : connection.oauthCredentials.access;
+		const apiKey =
+			connection.authType === 'api-key'
+				? connection.apiKey
+				: connection.authType === 'oauth-token'
+					? connection.oauthToken
+					: connection.authType === 'oauth-credentials'
+						? oauthCredentialsAccess
+						: undefined;
 		const client = new OpenAI({
 			baseURL: connection.baseUrl,
 			apiKey: apiKey ?? 'ollama',

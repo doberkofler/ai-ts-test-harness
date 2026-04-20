@@ -34,7 +34,7 @@ export const resultsFileSchema = z
 		model: z.string(),
 		provider: z.string().optional(),
 		connection: z.string().optional(),
-		auth_type: z.enum(['none', 'api-key', 'oauth-token']).optional(),
+		auth_type: z.enum(['none', 'api-key', 'oauth-token', 'oauth-credentials']).optional(),
 		ollama_url: z.string().optional(),
 		llm_timeout_secs: z.number().optional(),
 		vitest_timeout_secs: z.number().optional(),

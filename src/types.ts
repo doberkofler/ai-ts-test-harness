@@ -74,7 +74,7 @@ export type RuntimeConfig = {
 	model: string;
 	provider?: string;
 	connection?: string;
-	authType?: 'none' | 'api-key' | 'oauth-token';
+	authType?: 'none' | 'api-key' | 'oauth-token' | 'oauth-credentials';
 	debug: boolean;
 	storeThinking?: boolean;
 	compress?: boolean;
@@ -100,7 +100,7 @@ export type ResultsFile = {
 	model: string;
 	provider?: string;
 	connection?: string;
-	auth_type?: 'none' | 'api-key' | 'oauth-token';
+	auth_type?: 'none' | 'api-key' | 'oauth-token' | 'oauth-credentials';
 	ollama_url?: string;
 	llm_timeout_secs?: number;
 	vitest_timeout_secs?: number;

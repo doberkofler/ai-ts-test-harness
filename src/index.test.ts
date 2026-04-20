@@ -117,6 +117,7 @@ describe('run context builders', () => {
 			},
 			['logic'],
 			{
+				connectionId: 'ollama:ollama',
 				provider: 'ollama',
 				requestedModel: 'test-model',
 				resolvedModel: 'ollama/test-model',
@@ -159,6 +160,7 @@ describe('run context builders', () => {
 				category: undefined,
 			},
 			{
+				connectionId: 'openrouter:openrouter',
 				provider: 'openrouter',
 				requestedModel: 'openrouter/anthropic/claude-3.7-sonnet',
 				resolvedModel: 'openrouter/anthropic/claude-3.7-sonnet',
