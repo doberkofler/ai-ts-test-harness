@@ -19,7 +19,7 @@ const runtimeConfig: RuntimeConfig = {
 	debug: false,
 	llmTimeoutSecs: 60,
 	vitestTimeoutSecs: 60,
-	noCooldown: false,
+	cooldownTempThreshold: 50,
 	ollamaUrl: 'http://localhost:11434/v1',
 };
 

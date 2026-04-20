@@ -11,7 +11,7 @@ export const toRunCommandOptions = (opts: CliOpts): RunCommandOptions => ({
 	overwriteResults: opts.overwriteResults,
 	llmTimeoutSecs: opts.llmTimeoutSecs,
 	vitestTimeoutSecs: opts.vitestTimeoutSecs,
-	noCooldown: opts.noCooldown,
+	cooldownTemp: opts.cooldownTemp,
 	test: opts.test,
 	category: opts.category,
 });

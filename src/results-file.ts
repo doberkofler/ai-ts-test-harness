@@ -46,6 +46,8 @@ export const resultsFileSchema = z
 				cpu: z.string(),
 				ram_gb: z.number(),
 				gpu: z.string().optional(),
+				cpu_temp: z.number().optional(),
+				gpu_temp: z.number().optional(),
 			})
 			.optional(),
 		results: z.array(resultSchema),
@@ -102,6 +104,8 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 					cpu: parsed.system_info.cpu,
 					ram_gb: parsed.system_info.ram_gb,
 					...(typeof parsed.system_info.gpu === 'string' ? {gpu: parsed.system_info.gpu} : {}),
+					...(typeof parsed.system_info.cpu_temp === 'number' ? {cpu_temp: parsed.system_info.cpu_temp} : {}),
+					...(typeof parsed.system_info.gpu_temp === 'number' ? {gpu_temp: parsed.system_info.gpu_temp} : {}),
 				};
 
 	return {

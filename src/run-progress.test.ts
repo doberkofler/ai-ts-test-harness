@@ -20,10 +20,10 @@ describe('run progress formatting', () => {
 		expect(formatRunningLiveLine('sum', 4200, 'running', {promptChars: 1500, responseChars: 84})).toContain('↑375t ↓21t ~5 tok/s');
 		expect(formatRunningLiveLine('sum', 4200, 'running', {promptChars: 1500, responseChars: 84}, 61_000)).toContain('ETA 1m 1s');
 		expect(formatRunningLiveLine('sum', 61_000)).toContain('Running sum 1m 1s');
-		expect(formatCooldownLiveLine(3000)).toBe('Cooldown 3s');
-		expect(formatCooldownLiveLine(420)).toBe('Cooldown 0s');
-		expect(formatCooldownStaticLine(2000)).toBe('Cooldown 2s');
-		expect(formatCooldownStaticLine(61_000)).toBe('Cooldown 1m 1s');
+		expect(formatCooldownLiveLine(60, 50)).toBe('Cooldown: 60°C / 50°C');
+		expect(formatCooldownLiveLine(42.6, 40)).toBe('Cooldown: 43°C / 40°C');
+		expect(formatCooldownStaticLine(60, 50)).toBe('Cooldown: 60°C / 50°C');
+		expect(formatCooldownStaticLine(42.4, 40)).toBe('Cooldown: 42°C / 40°C');
 	});
 
 	test('formats completed lines for unicode and ascii modes', () => {

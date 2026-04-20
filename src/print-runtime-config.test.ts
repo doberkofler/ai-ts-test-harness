@@ -25,14 +25,14 @@ describe('printRuntimeConfig', () => {
 			debug: true,
 			llmTimeoutSecs: 60,
 			vitestTimeoutSecs: 60,
-			noCooldown: false,
+			cooldownTempThreshold: 50,
 			ollamaUrl: 'http://localhost:11434/v1',
 			selectedCategories: ['logic'],
 		});
 
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('AI Test Harness'));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^Auth:\s+api-key$/));
-		expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^Cooldown:\s+50% task duration \(min 10s, max 1m\)$/));
+		expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^Cooldown:\s+50°C$/));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^Thinking:\s+stored$/));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^Results file:\s+model-a\.json$/));
 		expect(logSpy).toHaveBeenCalledWith(expect.stringMatching(/^Categories:\s+logic$/));

@@ -9,10 +9,17 @@ const llmMetrics = (llmDurationMs: number, tokensSent = 0, tokensReceived = 0): 
 });
 
 const solveProblemMock = vi.fn<(problem: Problem, options: Record<string, unknown>) => Promise<Result>>();
+const getCpuTemperatureMock = vi.fn<() => Promise<number | undefined>>();
+const getGpuTemperatureMock = vi.fn<() => Promise<number | undefined>>();
 const supportsLiveLineMock = vi.fn<(stream: NodeJS.WriteStream) => boolean>(() => false);
 const writeLiveLineMock = vi.fn<(stream: NodeJS.WriteStream, text: string) => void>();
 const replaceLiveLineMock = vi.fn<(stream: NodeJS.WriteStream, text: string) => void>();
 const clearLiveLineMock = vi.fn<(stream: NodeJS.WriteStream) => void>();
+
+vi.mock(import('./system-info.ts'), () => ({
+	getCpuTemperature: getCpuTemperatureMock,
+	getGpuTemperature: getGpuTemperatureMock,
+}));
 
 vi.mock(import('./solveProblem.ts'), () => ({
 	solveProblem: solveProblemMock,
@@ -38,6 +45,10 @@ const makeProblem = (name: string, category = 'logic'): Problem => ({
 describe('executeProblems', () => {
 	beforeEach(() => {
 		solveProblemMock.mockReset();
+		getCpuTemperatureMock.mockReset();
+		getGpuTemperatureMock.mockReset();
+		getCpuTemperatureMock.mockResolvedValue(30);
+		getGpuTemperatureMock.mockResolvedValue(30);
 		supportsLiveLineMock.mockReset();
 		supportsLiveLineMock.mockReturnValue(false);
 		writeLiveLineMock.mockReset();
@@ -60,7 +71,7 @@ describe('executeProblems', () => {
 				storeThinking: false,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				noCooldown: true,
+				cooldownTempThreshold: 0,
 				ollamaUrl: 'http://localhost:11434/v1',
 				oauthToken: 'oauth-token',
 			},
@@ -130,7 +141,7 @@ describe('executeProblems', () => {
 				debug: false,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				noCooldown: false,
+				cooldownTempThreshold: 50,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{
@@ -190,7 +201,7 @@ describe('executeProblems', () => {
 				debug: false,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				noCooldown: false,
+				cooldownTempThreshold: 50,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{
@@ -222,7 +233,7 @@ describe('executeProblems', () => {
 				debug: false,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				noCooldown: false,
+				cooldownTempThreshold: 50,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{log, initialResults: [resumedResult]},
@@ -251,7 +262,7 @@ describe('executeProblems', () => {
 				debug: true,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				noCooldown: true,
+				cooldownTempThreshold: 0,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{log},
@@ -280,7 +291,7 @@ describe('executeProblems', () => {
 					debug: true,
 					llmTimeoutSecs: 75,
 					vitestTimeoutSecs: 60,
-					noCooldown: true,
+					cooldownTempThreshold: 0,
 					ollamaUrl: 'http://localhost:11434/v1',
 				},
 				{log},
@@ -310,7 +321,7 @@ describe('executeProblems', () => {
 				debug: true,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				noCooldown: true,
+				cooldownTempThreshold: 0,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{log},
@@ -337,7 +348,7 @@ describe('executeProblems', () => {
 				debug: true,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				noCooldown: true,
+				cooldownTempThreshold: 0,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{log, initialResults: [resumedResult]},
@@ -364,7 +375,7 @@ describe('executeProblems', () => {
 				debug: false,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				noCooldown: false,
+				cooldownTempThreshold: 50,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{
@@ -381,12 +392,18 @@ describe('executeProblems', () => {
 		expect(writeLiveLineMock).toHaveBeenCalledWith(expect.anything(), expect.stringContaining('ETA'));
 	});
 
-	test('applies minimum cooldown duration between problems', async () => {
+	test('waits for temperature cooldown between problems', async () => {
 		const log = vi.fn<(message: string) => void>();
 		const sleepMs = vi.fn<(durationMs: number) => Promise<void>>().mockResolvedValue();
 		solveProblemMock
-			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, llm_metrics: llmMetrics(10_000)})
-			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, llm_metrics: llmMetrics(12)});
+			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, llm_metrics: llmMetrics(1000)})
+			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, llm_metrics: llmMetrics(1000)});
+
+		getCpuTemperatureMock
+			.mockResolvedValueOnce(60) // first poll
+			.mockResolvedValueOnce(45); // second poll
+
+		getGpuTemperatureMock.mockResolvedValue(30);
 
 		await executeProblems(
 			[makeProblem('one'), makeProblem('two')],
@@ -395,38 +412,45 @@ describe('executeProblems', () => {
 				debug: false,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				noCooldown: false,
+				cooldownTempThreshold: 50,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{
 				log,
 				sleepMs,
+				now: ((): (() => number) => {
+					let time = 1000;
+					return (): number => {
+						time += 2000;
+						return time;
+					};
+				})(),
 			},
 		);
 
-		expect(sleepMs).toHaveBeenCalledExactlyOnceWith(10_000);
-		expect(log).toHaveBeenCalledWith('Cooldown 10s');
+		expect(sleepMs.mock.calls.length).toBe(1); // 60 -> 45 (threshold 50)
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('Cooldown: 60°C / 50°C'));
 	});
 
-	test('caps dynamic cooldown at one minute', async () => {
+	test('throws error if sensors are missing', async () => {
 		const sleepMs = vi.fn<(durationMs: number) => Promise<void>>().mockResolvedValue();
-		solveProblemMock
-			.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, llm_metrics: llmMetrics(200_000)})
-			.mockResolvedValueOnce({problem: 'two', category: 'logic', program: 'code-2', passed: true, llm_metrics: llmMetrics(10)});
+		solveProblemMock.mockResolvedValueOnce({problem: 'one', category: 'logic', program: 'code-1', passed: true, llm_metrics: llmMetrics(1000)});
+		getCpuTemperatureMock.mockResolvedValue(undefined);
+		getGpuTemperatureMock.mockResolvedValue(undefined);
 
-		await executeProblems(
-			[makeProblem('one'), makeProblem('two')],
-			{
-				model: 'model-a',
-				debug: false,
-				llmTimeoutSecs: 75,
-				vitestTimeoutSecs: 60,
-				noCooldown: false,
-				ollamaUrl: 'http://localhost:11434/v1',
-			},
-			{sleepMs},
-		);
-
-		expect(sleepMs).toHaveBeenCalledExactlyOnceWith(60_000);
+		await expect(
+			executeProblems(
+				[makeProblem('one'), makeProblem('two')],
+				{
+					model: 'model-a',
+					debug: false,
+					llmTimeoutSecs: 75,
+					vitestTimeoutSecs: 60,
+					cooldownTempThreshold: 50,
+					ollamaUrl: 'http://localhost:11434/v1',
+				},
+				{sleepMs},
+			),
+		).rejects.toThrow('Could not read system temperature sensors');
 	});
 });

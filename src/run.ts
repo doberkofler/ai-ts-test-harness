@@ -287,7 +287,7 @@ export const buildRuntimeConfig = (
 	overwriteResults: parsedOptions.overwriteResults,
 	llmTimeoutSecs: parsedOptions.llmTimeoutSecs,
 	vitestTimeoutSecs: parsedOptions.vitestTimeoutSecs,
-	noCooldown: parsedOptions.noCooldown,
+	cooldownTempThreshold: parsedOptions.cooldownTemp,
 	ollamaUrl: resolvedModel.baseUrl,
 	...(Array.isArray(selectedCategories) ? {selectedCategories} : {}),
 });
@@ -299,7 +299,7 @@ export const buildExecuteRunOptions = (parsedOptions: ParsedRunCommandOptions, r
 			storeThinking: parsedOptions.storeThinking,
 			llmTimeoutSecs: parsedOptions.llmTimeoutSecs,
 			vitestTimeoutSecs: parsedOptions.vitestTimeoutSecs,
-			noCooldown: parsedOptions.noCooldown,
+			cooldownTempThreshold: parsedOptions.cooldownTemp,
 		},
 		resolvedModel,
 	);

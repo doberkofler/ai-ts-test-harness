@@ -22,6 +22,8 @@ const renderIndexHtml = (entries: RunReportEntry[], directoryPath: string): stri
 				cpu: typeof systemInfo === 'undefined' ? '' : systemInfo.cpu,
 				gpu: typeof systemInfo === 'undefined' || typeof systemInfo.gpu !== 'string' ? '' : systemInfo.gpu,
 				ramGb: typeof systemInfo === 'undefined' ? 0 : systemInfo.ram_gb,
+				cpuTemp: typeof systemInfo === 'undefined' ? 0 : systemInfo.cpu_temp,
+				gpuTemp: typeof systemInfo === 'undefined' ? 0 : systemInfo.gpu_temp,
 			};
 		}),
 	);
@@ -149,7 +151,10 @@ rows.sort((a, b) => Date.parse(b.generatedAt) - Date.parse(a.generatedAt));
 const tbody = document.getElementById('rows');
 tbody.innerHTML = rows.map((row) => {
 	const statusClass = row.passRate === 100 ? 'pass' : 'fail';
-	const hardware = [row.cpu, row.gpu, row.ramGb > 0 ? row.ramGb + 'GB RAM' : ''].filter(Boolean).join(' • ');
+	const hardwareParts = [row.cpu, row.gpu, row.ramGb > 0 ? row.ramGb + 'GB RAM' : ''];
+	if (row.cpuTemp > 0) hardwareParts.push(row.cpuTemp + '°C (CPU)');
+	if (row.gpuTemp > 0) hardwareParts.push(row.gpuTemp + '°C (GPU)');
+	const hardware = hardwareParts.filter(Boolean).join(' • ');
 	return '<tr>'
 		+ '<td>' + new Date(row.generatedAt).toLocaleString() + '</td>'
 		+ '<td><div>' + row.model + '</div><div class="muted">' + row.jsonFile + '</div></td>'

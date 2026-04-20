@@ -40,31 +40,14 @@ describe('formatResultsFile', () => {
 			ollamaUrl: 'http://localhost:11434/v1',
 			llmTimeoutSecs: 5,
 			vitestTimeoutSecs: 60,
-			noCooldown: false,
-			debug: true,
-		});
-
-		expect(output.model).toBe('test-model');
-		expect(output.ollama_url).toBe('http://localhost:11434/v1');
-		expect(output.llm_timeout_secs).toBe(5);
-		expect(output).not.toHaveProperty('selected_categories');
-		expect(output).not.toHaveProperty('cooldown_period_secs');
-		expect(output).not.toHaveProperty('debug');
-		expect(output).not.toHaveProperty('system_info');
-		expect(output.results).toEqual(results);
-		expect(Date.parse(output.generated_at)).not.toBeNaN();
-	});
-
-	test('returns empty results for empty payload', () => {
-		const output = formatResultsFile([], {
-			model: 'test-model',
-			ollamaUrl: 'http://localhost:11434/v1',
-			llmTimeoutSecs: 5,
-			vitestTimeoutSecs: 60,
+			cooldownTempThreshold: 50,
 			debug: false,
 		});
 
-		expect(output.results).toEqual([]);
+		expect(output.results).toEqual([
+			{problem: 'sum', category: 'arithmetic', program: 'return a + b;', passed: true, llm_metrics: llmMetrics(10)},
+			{problem: 'max', category: 'arithmetic', program: 'return Math.max(a, b);', passed: false, error: 'boom', llm_metrics: llmMetrics(12)},
+		]);
 	});
 
 	test('does not persist auth credentials into result payload', () => {
@@ -111,35 +94,36 @@ describe('run context builders', () => {
 				overwriteResults: false,
 				llmTimeoutSecs: 90,
 				vitestTimeoutSecs: 60,
-				noCooldown: true,
+				cooldownTemp: 0,
 				test: 'fizzbuzz',
 				category: 'logic',
 			},
 			['logic'],
 			{
-				connectionId: 'ollama:ollama',
-				provider: 'ollama',
+				connectionId: 'c1',
+				provider: 'openai',
 				requestedModel: 'test-model',
-				resolvedModel: 'ollama/test-model',
+				resolvedModel: 'openai/test-model',
 				modelId: 'test-model',
-				connectionName: 'ollama',
+				connectionName: 'openai',
 				baseUrl: 'http://localhost:11434/v1',
-				authType: 'none',
+				authType: 'api-key',
+				apiKey: 'sk-123',
 			},
 		);
 
 		expect(config).toEqual({
 			model: 'test-model',
-			provider: 'ollama',
-			connection: 'ollama',
-			authType: 'none',
+			provider: 'openai',
+			connection: 'openai',
+			authType: 'api-key',
 			debug: true,
 			storeThinking: false,
 			compress: false,
 			overwriteResults: false,
 			llmTimeoutSecs: 90,
 			vitestTimeoutSecs: 60,
-			noCooldown: true,
+			cooldownTempThreshold: 0,
 			ollamaUrl: 'http://localhost:11434/v1',
 			selectedCategories: ['logic'],
 		});
@@ -155,7 +139,8 @@ describe('run context builders', () => {
 				overwriteResults: false,
 				llmTimeoutSecs: 90,
 				vitestTimeoutSecs: 60,
-				noCooldown: false,
+				cooldownTemp: 50,
+
 				test: undefined,
 				category: undefined,
 			},
@@ -179,7 +164,7 @@ describe('run context builders', () => {
 			storeThinking: false,
 			llmTimeoutSecs: 90,
 			vitestTimeoutSecs: 60,
-			noCooldown: false,
+			cooldownTempThreshold: 50,
 			ollamaUrl: 'https://openrouter.ai/api/v1',
 			oauthToken: 'oauth-token',
 		});

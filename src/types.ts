@@ -81,7 +81,7 @@ export type RuntimeConfig = {
 	overwriteResults?: boolean;
 	llmTimeoutSecs: number;
 	vitestTimeoutSecs: number;
-	noCooldown?: boolean;
+	cooldownTempThreshold?: number;
 	ollamaUrl: string;
 	selectedCategories?: string[];
 	systemInfo?: SystemInfo;
@@ -93,6 +93,8 @@ export type SystemInfo = {
 	cpu: string;
 	ram_gb: number;
 	gpu?: string;
+	cpu_temp?: number;
+	gpu_temp?: number;
 };
 
 export type ResultsFile = {

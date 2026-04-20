@@ -107,18 +107,18 @@ describe('runCommand', () => {
 			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			noCooldown: false,
+			cooldownTemp: '50',
 			test: undefined,
 			category: 'logic',
 		});
 
 		expect(executeProblemsMock).toHaveBeenCalledWith(
 			[expect.objectContaining({name: 'fizzbuzz', category: 'logic'})],
-			expect.objectContaining({llmTimeoutSecs: 90, vitestTimeoutSecs: 60, noCooldown: false, storeThinking: true}),
+			expect.objectContaining({llmTimeoutSecs: 90, vitestTimeoutSecs: 60, cooldownTempThreshold: 50, storeThinking: true}),
 			expect.objectContaining({initialResults: []}),
 		);
 		expect(runResult.config.llmTimeoutSecs).toBe(90);
-		expect(runResult.config).toMatchObject({noCooldown: false});
+		expect(runResult.config).toMatchObject({cooldownTempThreshold: 50});
 		expect(runResult.config.selectedCategories).toEqual(['logic']);
 		expect(runResult.outputPath.endsWith('/results/test-model.json')).toBe(true);
 
@@ -141,7 +141,7 @@ describe('runCommand', () => {
 			storeThinking: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			noCooldown: false,
+			cooldownTemp: '50',
 			test: undefined,
 			category: 'logic',
 		});
@@ -160,7 +160,7 @@ describe('runCommand', () => {
 				overwriteResults: false,
 				llmTimeoutSecs: '0',
 				vitestTimeoutSecs: '60',
-				noCooldown: false,
+				cooldownTemp: '50',
 				test: undefined,
 				category: undefined,
 			}),
@@ -181,7 +181,7 @@ describe('runCommand', () => {
 			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			noCooldown: false,
+			cooldownTemp: '50',
 			test: undefined,
 			category: 'logic',
 		});
@@ -203,7 +203,7 @@ describe('runCommand', () => {
 			compress: true,
 			llmTimeoutSecs: 90,
 			vitestTimeoutSecs: 60,
-			noCooldown: false,
+			cooldownTempThreshold: 50,
 			ollamaUrl: 'http://localhost:11434/v1',
 			selectedCategories: ['logic'],
 			systemInfo: {
@@ -228,7 +228,7 @@ describe('runCommand', () => {
 			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			noCooldown: false,
+			cooldownTemp: '50',
 			test: undefined,
 			category: 'logic',
 		});
@@ -272,7 +272,7 @@ describe('runCommand', () => {
 				overwriteResults: false,
 				llmTimeoutSecs: '90',
 				vitestTimeoutSecs: '60',
-				noCooldown: false,
+				cooldownTemp: '50',
 				test: undefined,
 				category: 'logic',
 			}),
@@ -303,7 +303,7 @@ describe('runCommand', () => {
 			overwriteResults: true,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			noCooldown: false,
+			cooldownTemp: '50',
 			test: undefined,
 			category: 'logic',
 		});
@@ -324,7 +324,7 @@ describe('runCommand', () => {
 				compress: false,
 				llmTimeoutSecs: 90,
 				vitestTimeoutSecs: 60,
-				noCooldown: false,
+				cooldownTempThreshold: 50,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 		);
@@ -338,7 +338,7 @@ describe('runCommand', () => {
 			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			noCooldown: false,
+			cooldownTemp: '50',
 			test: undefined,
 			category: 'logic',
 		});
@@ -359,7 +359,7 @@ describe('runCommand', () => {
 				compress: false,
 				llmTimeoutSecs: 90,
 				vitestTimeoutSecs: 60,
-				noCooldown: false,
+				cooldownTempThreshold: 50,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 		);
@@ -379,7 +379,7 @@ describe('runCommand', () => {
 			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			noCooldown: false,
+			cooldownTemp: '50',
 			test: undefined,
 			category: 'logic',
 		});

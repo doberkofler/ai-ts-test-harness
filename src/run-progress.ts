@@ -70,9 +70,10 @@ export const formatRunningLiveLine = (
 	return `${RUN_PHASE_LABELS[phase]} ${styleText(name, STYLES.bold)} ${elapsedLabel} ${transferLabel}${etaLabel.length > 0 ? ` ${etaLabel}` : ''}`;
 };
 
-export const formatCooldownLiveLine = (remainingMs: number): string => `Cooldown ${styleText(formatMs(remainingMs, {style: 'timer'}), STYLES.dim)}`;
+export const formatCooldownLiveLine = (currentTemp: number, thresholdTemp: number): string =>
+	`Cooldown: ${styleText(`${Math.round(currentTemp)}°C`, STYLES.bold)} / ${thresholdTemp}°C`;
 
-export const formatCooldownStaticLine = (durationMs: number): string => `Cooldown ${formatMs(durationMs, {style: 'timer'})}`;
+export const formatCooldownStaticLine = (currentTemp: number, thresholdTemp: number): string => `Cooldown: ${Math.round(currentTemp)}°C / ${thresholdTemp}°C`;
 
 export const formatCompletedProblemLine = (input: CompletedProblemLineInput): string => {
 	const statusSymbol = input.preferUnicode ? (input.passed ? '✓' : '✗') : input.passed ? 'PASS' : 'FAIL';

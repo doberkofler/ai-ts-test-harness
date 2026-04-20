@@ -1,4 +1,5 @@
 import {setTimeout as sleep} from 'node:timers/promises';
+import {getCpuTemperature, getGpuTemperature} from './system-info.ts';
 import {
 	formatCompletedProblemLine,
 	formatCooldownLiveLine,
@@ -15,7 +16,6 @@ import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from '.
 import {inferFailureKindFromErrorText, isConnectivityErrorText} from './failure-kind.ts';
 import {solveProblem} from './solveProblem.ts';
 import {type Problem, type Result} from './types.ts';
-import {DEFAULT_MAX_COOLDOWN_MS, DEFAULT_MIN_COOLDOWN_MS, DEFAULT_COOLDOWN_RATIO} from './config.ts';
 
 export type ExecuteRunOptions = {
 	model: string;
@@ -24,19 +24,58 @@ export type ExecuteRunOptions = {
 	storeThinking?: boolean;
 	llmTimeoutSecs: number;
 	vitestTimeoutSecs: number;
-	noCooldown: boolean;
+	cooldownTempThreshold: number;
 	ollamaUrl: string;
 	apiKey?: string;
 	oauthToken?: string;
 };
 
-const estimateCooldownDurationMs = (durationMs: number, noCooldown: boolean): number => {
-	const dynamicCooldownDurationMs = Math.min(DEFAULT_MAX_COOLDOWN_MS, Math.floor(durationMs * DEFAULT_COOLDOWN_RATIO));
-	if (noCooldown || dynamicCooldownDurationMs <= 0) {
-		return 0;
+const MAX_COOLDOWN_WAIT_MS = 10 * 60 * 1000; // 10 minutes safety timeout
+const COOLDOWN_POLL_INTERVAL_MS = 2000;
+
+export const waitForCooldown = async (
+	thresholdTemp: number,
+	deps: {
+		stream: NodeJS.WriteStream;
+		log: (message: string) => void;
+		sleepMs: (durationMs: number) => Promise<void>;
+		showLiveTimer: boolean;
+		now: () => number;
+	},
+): Promise<void> => {
+	if (thresholdTemp <= 0) {
+		return;
 	}
 
-	return Math.max(DEFAULT_MIN_COOLDOWN_MS, dynamicCooldownDurationMs);
+	const startedAt = deps.now();
+
+	while (deps.now() >= 0) {
+		// oxlint-disable-next-line no-await-in-loop
+		const [cpuTemp, gpuTemp] = await Promise.all([getCpuTemperature(), getGpuTemperature()]);
+
+		if (cpuTemp === undefined && gpuTemp === undefined) {
+			throw new Error('Could not read system temperature sensors. Temperature-based cooldown is impossible on this hardware.');
+		}
+
+		const currentTemp = Math.max(cpuTemp ?? -1, gpuTemp ?? -1);
+
+		if (currentTemp <= thresholdTemp) {
+			break;
+		}
+
+		if (deps.now() - startedAt > MAX_COOLDOWN_WAIT_MS) {
+			throw new Error(`System failed to cool down to ${thresholdTemp}°C within ${MAX_COOLDOWN_WAIT_MS / 60_000} minutes (Current: ${currentTemp}°C).`);
+		}
+
+		if (deps.showLiveTimer) {
+			replaceLiveLine(deps.stream, formatCooldownLiveLine(currentTemp, thresholdTemp));
+		} else {
+			deps.log(formatCooldownStaticLine(currentTemp, thresholdTemp));
+		}
+
+		// oxlint-disable-next-line no-await-in-loop
+		await deps.sleepMs(COOLDOWN_POLL_INTERVAL_MS);
+	}
 };
 
 const classifyFailureKind = (result: Pick<Result, 'failure_kind' | 'error'>): string => result.failure_kind ?? inferFailureKindFromErrorText(result.error);
@@ -114,8 +153,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			const remainingAfterCurrent = pendingProblems.length - (index + 1);
 			const estimatedCurrentRemainingMs = Math.max(0, averageProblemDurationMs - elapsedMs);
 			const estimatedFutureProblemsMs = averageProblemDurationMs * remainingAfterCurrent;
-			const estimatedCooldownMs = estimateCooldownDurationMs(averageProblemDurationMs, options.noCooldown) * remainingAfterCurrent;
-			return Math.max(0, Math.round(estimatedCurrentRemainingMs + estimatedFutureProblemsMs + estimatedCooldownMs));
+			return Math.max(0, Math.round(estimatedCurrentRemainingMs + estimatedFutureProblemsMs));
 		};
 		const transferStatsForLiveLine = (): RunTransferStats | undefined => (currentPhase === 'testing' ? undefined : currentTransferStats);
 		let timerId: ReturnType<typeof setInterval> | undefined;
@@ -186,28 +224,24 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 		}
 
 		const hasRemainingUnfinishedProblem = index < pendingProblems.length - 1;
-		const cooldownDurationMs = estimateCooldownDurationMs(result.llm_metrics.llm_duration_ms, options.noCooldown);
-		if (cooldownDurationMs > 0 && hasRemainingUnfinishedProblem) {
+		if (options.cooldownTempThreshold > 0 && hasRemainingUnfinishedProblem) {
 			if (showLiveTimer) {
-				const cooldownStartedAt = now();
-				writeLiveLine(stream, formatCooldownLiveLine(cooldownDurationMs));
-				const cooldownTimerId = setIntervalFn(() => {
-					const elapsed = now() - cooldownStartedAt;
-					const remaining = Math.max(0, cooldownDurationMs - elapsed);
-					replaceLiveLine(stream, formatCooldownLiveLine(remaining));
-				}, 1000);
-
-				try {
-					// oxlint-disable-next-line no-await-in-loop
-					await sleepMs(cooldownDurationMs);
-				} finally {
-					clearIntervalFn(cooldownTimerId);
-					clearLiveLine(stream);
-				}
-			} else {
-				log(formatCooldownStaticLine(cooldownDurationMs));
 				// oxlint-disable-next-line no-await-in-loop
-				await sleepMs(cooldownDurationMs);
+				const [currentCpuTemp, currentGpuTemp] = await Promise.all([getCpuTemperature(), getGpuTemperature()]);
+				writeLiveLine(stream, formatCooldownLiveLine(Math.max(currentCpuTemp ?? -1, currentGpuTemp ?? -1), options.cooldownTempThreshold));
+			}
+
+			// oxlint-disable-next-line no-await-in-loop
+			await waitForCooldown(options.cooldownTempThreshold, {
+				stream,
+				log,
+				sleepMs,
+				showLiveTimer,
+				now,
+			});
+
+			if (showLiveTimer) {
+				clearLiveLine(stream);
 			}
 		}
 	}

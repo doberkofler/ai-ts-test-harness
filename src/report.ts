@@ -51,8 +51,8 @@ export const renderResultsHtml = (payload: ResultsFile): string => {
 	const hardwareInfo = payload.system_info
 		? `<span>Host: ${payload.system_info.hostname}</span>
 		   <span>OS: ${payload.system_info.os}</span>
-		   <span>CPU: ${payload.system_info.cpu} (${payload.system_info.ram_gb}GB RAM)</span>
-		   ${typeof payload.system_info.gpu === 'string' && payload.system_info.gpu.length > 0 ? `<span>GPU: ${payload.system_info.gpu}</span>` : ''}`
+		   <span>CPU: ${payload.system_info.cpu} (${payload.system_info.ram_gb}GB RAM)${typeof payload.system_info.cpu_temp === 'number' ? ` • ${payload.system_info.cpu_temp}°C` : ''}</span>
+		   ${typeof payload.system_info.gpu === 'string' && payload.system_info.gpu.length > 0 ? `<span>GPU: ${payload.system_info.gpu}${typeof payload.system_info.gpu_temp === 'number' ? ` • ${payload.system_info.gpu_temp}°C` : ''}</span>` : ''}`
 		: '';
 
 	return `<!doctype html>

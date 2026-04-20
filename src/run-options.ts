@@ -8,7 +8,7 @@ export type RunCommandOptions = {
 	overwriteResults: boolean;
 	llmTimeoutSecs: string;
 	vitestTimeoutSecs: string;
-	noCooldown: boolean;
+	cooldownTemp: string;
 	test: string | undefined;
 	category: string | undefined;
 };
@@ -21,7 +21,7 @@ export type ParsedRunCommandOptions = {
 	overwriteResults: boolean;
 	llmTimeoutSecs: number;
 	vitestTimeoutSecs: number;
-	noCooldown: boolean;
+	cooldownTemp: number;
 	test: string | undefined;
 	category: string | undefined;
 };
@@ -29,6 +29,7 @@ export type ParsedRunCommandOptions = {
 export const parseRunCommandOptions = (options: RunCommandOptions): ParsedRunCommandOptions => {
 	const llmTimeoutSecs = parseIntOption(options.llmTimeoutSecs, {optionName: '--llm-timeout', minimum: 1});
 	const vitestTimeoutSecs = parseIntOption(options.vitestTimeoutSecs, {optionName: '--vitest-timeout', minimum: 1});
+	const cooldownTemp = parseIntOption(options.cooldownTemp, {optionName: '--cooldown-temp', minimum: 0});
 	parseRequiredOption(options.model, '--model');
 
 	return {
@@ -39,7 +40,7 @@ export const parseRunCommandOptions = (options: RunCommandOptions): ParsedRunCom
 		overwriteResults: options.overwriteResults,
 		llmTimeoutSecs,
 		vitestTimeoutSecs,
-		noCooldown: options.noCooldown,
+		cooldownTemp,
 		test: options.test,
 		category: options.category,
 	};

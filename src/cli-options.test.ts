@@ -10,7 +10,7 @@ describe('normalizeCliOpts', () => {
 			compress: true,
 			llmTimeout: '75',
 			vitestTimeout: '90',
-			cooldown: true,
+			cooldownTemp: '50',
 		});
 
 		expect(normalized).toEqual({
@@ -21,10 +21,9 @@ describe('normalizeCliOpts', () => {
 			overwriteResults: false,
 			llmTimeout: '75',
 			vitestTimeout: '90',
-			cooldown: true,
+			cooldownTemp: '50',
 			llmTimeoutSecs: '75',
 			vitestTimeoutSecs: '90',
-			noCooldown: false,
 		});
 	});
 
@@ -43,7 +42,7 @@ describe('command option mappers', () => {
 			overwriteResults: true,
 			llmTimeoutSecs: '120',
 			vitestTimeoutSecs: '60',
-			noCooldown: true,
+			cooldownTemp: '0',
 			htmlOutput: 'results.html',
 			test: 'fizzbuzz',
 			category: 'logic',
@@ -57,7 +56,7 @@ describe('command option mappers', () => {
 			overwriteResults: true,
 			llmTimeoutSecs: '120',
 			vitestTimeoutSecs: '60',
-			noCooldown: true,
+			cooldownTemp: '0',
 			test: 'fizzbuzz',
 			category: 'logic',
 		});

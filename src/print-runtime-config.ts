@@ -4,7 +4,8 @@ import {type Problem, type RuntimeConfig} from './types.ts';
 
 export const printRuntimeConfig = (problems: Problem[], config: RuntimeConfig): void => {
 	const authMode = config.authType ?? 'unknown';
-	const cooldown = config.noCooldown === true ? styleText('disabled', STYLES.yellow) : '50% task duration (min 10s, max 1m)';
+	const cooldown =
+		config.cooldownTempThreshold !== undefined && config.cooldownTempThreshold > 0 ? `${config.cooldownTempThreshold}°C` : styleText('disabled', STYLES.yellow);
 	const safeModelName = config.model.replaceAll(/[^a-z0-9.-]/gi, '_');
 	const resultsFileName = `${safeModelName}.json${config.compress === true ? '.gz' : ''}`;
 	const VALUE_COLUMN = 14;

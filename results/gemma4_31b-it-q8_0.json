@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-04-20T08:57:21.581Z",
+  "model": "gemma4:31b-it-q8_0",
+  "provider": "ollama",
+  "connection": "ollama",
+  "auth_type": "none",
+  "ollama_url": "http://localhost:11434/v1",
+  "llm_timeout_secs": 300,
+  "vitest_timeout_secs": 60,
+  "system_info": {
+    "hostname": "Dieters-MacBook-Pro-M5.local",
+    "os": "darwin 26.4.1 (arm64)",
+    "cpu": "Apple M5 Max (18 cores)",
+    "ram_gb": 64,
+    "gpu": "Apple Apple M5 Max",
+    "cpu_temp": 30.66
+  },
+  "results": []
+}
