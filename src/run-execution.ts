@@ -12,13 +12,14 @@ import {
 import {type RunPhase} from './run-phase.ts';
 import {type RunTransferStats} from './run-transfer.ts';
 import {clearLiveLine, replaceLiveLine, supportsLiveLine, writeLiveLine} from './core/tty-live-line.ts';
-import {inferFailureKindFromErrorText} from './failure-kind.ts';
+import {inferFailureKindFromErrorText, isConnectivityErrorText} from './failure-kind.ts';
 import {solveProblem} from './solveProblem.ts';
 import {type Problem, type Result} from './types.ts';
 import {DEFAULT_MAX_COOLDOWN_MS, DEFAULT_MIN_COOLDOWN_MS, DEFAULT_COOLDOWN_RATIO} from './config.ts';
 
 export type ExecuteRunOptions = {
 	model: string;
+	provider?: string;
 	debug: boolean;
 	storeThinking?: boolean;
 	llmTimeoutSecs: number;
@@ -39,6 +40,25 @@ const estimateCooldownDurationMs = (durationMs: number, noCooldown: boolean): nu
 };
 
 const classifyFailureKind = (result: Pick<Result, 'failure_kind' | 'error'>): string => result.failure_kind ?? inferFailureKindFromErrorText(result.error);
+
+const summarizeErrorForDisplay = (error: string | undefined): string | undefined => {
+	if (typeof error !== 'string') {
+		return undefined;
+	}
+
+	const normalized = error.replaceAll(/\s+/g, ' ').trim();
+	if (normalized.length === 0) {
+		return undefined;
+	}
+
+	if (/^\d{3}\s*<html/i.test(normalized) || normalized.includes('challenge-platform')) {
+		const statusMatch = /^(\d{3})\b/.exec(normalized);
+		const statusCode = statusMatch === null ? 'HTTP error' : statusMatch[1];
+		return `${statusCode} provider challenge page (auth/session rejected)`;
+	}
+
+	return normalized.length > 180 ? `${normalized.slice(0, 177)}...` : normalized;
+};
 
 type ExecuteProblemsDeps = {
 	stream?: NodeJS.WriteStream;
@@ -110,6 +130,7 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			// oxlint-disable-next-line no-await-in-loop
 			result = await solveProblem(problem, {
 				model: options.model,
+				...(typeof options.provider === 'string' ? {provider: options.provider} : {}),
 				ollamaUrl: options.ollamaUrl,
 				...(typeof options.apiKey === 'string' ? {apiKey: options.apiKey} : {}),
 				...(typeof options.oauthToken === 'string' ? {oauthToken: options.oauthToken} : {}),
@@ -134,7 +155,9 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 			}
 		}
 
-		const detail = result.passed ? formatLlmMetricsSummary(result.llm_metrics) : `[${classifyFailureKind(result)}]`;
+		const failureKind = classifyFailureKind(result);
+		const errorSummary = summarizeErrorForDisplay(result.error);
+		const detail = result.passed ? formatLlmMetricsSummary(result.llm_metrics) : `[${failureKind}]`;
 		log(
 			formatCompletedProblemLine({
 				index,
@@ -146,12 +169,19 @@ export const executeProblems = async (problems: Problem[], options: ExecuteRunOp
 				detail,
 			}),
 		);
+		if (!result.passed && typeof errorSummary === 'string') {
+			log(`Error: ${errorSummary}`);
+		}
 		results.push(result);
 		completedProblemResults.set(problem.name, result);
 		observedProblemDurationsMs.push(result.llm_metrics.llm_duration_ms);
 		if (typeof onProblemComplete === 'function') {
 			// oxlint-disable-next-line no-await-in-loop
 			await onProblemComplete([...results]);
+		}
+
+		if (!result.passed && isConnectivityErrorText(result.error)) {
+			throw new TypeError(`Model connection failed while solving ${problemDisplayName}: ${errorSummary ?? 'provider authentication or connectivity error'}`);
 		}
 
 		const hasRemainingUnfinishedProblem = index < pendingProblems.length - 1;

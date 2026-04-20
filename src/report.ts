@@ -315,18 +315,47 @@ tbody tr:hover {
 	white-space: nowrap;
 }
 
-.details-open {
+
+.detail-tabs {
+	display: inline-flex;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.detail-tab {
+	width: 30px;
+	height: 30px;
 	border: 1px solid var(--stroke);
 	border-radius: 8px;
-	padding: 5px 10px;
+	padding: 0;
 	background: #f8fbff;
-	color: #0f172a;
-	font-weight: 600;
+	color: #334155;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	cursor: pointer;
 }
 
-.details-open:hover {
+.detail-tab:hover {
 	background: #eef5ff;
+}
+
+.detail-tab.active {
+	background: #dbeafe;
+	border-color: #93c5fd;
+	color: #0f172a;
+	box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+}
+
+.detail-tab svg {
+	width: 16px;
+	height: 16px;
+	stroke: currentColor;
+	fill: none;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	pointer-events: none;
 }
 
 .drilldown-row td {
@@ -343,6 +372,42 @@ tbody tr:hover {
 	margin-bottom: 8px;
 	color: var(--text-muted);
 	font-size: 0.9rem;
+}
+
+.section-title {
+	font-size: 0.82rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #0f172a;
+	margin-bottom: 8px;
+}
+
+.metrics-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 8px;
+}
+
+.metric {
+	border: 1px solid var(--stroke);
+	border-radius: 10px;
+	padding: 8px;
+	background: #f8fbff;
+}
+
+.metric-label {
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: #64748b;
+}
+
+.metric-value {
+	margin-top: 4px;
+	font-size: 0.95rem;
+	font-weight: 700;
+	color: #0f172a;
 }
 
 .empty {
@@ -375,6 +440,10 @@ tbody tr:hover {
 	th:nth-child(5),
 	td:nth-child(5) {
 		text-align: right;
+	}
+
+	.detail-tabs {
+		justify-content: flex-end;
 	}
 }
 </style>
@@ -433,6 +502,41 @@ const emptyState = document.getElementById('empty-state');
 const filterButtons = Array.from(document.querySelectorAll('[data-filter]'));
 let activeFilter = 'all';
 const expandedResultKeys = new Set();
+const selectedDetailByKey = new Map();
+
+const DETAIL_SECTIONS = Object.freeze({
+	details: 'details',
+	error: 'error',
+	thinking: 'thinking',
+	artifacts: 'artifacts',
+});
+
+const DETAIL_BUTTONS = [
+	{
+		section: DETAIL_SECTIONS.details,
+		label: 'Details and metrics',
+		icon:
+			'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="10" x2="12" y2="16"></line><circle cx="12" cy="7" r="1"></circle></svg>',
+	},
+	{
+		section: DETAIL_SECTIONS.error,
+		label: 'Error output',
+		icon:
+			'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="13"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+	},
+	{
+		section: DETAIL_SECTIONS.thinking,
+		label: 'Model thinking',
+		icon:
+			'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 17.5c0 1.1.9 2 2 2h1c1.1 0 2-.9 2-2"></path><path d="M9 14c-1.4-1-2.5-2.5-2.5-4.5A5.5 5.5 0 0 1 12 4a5.5 5.5 0 0 1 5.5 5.5c0 2-1.1 3.5-2.5 4.5"></path><line x1="10" y1="14" x2="14" y2="14"></line></svg>',
+	},
+	{
+		section: DETAIL_SECTIONS.artifacts,
+		label: 'Generated artifacts',
+		icon:
+			'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h8l3 3v11H5V8z"></path><path d="M8 5v3h8V5"></path><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="16" x2="13" y2="16"></line></svg>',
+	},
+];
 
 const escapeHtml = (value) => value
 	.replaceAll('&', '&amp;')
@@ -445,7 +549,56 @@ const formatDuration = (durationMs) => durationMs < 1000
 	? durationMs + 'ms'
 	: (durationMs / 1000).toFixed(2) + 's';
 
+const formatMetric = (value, fractionDigits = 0) =>
+	Number.isFinite(value)
+		? Number(value).toLocaleString(undefined, {
+			maximumFractionDigits: fractionDigits,
+			minimumFractionDigits: fractionDigits,
+		})
+		: 'n/a';
+
 const getResultKey = (result) => result.problem + '::' + result.category;
+
+const getSectionTitle = (section) => {
+	if (section === DETAIL_SECTIONS.error) {
+		return 'Error Output';
+	}
+
+	if (section === DETAIL_SECTIONS.thinking) {
+		return 'Model Thinking';
+	}
+
+	if (section === DETAIL_SECTIONS.artifacts) {
+		return 'Generated Artifacts';
+	}
+
+	return 'Details and Metrics';
+};
+
+const renderMetrics = (metrics) => '<div class="metrics-grid">'
+	+ '<div class="metric"><div class="metric-label">Duration</div><div class="metric-value">' + formatDuration(metrics.llm_duration_ms) + '</div></div>'
+	+ '<div class="metric"><div class="metric-label">Tokens Sent</div><div class="metric-value">' + formatMetric(metrics.tokens_sent) + '</div></div>'
+	+ '<div class="metric"><div class="metric-label">Tokens Received</div><div class="metric-value">' + formatMetric(metrics.tokens_received) + '</div></div>'
+	+ '<div class="metric"><div class="metric-label">Avg Tokens/Sec</div><div class="metric-value">' + formatMetric(metrics.average_tokens_per_second, 2) + '</div></div>'
+	+ '</div>';
+
+const renderDetailSection = (result, section) => {
+	if (section === DETAIL_SECTIONS.error) {
+		return '<div class="error">' + escapeHtml(typeof result.error === 'string' && result.error.length > 0 ? result.error : 'No error output.') + '</div>';
+	}
+
+	if (section === DETAIL_SECTIONS.thinking) {
+		return '<div class="program">'
+			+ escapeHtml(typeof result.thinking === 'string' && result.thinking.length > 0 ? result.thinking : 'No model thinking captured.')
+			+ '</div>';
+	}
+
+	if (section === DETAIL_SECTIONS.artifacts) {
+		return renderArtifact(result.artifact, result.program);
+	}
+
+	return renderMetrics(result.llm_metrics);
+};
 
 const renderArtifact = (artifact, program) => {
 	if (!artifact || artifact.kind !== 'changed-files-v1' || !Array.isArray(artifact.files) || artifact.files.length === 0) {
@@ -491,20 +644,28 @@ const render = () => {
 			const statusClass = result.passed ? 'pass' : 'fail';
 			const statusText = result.passed ? 'PASS' : 'FAIL';
 			const isExpanded = expandedResultKeys.has(resultKey);
-			const actionLabel = isExpanded ? 'Hide details' : 'Show details';
-			const thinkingBlock = typeof result.thinking === 'string' && result.thinking.length > 0
-				? '<div class="program-label">Model Thinking:</div>'
-					+ '<div class="program">' + escapeHtml(result.thinking) + '</div>'
-				: '';
-			const artifactBlock = '<div class="program-label">Generated Artifact:</div>' + renderArtifact(result.artifact, result.program);
+			const selectedSection = selectedDetailByKey.get(resultKey) ?? DETAIL_SECTIONS.details;
+			const sectionTitle = getSectionTitle(selectedSection);
+			const tabActions = '<div class="detail-tabs">'
+				+ DETAIL_BUTTONS.map((buttonConfig) => {
+					const isActive = isExpanded && selectedSection === buttonConfig.section;
+					return '<button type="button" class="detail-tab ' + (isActive ? 'active' : '') + '"'
+						+ ' data-detail-key="' + escapeHtml(resultKey) + '"'
+						+ ' data-detail-section="' + buttonConfig.section + '"'
+						+ ' aria-label="' + buttonConfig.label + '"'
+						+ ' title="' + buttonConfig.label + '"'
+						+ ' aria-pressed="' + (isActive ? 'true' : 'false') + '">'
+						+ buttonConfig.icon
+						+ '</button>';
+				}).join('')
+				+ '</div>';
 			const detailsRow = isExpanded
 				? '<tr class="drilldown-row" data-parent-key="' + escapeHtml(resultKey) + '">'
 					+ '<td colspan="5">'
 					+ '<div class="drilldown-content">'
 					+ '<div class="drilldown-meta">' + statusText + ' • ' + escapeHtml(result.category) + ' • ' + formatDuration(result.llm_metrics.llm_duration_ms) + '</div>'
-					+ '<div class="error">' + escapeHtml(typeof result.error === 'string' && result.error.length > 0 ? result.error : 'No error output.') + '</div>'
-					+ thinkingBlock
-					+ artifactBlock
+					+ '<div class="section-title">' + sectionTitle + '</div>'
+					+ renderDetailSection(result, selectedSection)
 					+ '</div>'
 					+ '</td>'
 					+ '</tr>'
@@ -515,23 +676,26 @@ const render = () => {
 				+ '<td>' + escapeHtml(result.problem) + '</td>'
 				+ '<td>' + escapeHtml(result.category) + '</td>'
 				+ '<td>' + formatDuration(result.llm_metrics.llm_duration_ms) + '</td>'
-				+ '<td class="details-actions"><button type="button" class="details-open" data-toggle-key="' + escapeHtml(resultKey) + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '">' + actionLabel + '</button></td>'
+				+ '<td class="details-actions">' + tabActions + '</td>'
 				+ '</tr>'
 				+ detailsRow;
 		})
 		.join('');
 
-	for (const trigger of Array.from(document.querySelectorAll('[data-toggle-key]'))) {
+	for (const trigger of Array.from(document.querySelectorAll('[data-detail-key]'))) {
 		trigger.addEventListener('click', () => {
-			const key = trigger.getAttribute('data-toggle-key') ?? '';
+			const key = trigger.getAttribute('data-detail-key') ?? '';
+			const section = trigger.getAttribute('data-detail-section') ?? DETAIL_SECTIONS.details;
 			if (key.length === 0) {
 				return;
 			}
 
-			if (expandedResultKeys.has(key)) {
+			const currentSection = selectedDetailByKey.get(key) ?? DETAIL_SECTIONS.details;
+			if (expandedResultKeys.has(key) && currentSection === section) {
 				expandedResultKeys.delete(key);
 			} else {
 				expandedResultKeys.add(key);
+				selectedDetailByKey.set(key, section);
 			}
 			render();
 		});

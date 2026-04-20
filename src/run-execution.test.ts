@@ -200,6 +200,38 @@ describe('executeProblems', () => {
 		expect(log).toHaveBeenCalledWith(expect.stringContaining('[timeout]'));
 	});
 
+	test('prints connectivity error summary and stops remaining problems', async () => {
+		const log = vi.fn<(message: string) => void>();
+		solveProblemMock
+			.mockResolvedValueOnce({
+				problem: 'one',
+				category: 'logic',
+				passed: false,
+				error: '403 <html><body>challenge-platform</body></html>',
+				llm_metrics: llmMetrics(42),
+			})
+			.mockResolvedValueOnce({problem: 'two', category: 'logic', passed: true, llm_metrics: llmMetrics(12)});
+
+		await expect(
+			executeProblems(
+				[makeProblem('one'), makeProblem('two')],
+				{
+					model: 'model-a',
+					debug: true,
+					llmTimeoutSecs: 75,
+					vitestTimeoutSecs: 60,
+					noCooldown: true,
+					ollamaUrl: 'http://localhost:11434/v1',
+				},
+				{log},
+			),
+		).rejects.toThrow('Model connection failed while solving logic/one');
+
+		expect(log).toHaveBeenCalledWith(expect.stringContaining('[runtime]'));
+		expect(log).toHaveBeenCalledWith('Error: 403 provider challenge page (auth/session rejected)');
+		expect(solveProblemMock).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({name: 'one'}), expect.anything());
+	});
+
 	test('uses structured assertion failure kind tag when provided', async () => {
 		const log = vi.fn<(message: string) => void>();
 		solveProblemMock.mockResolvedValueOnce({

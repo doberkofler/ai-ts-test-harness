@@ -174,6 +174,7 @@ describe('run context builders', () => {
 
 		expect(executeOptions).toEqual({
 			model: 'anthropic/claude-3.7-sonnet',
+			provider: 'openrouter',
 			debug: false,
 			storeThinking: false,
 			llmTimeoutSecs: 90,
@@ -207,13 +208,17 @@ describe('formatResultsHtmlFile', () => {
 		expect(html).toContain('test-model');
 		expect(html).toContain('Category');
 		expect(html).toContain('Details');
-		expect(html).toContain('Show details');
-		expect(html).toContain('data-toggle-key');
+		expect(html).toContain('data-detail-key');
+		expect(html).toContain('data-detail-section');
+		expect(html).toContain('Details and metrics');
+		expect(html).toContain('Error output');
+		expect(html).toContain('Model thinking');
+		expect(html).toContain('Generated artifacts');
 		expect(html).toContain('drilldown-row');
+		expect(html).toContain('metrics-grid');
 		expect(html).toContain('arithmetic');
 		expect(html).toContain('sum');
 		expect(html).toContain('max');
-		expect(html).toContain('Generated Artifact:');
 		expect(html).toContain('return a + b;');
 	});
 });

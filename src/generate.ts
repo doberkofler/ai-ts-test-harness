@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import {getModels as getPiModels, getProviders as getPiProviders, streamSimple, type Context, type KnownProvider} from '@mariozechner/pi-ai';
 import {z} from 'zod';
 import {DEFAULT_LLM_TIMEOUT_SECS, DEFAULT_OLLAMA_URL} from './config.ts';
 import {type RunPhase} from './run-phase.ts';
@@ -56,6 +57,7 @@ type CreateCompletionStream = (request: CompletionRequest, options: CompletionOp
 
 export type GenerateOptions = {
 	model: string;
+	provider?: string;
 	ollamaUrl?: string;
 	apiKey?: string;
 	oauthToken?: string;
@@ -66,6 +68,18 @@ export type GenerateOptions = {
 	onThinkingDelta?: (thinkingDelta: string) => void;
 	createCompletion?: CreateCompletion;
 	createCompletionStream?: CreateCompletionStream;
+};
+
+const knownPiProviders = new Set<KnownProvider>(getPiProviders());
+
+const isKnownPiProvider = (provider: string): provider is KnownProvider => {
+	for (const knownProvider of knownPiProviders) {
+		if (knownProvider === provider) {
+			return true;
+		}
+	}
+
+	return false;
 };
 
 const createCompletionForUrl = (ollamaUrl: string, authKey?: string): CreateCompletion => {
@@ -257,6 +271,162 @@ const printDebugBlock = (header: string, body: string, metadata?: readonly strin
 	console.log(DEBUG_SECTION_RULE);
 };
 
+const extractTextFromPiMessage = (message: {content: readonly {type: string; text?: string; thinking?: string}[]}): {text: string; thinking: string} => {
+	let text = '';
+	let thinking = '';
+	for (const part of message.content) {
+		if (part.type === 'text' && typeof part.text === 'string') {
+			text += part.text;
+		}
+		if (part.type === 'thinking' && typeof part.thinking === 'string') {
+			thinking += part.thinking;
+		}
+	}
+
+	return {text, thinking};
+};
+
+type PiGenerateArgs = {
+	provider: KnownProvider;
+	problem: Problem;
+	prompt: string;
+	fallbackPath: string;
+	options: GenerateOptions;
+	authKey?: string;
+	setPhase: (phase: RunPhase) => void;
+	setTransferProgress: (stats: RunTransferStats) => void;
+	pushThinkingDelta: (thinkingDelta: string) => void;
+	remainingTimeoutMs: () => number;
+	deadlineMs: number;
+};
+
+const generateViaPiProvider = async (args: PiGenerateArgs): Promise<ChangedFilesArtifact> => {
+	const models = getPiModels(args.provider);
+	const model = models.find((entry) => entry.id === args.options.model);
+	if (typeof model === 'undefined') {
+		throw new TypeError(`Model ${args.provider}/${args.options.model} is not available.`);
+	}
+
+	const resolvedModel =
+		typeof args.options.ollamaUrl === 'string' && args.options.ollamaUrl.trim().length > 0 && model.baseUrl !== args.options.ollamaUrl
+			? {...model, baseUrl: args.options.ollamaUrl.trim()}
+			: model;
+
+	const promptChars = args.prompt.length;
+	let responseChars = 0;
+	args.setTransferProgress({promptChars, responseChars});
+
+	const markResponseChars = (deltaChars: number): void => {
+		if (deltaChars <= 0) {
+			return;
+		}
+
+		responseChars += deltaChars;
+		args.setTransferProgress({promptChars, responseChars});
+	};
+
+	const debugStream = args.options.debug === true;
+	const thinkingLogger = debugStream ? createLiveLineLogger('LLM thinking (stream)') : undefined;
+	const responseLogger = debugStream ? createLiveLineLogger('LLM response (stream)') : undefined;
+
+	const context: Context = {
+		systemPrompt: 'You are a precise coding assistant. Follow the user request exactly and return only the requested output.',
+		messages: [
+			{
+				role: 'user',
+				content: args.prompt,
+				timestamp: Date.now(),
+			},
+		],
+	};
+
+	let generatedCode = '';
+	let markedRunning = false;
+	let responsePhaseProbe = '';
+
+	try {
+		for await (const event of streamSimple(resolvedModel, context, {
+			...(typeof args.authKey === 'string' ? {apiKey: args.authKey} : {}),
+			signal: AbortSignal.timeout(args.remainingTimeoutMs()),
+		})) {
+			if (Date.now() > args.deadlineMs) {
+				throw new Error(TIMEOUT_ERROR_MESSAGE, {cause: new Error('Request exceeded configured timeout window')});
+			}
+
+			if (event.type === 'thinking_delta') {
+				if (thinkingLogger) {
+					thinkingLogger.push(event.delta);
+				}
+				args.pushThinkingDelta(event.delta);
+				markResponseChars(event.delta.length);
+			}
+
+			if (event.type === 'text_delta') {
+				if (!markedRunning) {
+					responsePhaseProbe = `${responsePhaseProbe}${event.delta}`;
+					if (responsePhaseProbe.length > 512) {
+						responsePhaseProbe = responsePhaseProbe.slice(-512);
+					}
+
+					if (hasResponseContentOutsideThinkTags(responsePhaseProbe)) {
+						args.setPhase('running');
+						markedRunning = true;
+					}
+				}
+
+				if (responseLogger) {
+					responseLogger.push(event.delta);
+				}
+				generatedCode += event.delta;
+				markResponseChars(event.delta.length);
+			}
+
+			if (event.type === 'error') {
+				const fallbackError = `Empty response for problem: ${args.problem.name}`;
+				throw new TypeError(event.error.errorMessage ?? fallbackError);
+			}
+
+			if (event.type === 'done' && generatedCode.length === 0) {
+				const {text, thinking} = extractTextFromPiMessage(event.message);
+				if (thinking.length > 0) {
+					args.pushThinkingDelta(thinking);
+					markResponseChars(thinking.length);
+				}
+				if (text.length > 0) {
+					if (!markedRunning && hasResponseContentOutsideThinkTags(text)) {
+						args.setPhase('running');
+						markedRunning = true;
+					}
+					if (responseLogger) {
+						responseLogger.push(text);
+					}
+					generatedCode = text;
+					markResponseChars(text.length);
+				}
+			}
+		}
+	} finally {
+		if (debugStream) {
+			if (thinkingLogger) {
+				thinkingLogger.flush();
+			}
+			if (responseLogger) {
+				responseLogger.flush();
+			}
+		}
+	}
+
+	if (!markedRunning) {
+		args.setPhase('running');
+	}
+
+	if (generatedCode.length === 0) {
+		throw new TypeError(`Empty response for problem: ${args.problem.name}`);
+	}
+
+	return parseArtifact(generatedCode, args.fallbackPath);
+};
+
 /*
  * Ask the model for a solution payload.
  * For implementation problems this is function code;
@@ -330,10 +500,6 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 	}
 
 	const authKey = options.apiKey ?? options.oauthToken;
-	const ollamaUrl = options.ollamaUrl ?? DEFAULT_OLLAMA_URL;
-	const completion = options.createCompletion ?? createCompletionForUrl(ollamaUrl, authKey);
-	const completionStream =
-		options.createCompletionStream ?? (options.createCompletion === undefined ? createCompletionStreamForUrl(ollamaUrl, authKey) : undefined);
 	const requestTimeoutMs = llmTimeoutSecs * 1000;
 	const deadlineMs = Date.now() + requestTimeoutMs;
 	const remainingTimeoutMs = (): number => {
@@ -344,6 +510,31 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 
 		return remaining;
 	};
+
+	if (typeof options.provider === 'string' && options.provider !== 'ollama' && isKnownPiProvider(options.provider)) {
+		try {
+			return await generateViaPiProvider({
+				provider: options.provider,
+				problem,
+				prompt,
+				fallbackPath,
+				options,
+				...(typeof authKey === 'string' ? {authKey} : {}),
+				setPhase,
+				setTransferProgress,
+				pushThinkingDelta,
+				remainingTimeoutMs,
+				deadlineMs,
+			});
+		} catch (error) {
+			normalizeTimeoutError(error);
+		}
+	}
+
+	const ollamaUrl = options.ollamaUrl ?? DEFAULT_OLLAMA_URL;
+	const completion = options.createCompletion ?? createCompletionForUrl(ollamaUrl, authKey);
+	const completionStream =
+		options.createCompletionStream ?? (options.createCompletion === undefined ? createCompletionStreamForUrl(ollamaUrl, authKey) : undefined);
 
 	const request: CompletionRequest = {
 		model: options.model,

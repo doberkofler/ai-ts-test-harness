@@ -156,6 +156,7 @@ export const toExecuteRunOptions = (
 	return {
 		...baseOptions,
 		model: resolvedModel.modelId,
+		provider: resolvedModel.provider,
 		ollamaUrl: resolvedModel.baseUrl,
 		...(typeof resolvedModel.apiKey === 'string' ? {apiKey: resolvedModel.apiKey} : {}),
 		...(typeof oauthToken === 'string' ? {oauthToken} : {}),
