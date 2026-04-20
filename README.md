@@ -25,13 +25,13 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 
 ### CLI Options
 
-- `--model <model>`: Model identifier to run. You can pass a bare model id (uses default connection) or `provider/model`.
+- `--model <model>`: Model identifier to run. You can pass a bare model id (uses default connection) or `provider/model`. For `report`, pass `all` to explicitly rebuild reports for every model result file.
 - `--debug`: Print the full LLM request and raw response for each problem.
 - `--no-store-thinking`: Do not store model reasoning/thinking text in saved JSON results.
 - `--compress`: Store JSON results as `.json.gz` (default: `false`, stores plain `.json`).
 - `--llm-timeout <seconds>`: Timeout for each LLM response in seconds. Default: `120` (2 minutes).
 - `--vitest-timeout <seconds>`: Per-test Vitest timeout in seconds. Default: `60`.
-- `--html-output <file>`: Optional HTML report path. If omitted, the CLI writes one next to the selected model result file using the same filename and `.html` extension.
+- `--html-output <file>`: Optional HTML report path for single-model reports. If omitted, the CLI writes one next to each selected model result file using the same filename and `.html` extension.
 - `--test <name>`: Run only one specific problem by exact name (for example, `--test=boolean-expression-evaluator`).
 - `--category <list>`: Run only problems in the listed categories (comma-separated, for example, `--category=algorithms,refactor`).
 
@@ -45,7 +45,7 @@ node dist/index.js --model gemma4:31b-it-q4_K_M
 - `validate`: Validates problem definitions by executing each problem's optional `solution` (if present) and confirming tests reject an intentionally invalid solution.
 - `run`: Queries the configured model and runs generated answers against tests.
 - `rerun-failed`: Re-runs only problems that failed in the previous run for the same model.
-- `report`: Generates a report from the latest results file for the configured model.
+- `report`: Rebuilds HTML reports plus `index.html` and `comparison.html`; if `--model` is omitted it rebuilds all models, and with `--model <id>` it rebuilds only that model.
 
 ### Authentication and Connections
 
@@ -87,7 +87,7 @@ Result files are written to the `results/` directory using the model name as the
 
 When the harness starts, it prints resolved runtime settings (`model`, provider, connection, endpoint, auth mode, timeout values, and filters) so you can verify exactly what will run.
 
-After each run, the CLI saves both JSON and HTML reports, and prints a clickable `file://...` link for the HTML report so you can open it directly from your terminal.
+After each run, the CLI saves JSON results, rebuilds HTML reports for each latest model result set, and updates `results/index.html` plus `results/comparison.html`.
 
 ### Available Scripts
 

@@ -121,7 +121,7 @@ const main = async (): Promise<void> => {
 
 	program
 		.command('report')
-		.description('Generate report from latest model results')
+		.description('Rebuild reports for latest model result files')
 		.action(() => {
 			commandExecuted = true;
 			const opts = normalizeCliOpts(program.optsWithGlobals());
@@ -129,7 +129,10 @@ const main = async (): Promise<void> => {
 				throw new TypeError('Invalid CLI options');
 			}
 
-			reportCommand(toReportCommandOptions(opts));
+			reportCommand({
+				...toReportCommandOptions(opts),
+				allModels: program.getOptionValueSource('model') !== 'cli',
+			});
 		});
 
 	program
