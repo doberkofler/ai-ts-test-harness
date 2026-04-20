@@ -1,6 +1,3 @@
-packages:
-  - '.'
-
 allowBuilds:
   macos-temperature-sensor: true
   protobufjs: true
