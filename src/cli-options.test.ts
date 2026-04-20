@@ -1,6 +1,7 @@
 import {describe, expect, test} from 'vitest';
 import {toReportCommandOptions, toRunCommandOptions, toValidateCommandOptions} from './command-options.ts';
 import {normalizeCliOpts, type CliOpts} from './cli-options.ts';
+import {DEFAULT_COOLDOWN_TEMP_THRESHOLD} from './config.ts';
 
 describe('normalizeCliOpts', () => {
 	test('maps commander option keys to internal option names', () => {
@@ -10,7 +11,7 @@ describe('normalizeCliOpts', () => {
 			compress: true,
 			llmTimeout: '75',
 			vitestTimeout: '90',
-			cooldownTemp: '50',
+			cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 		});
 
 		expect(normalized).toEqual({
@@ -21,7 +22,7 @@ describe('normalizeCliOpts', () => {
 			overwriteResults: false,
 			llmTimeout: '75',
 			vitestTimeout: '90',
-			cooldownTemp: '50',
+			cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 			llmTimeoutSecs: '75',
 			vitestTimeoutSecs: '90',
 		});

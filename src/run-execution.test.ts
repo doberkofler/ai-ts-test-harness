@@ -1,5 +1,6 @@
 import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {type Problem, type Result} from './types.ts';
+import {DEFAULT_COOLDOWN_TEMP_THRESHOLD} from './config.ts';
 
 const llmMetrics = (llmDurationMs: number, tokensSent = 0, tokensReceived = 0): Result['llm_metrics'] => ({
 	llm_duration_ms: llmDurationMs,
@@ -141,7 +142,7 @@ describe('executeProblems', () => {
 				debug: false,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				cooldownTempThreshold: 50,
+				cooldownTempThreshold: DEFAULT_COOLDOWN_TEMP_THRESHOLD,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{
@@ -201,7 +202,7 @@ describe('executeProblems', () => {
 				debug: false,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				cooldownTempThreshold: 50,
+				cooldownTempThreshold: DEFAULT_COOLDOWN_TEMP_THRESHOLD,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{
@@ -233,7 +234,7 @@ describe('executeProblems', () => {
 				debug: false,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				cooldownTempThreshold: 50,
+				cooldownTempThreshold: DEFAULT_COOLDOWN_TEMP_THRESHOLD,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{log, initialResults: [resumedResult]},
@@ -375,7 +376,7 @@ describe('executeProblems', () => {
 				debug: false,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				cooldownTempThreshold: 50,
+				cooldownTempThreshold: DEFAULT_COOLDOWN_TEMP_THRESHOLD,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{
@@ -412,7 +413,7 @@ describe('executeProblems', () => {
 				debug: false,
 				llmTimeoutSecs: 75,
 				vitestTimeoutSecs: 60,
-				cooldownTempThreshold: 50,
+				cooldownTempThreshold: DEFAULT_COOLDOWN_TEMP_THRESHOLD,
 				ollamaUrl: 'http://localhost:11434/v1',
 			},
 			{
@@ -429,7 +430,7 @@ describe('executeProblems', () => {
 		);
 
 		expect(sleepMs.mock.calls.length).toBe(1); // 60 -> 45 (threshold 50)
-		expect(log).toHaveBeenCalledWith(expect.stringContaining('Cooldown: 60°C / 50°C'));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining(`Cooldown: 60°C / ${DEFAULT_COOLDOWN_TEMP_THRESHOLD}°C`));
 	});
 
 	test('throws error if sensors are missing', async () => {
@@ -446,7 +447,7 @@ describe('executeProblems', () => {
 					debug: false,
 					llmTimeoutSecs: 75,
 					vitestTimeoutSecs: 60,
-					cooldownTempThreshold: 50,
+					cooldownTempThreshold: DEFAULT_COOLDOWN_TEMP_THRESHOLD,
 					ollamaUrl: 'http://localhost:11434/v1',
 				},
 				{sleepMs},

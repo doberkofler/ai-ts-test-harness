@@ -3,6 +3,7 @@ import {buildExecuteRunOptions, buildRuntimeConfig, formatResultsFile, parseCate
 import {formatResultsHtmlFile, parseResultsFile} from './report.ts';
 import {toCliErrorMessage} from './index.ts';
 import {type Problem, type Result} from './types.ts';
+import {DEFAULT_COOLDOWN_TEMP_THRESHOLD} from './config.ts';
 
 const llmMetrics = (llmDurationMs: number): Result['llm_metrics'] => ({
 	llm_duration_ms: llmDurationMs,
@@ -139,7 +140,7 @@ describe('run context builders', () => {
 				overwriteResults: false,
 				llmTimeoutSecs: 90,
 				vitestTimeoutSecs: 60,
-				cooldownTemp: 50,
+				cooldownTemp: DEFAULT_COOLDOWN_TEMP_THRESHOLD,
 
 				test: undefined,
 				category: undefined,
@@ -164,7 +165,7 @@ describe('run context builders', () => {
 			storeThinking: false,
 			llmTimeoutSecs: 90,
 			vitestTimeoutSecs: 60,
-			cooldownTempThreshold: 50,
+			cooldownTempThreshold: DEFAULT_COOLDOWN_TEMP_THRESHOLD,
 			ollamaUrl: 'https://openrouter.ai/api/v1',
 			oauthToken: 'oauth-token',
 		});

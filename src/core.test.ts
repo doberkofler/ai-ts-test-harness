@@ -5,6 +5,7 @@ import {summarizeResults} from './core/results-summary.ts';
 import {parseFunctionNameFromSignature} from './core/signature.ts';
 import {parseRunCommandOptions} from './run-options.ts';
 import {type Result} from './types.ts';
+import {DEFAULT_COOLDOWN_TEMP_THRESHOLD} from './config.ts';
 
 const llmMetrics = (llmDurationMs: number): Result['llm_metrics'] => ({
 	llm_duration_ms: llmDurationMs,
@@ -99,7 +100,7 @@ describe('parseRunCommandOptions', () => {
 				overwriteResults: false,
 				llmTimeoutSecs: '120',
 				vitestTimeoutSecs: '60',
-				cooldownTemp: '50',
+				cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 				test: 'fizzbuzz',
 				category: 'logic',
 			}),
@@ -111,7 +112,7 @@ describe('parseRunCommandOptions', () => {
 			overwriteResults: false,
 			llmTimeoutSecs: 120,
 			vitestTimeoutSecs: 60,
-			cooldownTemp: 50,
+			cooldownTemp: DEFAULT_COOLDOWN_TEMP_THRESHOLD,
 			test: 'fizzbuzz',
 			category: 'logic',
 		});
@@ -126,7 +127,7 @@ describe('parseRunCommandOptions', () => {
 				overwriteResults: false,
 				llmTimeoutSecs: '0',
 				vitestTimeoutSecs: '60',
-				cooldownTemp: '50',
+				cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 				test: undefined,
 				category: undefined,
 			}),

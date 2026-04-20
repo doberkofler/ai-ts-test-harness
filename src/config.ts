@@ -7,7 +7,7 @@ export const DEFAULT_MODEL = 'gemma4:26b-a4b-it-q8_0';
 export const DEFAULT_LLM_TIMEOUT_SECS = 5 * 60;
 export const DEFAULT_VITEST_TIMEOUT_SECS = 60;
 export const DEFAULT_RESULTS_DIR = 'results';
-export const DEFAULT_COOLDOWN_TEMP_THRESHOLD = 50;
+export const DEFAULT_COOLDOWN_TEMP_THRESHOLD = 55;
 
 export const DEFAULT_CONFIG_DIR = '.ai-ts-test-harness';
 

@@ -6,6 +6,7 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import {formatResultsFile} from './run.ts';
 import {deriveHtmlOutputPath, printSummary, reportCommand, writeResultsHtmlFile} from './report.ts';
 import {type Result, type RuntimeConfig} from './types.ts';
+import {DEFAULT_COOLDOWN_TEMP_THRESHOLD} from './config.ts';
 
 const llmMetrics = (llmDurationMs: number): Result['llm_metrics'] => ({
 	llm_duration_ms: llmDurationMs,
@@ -19,7 +20,7 @@ const runtimeConfig: RuntimeConfig = {
 	debug: false,
 	llmTimeoutSecs: 60,
 	vitestTimeoutSecs: 60,
-	cooldownTempThreshold: 50,
+	cooldownTempThreshold: DEFAULT_COOLDOWN_TEMP_THRESHOLD,
 	ollamaUrl: 'http://localhost:11434/v1',
 };
 

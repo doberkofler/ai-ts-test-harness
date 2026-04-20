@@ -6,6 +6,7 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import {parseResultsFile} from './report.ts';
 import {type Problem, type Result} from './types.ts';
 import {formatResultsFile} from './results-file.ts';
+import {DEFAULT_COOLDOWN_TEMP_THRESHOLD} from './config.ts';
 
 const llmMetrics = (llmDurationMs: number): Result['llm_metrics'] => ({
 	llm_duration_ms: llmDurationMs,
@@ -107,18 +108,18 @@ describe('runCommand', () => {
 			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			cooldownTemp: '50',
+			cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 			test: undefined,
 			category: 'logic',
 		});
 
 		expect(executeProblemsMock).toHaveBeenCalledWith(
 			[expect.objectContaining({name: 'fizzbuzz', category: 'logic'})],
-			expect.objectContaining({llmTimeoutSecs: 90, vitestTimeoutSecs: 60, cooldownTempThreshold: 50, storeThinking: true}),
+			expect.objectContaining({llmTimeoutSecs: 90, vitestTimeoutSecs: 60, cooldownTempThreshold: DEFAULT_COOLDOWN_TEMP_THRESHOLD, storeThinking: true}),
 			expect.objectContaining({initialResults: []}),
 		);
 		expect(runResult.config.llmTimeoutSecs).toBe(90);
-		expect(runResult.config).toMatchObject({cooldownTempThreshold: 50});
+		expect(runResult.config).toMatchObject({cooldownTempThreshold: DEFAULT_COOLDOWN_TEMP_THRESHOLD});
 		expect(runResult.config.selectedCategories).toEqual(['logic']);
 		expect(runResult.outputPath.endsWith('/results/test-model.json')).toBe(true);
 
@@ -141,7 +142,7 @@ describe('runCommand', () => {
 			storeThinking: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			cooldownTemp: '50',
+			cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 			test: undefined,
 			category: 'logic',
 		});
@@ -160,7 +161,7 @@ describe('runCommand', () => {
 				overwriteResults: false,
 				llmTimeoutSecs: '0',
 				vitestTimeoutSecs: '60',
-				cooldownTemp: '50',
+				cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 				test: undefined,
 				category: undefined,
 			}),
@@ -181,7 +182,7 @@ describe('runCommand', () => {
 			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			cooldownTemp: '50',
+			cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 			test: undefined,
 			category: 'logic',
 		});
@@ -203,7 +204,7 @@ describe('runCommand', () => {
 			compress: true,
 			llmTimeoutSecs: 90,
 			vitestTimeoutSecs: 60,
-			cooldownTempThreshold: 50,
+			cooldownTempThreshold: DEFAULT_COOLDOWN_TEMP_THRESHOLD,
 			ollamaUrl: 'http://localhost:11434/v1',
 			selectedCategories: ['logic'],
 			systemInfo: {
@@ -228,7 +229,7 @@ describe('runCommand', () => {
 			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			cooldownTemp: '50',
+			cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 			test: undefined,
 			category: 'logic',
 		});
@@ -272,7 +273,7 @@ describe('runCommand', () => {
 				overwriteResults: false,
 				llmTimeoutSecs: '90',
 				vitestTimeoutSecs: '60',
-				cooldownTemp: '50',
+				cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 				test: undefined,
 				category: 'logic',
 			}),
@@ -303,7 +304,7 @@ describe('runCommand', () => {
 			overwriteResults: true,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			cooldownTemp: '50',
+			cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 			test: undefined,
 			category: 'logic',
 		});
@@ -338,7 +339,7 @@ describe('runCommand', () => {
 			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			cooldownTemp: '50',
+			cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 			test: undefined,
 			category: 'logic',
 		});
@@ -379,7 +380,7 @@ describe('runCommand', () => {
 			overwriteResults: false,
 			llmTimeoutSecs: '90',
 			vitestTimeoutSecs: '60',
-			cooldownTemp: '50',
+			cooldownTemp: String(DEFAULT_COOLDOWN_TEMP_THRESHOLD),
 			test: undefined,
 			category: 'logic',
 		});
