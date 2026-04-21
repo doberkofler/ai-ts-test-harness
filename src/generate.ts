@@ -43,6 +43,7 @@ type ChatCompletionChunk = {
 type CompletionRequest = {
 	model: string;
 	temperature: number;
+	max_completion_tokens: number;
 	messages: {role: 'user'; content: string}[];
 };
 
@@ -144,6 +145,7 @@ const resolveLlmTimeoutSecs = (llmTimeoutSecs: number): number => {
 };
 
 const TIMEOUT_ERROR_MESSAGE = 'Request timed out.';
+const DEFAULT_MAX_COMPLETION_TOKENS = 8192;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
@@ -539,6 +541,7 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 	const request: CompletionRequest = {
 		model: options.model,
 		temperature: 0,
+		max_completion_tokens: DEFAULT_MAX_COMPLETION_TOKENS,
 		messages: [
 			{
 				role: 'user',
@@ -674,7 +677,33 @@ export const generate = async (problem: Problem, options: GenerateOptions): Prom
 		}
 
 		if (generatedCode.length === 0) {
-			throw new TypeError(`Empty response for problem: ${problem.name}`);
+			const fallbackResponse = await completion(request, {timeout: remainingTimeoutMs(), signal: AbortSignal.timeout(remainingTimeoutMs())}).catch(
+				(fallbackError: unknown) => normalizeTimeoutError(fallbackError),
+			);
+
+			const [fallbackChoice] = fallbackResponse.choices;
+			const fallbackMessage = fallbackChoice && 'message' in fallbackChoice ? fallbackChoice.message : undefined;
+			const fallbackText = fallbackMessage && 'content' in fallbackMessage ? fallbackMessage.content : undefined;
+			if (typeof fallbackText !== 'string') {
+				throw new TypeError(`Empty response for problem: ${problem.name}`);
+			}
+
+			const fallbackThinking = extractModelThinking(fallbackMessage);
+			if (typeof fallbackThinking === 'string') {
+				pushThinkingDelta(fallbackThinking);
+				markResponseChars(fallbackThinking.length);
+			}
+			markResponseChars(fallbackText.length);
+			setPhase('running');
+
+			if (options.debug === true) {
+				if (typeof fallbackThinking === 'string') {
+					printDebugBlock('LLM thinking', fallbackThinking, [`problem: ${problem.name}`]);
+				}
+				printDebugBlock('LLM response', fallbackText, [`problem: ${problem.name}`]);
+			}
+
+			return parseArtifact(fallbackText, fallbackPath);
 		}
 
 		return parseArtifact(generatedCode, fallbackPath);

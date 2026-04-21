@@ -215,13 +215,50 @@ const readArtifactFromWorkspace = (rootDir: string, changedFiles: readonly Works
 	})),
 });
 
-const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact, runnerInstance: VitestRunLike): ProblemExecutionResult => {
+const readWorkspaceFilesSnapshot = (rootDir: string, files: readonly WorkspaceFile[]): WorkspaceFile[] =>
+	files.map((file) => ({
+		path: file.path,
+		content: readFileSync(resolve(join(rootDir, ensureSafeRelativePath(file.path))), 'utf8'),
+	}));
+
+const toTestedWorkspacePaths = (problemFiles: readonly WorkspaceFile[], artifactFiles: readonly WorkspaceFile[]): string[] => {
+	const deduped = new Set<string>();
+	for (const file of problemFiles) {
+		deduped.add(file.path);
+	}
+	for (const file of artifactFiles) {
+		deduped.add(file.path);
+	}
+	return [...deduped];
+};
+
+const readTestedWorkspaceFromWorkspace = (
+	rootDir: string,
+	problemFiles: readonly WorkspaceFile[],
+	artifactFiles: readonly WorkspaceFile[],
+): ChangedFilesArtifact => ({
+	kind: 'changed-files-v1',
+	files: toTestedWorkspacePaths(problemFiles, artifactFiles).map((path) => ({
+		path,
+		content: readFileSync(resolve(join(rootDir, ensureSafeRelativePath(path))), 'utf8'),
+	})),
+});
+
+const buildResultFromRunner = (
+	problem: Problem,
+	artifact: ChangedFilesArtifact,
+	testedWorkspace: ChangedFilesArtifact,
+	testsSnapshot: WorkspaceFile[],
+	runnerInstance: VitestRunLike,
+): ProblemExecutionResult => {
 	const executedFiles = runnerInstance.state.getFiles();
 	if (executedFiles.length === 0) {
 		return {
 			problem: problem.name,
 			category: problem.category,
 			artifact,
+			tested_workspace: testedWorkspace,
+			tests_snapshot: testsSnapshot,
 			passed: false,
 			error: 'No tests were executed by Vitest',
 			failure_kind: 'vitest',
@@ -235,6 +272,8 @@ const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact,
 			problem: problem.name,
 			category: problem.category,
 			artifact,
+			tested_workspace: testedWorkspace,
+			tests_snapshot: testsSnapshot,
 			passed: false,
 			error: getVitestFailureOutput(runnerInstance),
 			failure_kind: classifyVitestErrors(vitestErrors),
@@ -246,6 +285,8 @@ const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact,
 			problem: problem.name,
 			category: problem.category,
 			artifact,
+			tested_workspace: testedWorkspace,
+			tests_snapshot: testsSnapshot,
 			passed: false,
 			error: getVitestFailureOutput(runnerInstance),
 			failure_kind: 'assertion',
@@ -256,6 +297,8 @@ const buildResultFromRunner = (problem: Problem, artifact: ChangedFilesArtifact,
 		problem: problem.name,
 		category: problem.category,
 		artifact,
+		tested_workspace: testedWorkspace,
+		tests_snapshot: testsSnapshot,
 		passed: true,
 	};
 };
@@ -322,13 +365,20 @@ export const runProblem = async (problem: Problem, artifact: ChangedFilesArtifac
 
 		runnerInstance = await runVitestWithTimeout();
 		const persistedArtifact = readArtifactFromWorkspace(tempWorkspace, artifact.files);
-		return buildResultFromRunner(problem, persistedArtifact, runnerInstance);
+		const testedWorkspace = readTestedWorkspaceFromWorkspace(tempWorkspace, problemFiles, artifact.files);
+		const testsSnapshot = readWorkspaceFilesSnapshot(tempWorkspace, problemTests);
+		return buildResultFromRunner(problem, persistedArtifact, testedWorkspace, testsSnapshot, runnerInstance);
 	} catch (error) {
 		const errorText = getErrorOutput(error);
 		return {
 			problem: problem.name,
 			category: problem.category,
 			artifact,
+			tested_workspace: {
+				kind: 'changed-files-v1',
+				files: [...problemFiles, ...artifact.files],
+			},
+			tests_snapshot: problemTests,
 			passed: false,
 			error: errorText,
 			failure_kind: isTimeoutErrorText(errorText) ? 'timeout' : 'vitest',

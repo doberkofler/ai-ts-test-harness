@@ -336,6 +336,25 @@ describe('generate', () => {
 		expect(phases).toEqual(['thinking', 'running']);
 	});
 
+	test('falls back to non-stream completion when stream yields only reasoning', async () => {
+		const result = await generate(problem, {
+			model: 'test-model',
+			createCompletion: async () => {
+				const response = await Promise.resolve({
+					choices: [{message: {reasoning: 'thinking only', content: 'return a + b;'}}],
+				});
+				return response;
+			},
+			async *createCompletionStream() {
+				await Promise.resolve();
+				yield {choices: [{delta: {reasoning: 'planning'}}]};
+				yield {choices: [{delta: {reasoning: ' more planning'}}]};
+			},
+		});
+
+		expect(result).toEqual({kind: 'changed-files-v1', files: [{path: 'solution.ts', content: 'return a + b;'}]});
+	});
+
 	test('uses remaining timeout budget for fallback completion', async () => {
 		const nowSpy = vi.spyOn(Date, 'now');
 		let nowMs = 1000;

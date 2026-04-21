@@ -36,7 +36,7 @@
 		"run": "vite build && node dist/index.js"
 	},
 	"dependencies": {
-		"@mariozechner/pi-ai": "0.67.6",
+		"@mariozechner/pi-ai": "0.67.68",
 		"commander": "14.0.3",
 		"debug": "4.4.3",
 		"openai": "6.34.0",

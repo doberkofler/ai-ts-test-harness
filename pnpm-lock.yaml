@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@mariozechner/pi-ai':
-        specifier: 0.67.6
-        version: 0.67.6(ws@8.20.0)(zod@4.3.6)
+        specifier: 0.67.68
+        version: 0.67.68(ws@8.20.0)(zod@4.3.6)
       commander:
         specifier: 14.0.3
         version: 14.0.3
@@ -542,13 +542,13 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@mariozechner/pi-ai@0.67.6':
-    resolution: {integrity: sha512-muGq9wG+nOjuJrk4nCy3FWUfK2MPQMmGS6yVApVZB8A6R/4HyiSBRHOafnh1nfamudkcy90lDqUtVfLfwpHSFQ==}
+  '@mariozechner/pi-ai@0.67.68':
+    resolution: {integrity: sha512-DWWQmcb3IV3mbGXmzYBScfKA6kA52n/stY029eiBikrIxVT7DGLG6n7KSvTA2R4qBSgi1iFL3nGHtwxmtIn6Lg==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
-  '@mistralai/mistralai@1.14.1':
-    resolution: {integrity: sha512-IiLmmZFCCTReQgPAT33r7KQ1nYo5JPdvGkrkZqA8qQ2qB1GHgs5LoP5K2ICyrjnpw2n8oSxMM/VP+liiKcGNlQ==}
+  '@mistralai/mistralai@2.2.0':
+    resolution: {integrity: sha512-JQUGIXjFWnw/J9LpTSf/ZXwVW3Sh8FBAcfTo5QvAHqkl4CfSiIwnjRJhMoAFcP6ncCe84YPU1ncDGX+p3OXnfg==}
 
   '@napi-rs/wasm-runtime@1.1.4':
     resolution: {integrity: sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow==}
@@ -3547,12 +3547,12 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@mariozechner/pi-ai@0.67.6(ws@8.20.0)(zod@4.3.6)':
+  '@mariozechner/pi-ai@0.67.68(ws@8.20.0)(zod@4.3.6)':
     dependencies:
       '@anthropic-ai/sdk': 0.90.0(zod@4.3.6)
       '@aws-sdk/client-bedrock-runtime': 3.1031.0
       '@google/genai': 1.50.1
-      '@mistralai/mistralai': 1.14.1
+      '@mistralai/mistralai': 2.2.0
       '@sinclair/typebox': 0.34.49
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
@@ -3571,7 +3571,7 @@ snapshots:
       - ws
       - zod
 
-  '@mistralai/mistralai@1.14.1':
+  '@mistralai/mistralai@2.2.0':
     dependencies:
       ws: 8.20.0
       zod: 4.3.6

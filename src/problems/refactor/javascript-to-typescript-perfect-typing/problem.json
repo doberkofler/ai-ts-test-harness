@@ -1,4 +1,4 @@
 {
   "version": 1,
-  "description": "Convert a JavaScript API client module to strict TypeScript with fully typed parameters/returns, generic get/post helpers, and safe unknown response parsing via type guards."
+  "description": "Convert a JavaScript API client module to strict TypeScript with fully typed parameters/returns, generic get/post helpers, and safe unknown response parsing via type guards. Keep get/post generic (get<T>, post<T>) and returning Promise<T>. parseResponse must accept unknown and narrow with explicit guards. buildQueryString should only accept string|number|boolean values. Do not use any, non-null assertions (!), or type casts (as / angle-bracket casts). Preserve runtime behavior, including header merge semantics and response mapping defaults."
 }

@@ -201,7 +201,12 @@ describe('formatResultsHtmlFile', () => {
 		expect(html).toContain('Details and metrics');
 		expect(html).toContain('Error output');
 		expect(html).toContain('Model thinking');
-		expect(html).toContain('Generated artifacts');
+		expect(html).toContain('Vitest inputs');
+		expect(html).toContain('Model output:');
+		expect(html).toContain('Workspace under test:');
+		expect(html).toContain('Tests used by Vitest:');
+		expect(html).toContain('Reference solution');
+		expect(html).not.toContain('Diff vs reference');
 		expect(html).toContain('drilldown-row');
 		expect(html).toContain('metrics-grid');
 		expect(html).toContain('arithmetic');

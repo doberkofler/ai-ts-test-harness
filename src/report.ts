@@ -530,10 +530,11 @@ const DETAIL_SECTIONS = Object.freeze({
 	details: 'details',
 	error: 'error',
 	thinking: 'thinking',
-	artifacts: 'artifacts',
+	vitestInputs: 'vitest-inputs',
+	referenceSolution: 'reference-solution',
 });
 
-const DETAIL_BUTTONS = [
+const BASE_DETAIL_BUTTONS = [
 	{
 		section: DETAIL_SECTIONS.details,
 		label: 'Details and metrics',
@@ -553,12 +554,27 @@ const DETAIL_BUTTONS = [
 			'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 17.5c0 1.1.9 2 2 2h1c1.1 0 2-.9 2-2"></path><path d="M9 14c-1.4-1-2.5-2.5-2.5-4.5A5.5 5.5 0 0 1 12 4a5.5 5.5 0 0 1 5.5 5.5c0 2-1.1 3.5-2.5 4.5"></path><line x1="10" y1="14" x2="14" y2="14"></line></svg>',
 	},
 	{
-		section: DETAIL_SECTIONS.artifacts,
-		label: 'Generated artifacts',
+		section: DETAIL_SECTIONS.vitestInputs,
+		label: 'Vitest inputs',
 		icon:
 			'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h8l3 3v11H5V8z"></path><path d="M8 5v3h8V5"></path><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="16" x2="13" y2="16"></line></svg>',
 	},
+	{
+		section: DETAIL_SECTIONS.referenceSolution,
+		label: 'Reference solution',
+		icon:
+			'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h10l4 4v8a2 2 0 0 1-2 2H5z"></path><path d="M15 6v4h4"></path><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="16" x2="13" y2="16"></line></svg>',
+	},
 ];
+
+const getDetailButtons = (result) => {
+	const hasThinking = typeof result.thinking === 'string' && result.thinking.trim().length > 0;
+	if (hasThinking) {
+		return BASE_DETAIL_BUTTONS;
+	}
+
+	return BASE_DETAIL_BUTTONS.filter((buttonConfig) => buttonConfig.section !== DETAIL_SECTIONS.thinking);
+};
 
 const escapeHtml = (value) => value
 	.replaceAll('&', '&amp;')
@@ -590,8 +606,12 @@ const getSectionTitle = (section) => {
 		return 'Model Thinking';
 	}
 
-	if (section === DETAIL_SECTIONS.artifacts) {
-		return 'Generated Artifacts';
+	if (section === DETAIL_SECTIONS.vitestInputs) {
+		return 'Vitest Inputs';
+	}
+
+	if (section === DETAIL_SECTIONS.referenceSolution) {
+		return 'Reference Solution';
 	}
 
 	return 'Details and Metrics';
@@ -615,8 +635,29 @@ const renderDetailSection = (result, section) => {
 			+ '</div>';
 	}
 
-	if (section === DETAIL_SECTIONS.artifacts) {
-		return renderArtifact(result.artifact, result.program);
+	if (section === DETAIL_SECTIONS.vitestInputs) {
+		const testedWorkspace = !result.tested_workspace || result.tested_workspace.kind !== 'changed-files-v1'
+			? '<div class="program">No tested workspace snapshot captured for this result.</div>'
+			: renderArtifact(result.tested_workspace);
+		const testsSnapshot = !Array.isArray(result.tests_snapshot) || result.tests_snapshot.length === 0
+			? '<div class="program">No test snapshot captured for this result.</div>'
+			: result.tests_snapshot
+				.map((file) => '<div class="program-label">' + escapeHtml(file.path) + ':</div>' + '<div class="program">' + escapeHtml(file.content) + '</div>')
+				.join('');
+
+		return '<div class="program-label">Model output:</div>'
+			+ renderArtifact(result.artifact, result.program)
+			+ '<div class="program-label">Workspace under test:</div>'
+			+ testedWorkspace
+			+ '<div class="program-label">Tests used by Vitest:</div>'
+			+ testsSnapshot;
+	}
+
+	if (section === DETAIL_SECTIONS.referenceSolution) {
+		if (!result.reference_solution || result.reference_solution.kind !== 'changed-files-v1' || result.reference_solution.files.length === 0) {
+			return '<div class="program">No reference solution is defined for this problem.</div>';
+		}
+		return renderArtifact(result.reference_solution);
 	}
 
 	return renderMetrics(result.llm_metrics);
@@ -663,13 +704,14 @@ const render = () => {
 	body.innerHTML = filtered
 		.map((result) => {
 			const resultKey = getResultKey(result);
+			const detailButtons = getDetailButtons(result);
 			const statusClass = result.passed ? 'pass' : 'fail';
 			const statusText = result.passed ? 'PASS' : 'FAIL';
 			const isExpanded = expandedResultKeys.has(resultKey);
 			const selectedSection = selectedDetailByKey.get(resultKey) ?? DETAIL_SECTIONS.details;
 			const sectionTitle = getSectionTitle(selectedSection);
 			const tabActions = '<div class="detail-tabs">'
-				+ DETAIL_BUTTONS.map((buttonConfig) => {
+				+ detailButtons.map((buttonConfig) => {
 					const isActive = isExpanded && selectedSection === buttonConfig.section;
 					return '<button type="button" class="detail-tab ' + (isActive ? 'active' : '') + '"'
 						+ ' data-detail-key="' + escapeHtml(resultKey) + '"'

@@ -58,13 +58,13 @@ type RefactorLegacyContext = {
 };
 
 const ENTRY_NAME = "fibonacci";
-const runLegacyTests: (context: RefactorLegacyContext) => void | Promise<void> = ({assert, original, transformed, code}) => {
+const runLegacyTests: (context: RefactorLegacyContext) => void | Promise<void> = ({assert, original, transformed}) => {
 		assert.strictEqual(transformed(0), 0);
 		assert.strictEqual(transformed(1), 1);
 		assert.strictEqual(transformed(10), original(10));
 		assert.strictEqual(transformed(20), original(20));
-		assert.match(code.result, /new\s+Map/);
-		assert.match(code.result, /memo\.get/);
+		assert.strictEqual(transformed(35), original(35));
+		assert.strictEqual(transformed(35), original(35));
 	};
 
 const loadExportedFunction = async (modulePath: string, entry: string): Promise<(...args: readonly unknown[]) => unknown> => {

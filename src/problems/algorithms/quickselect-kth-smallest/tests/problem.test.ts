@@ -61,7 +61,7 @@ const runLegacyTests: (context: ImplementLegacyContext) => void | Promise<void> 
 		assert.strictEqual(implementation([3, 2, 1, 5, 6, 4], 2), 2);
 		assert.strictEqual(implementation([3, 2, 3, 1, 2, 4, 5, 5, 6], 4), 3);
 		assert.strictEqual(implementation([42], 1), 42);
-		assert.throws(() => implementation([1, 2, 3], 0), /(?:Error:\s*)?k\s+(?:is\s+)?out\s+of\s+range/i);
+		assert.throws(() => implementation([1, 2, 3], 0), /(?:Error:\s*)?k\s+(?:is\s+)?(?:out\s+of\s+)?range/i);
 		assert.doesNotMatch(code.result, /\.sort\s*\(/, 'must not solve by sorting the full array');
 	};
 

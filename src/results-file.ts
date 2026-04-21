@@ -11,11 +11,19 @@ const artifactSchema = z.object({
 	),
 });
 
+const workspaceFileSchema = z.object({
+	path: z.string(),
+	content: z.string(),
+});
+
 export const resultSchema = z.object({
 	problem: z.string(),
 	category: z.string(),
 	program: z.string().optional(),
 	artifact: artifactSchema.optional(),
+	tested_workspace: artifactSchema.optional(),
+	tests_snapshot: z.array(workspaceFileSchema).optional(),
+	reference_solution: artifactSchema.optional(),
 	thinking: z.string().optional(),
 	passed: z.boolean(),
 	error: z.string().optional(),
@@ -67,6 +75,9 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 					category: result.category,
 					...(typeof result.program === 'string' ? {program: result.program} : {}),
 					...(typeof result.artifact === 'undefined' ? {} : {artifact: result.artifact}),
+					...(typeof result.tested_workspace === 'undefined' ? {} : {tested_workspace: result.tested_workspace}),
+					...(typeof result.tests_snapshot === 'undefined' ? {} : {tests_snapshot: result.tests_snapshot}),
+					...(typeof result.reference_solution === 'undefined' ? {} : {reference_solution: result.reference_solution}),
 					...(typeof result.thinking === 'string' ? {thinking: result.thinking} : {}),
 					passed: result.passed,
 					error: result.error,
@@ -83,6 +94,9 @@ export const parseResultsFile = (jsonContent: string): ResultsFile => {
 					category: result.category,
 					...(typeof result.program === 'string' ? {program: result.program} : {}),
 					...(typeof result.artifact === 'undefined' ? {} : {artifact: result.artifact}),
+					...(typeof result.tested_workspace === 'undefined' ? {} : {tested_workspace: result.tested_workspace}),
+					...(typeof result.tests_snapshot === 'undefined' ? {} : {tests_snapshot: result.tests_snapshot}),
+					...(typeof result.reference_solution === 'undefined' ? {} : {reference_solution: result.reference_solution}),
 					...(typeof result.thinking === 'string' ? {thinking: result.thinking} : {}),
 					passed: result.passed,
 					...(typeof result.failure_kind === 'string' ? {failure_kind: result.failure_kind} : {}),

@@ -34,6 +34,7 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 			average_tokens_per_second: calculateAverageTokensPerSecond(tokensReceived, llmDurationMs),
 		};
 	};
+	const referenceSolution = typeof problem.solution === 'function' ? undefined : problem.solution;
 
 	try {
 		if (typeof options.onPhaseChange === 'function') {
@@ -63,6 +64,7 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 
 		return {
 			...result,
+			...(typeof referenceSolution === 'undefined' ? {} : {reference_solution: referenceSolution}),
 			...(shouldStoreThinking && thinking.length > 0 ? {thinking} : {}),
 			llm_metrics: buildLlmMetrics(),
 		};
@@ -73,6 +75,7 @@ export const solveProblem = async (problem: Problem, options: SolveProblemOption
 		return {
 			problem: problem.name,
 			category: problem.category,
+			...(typeof referenceSolution === 'undefined' ? {} : {reference_solution: referenceSolution}),
 			...(shouldStoreThinking && thinking.length > 0 ? {thinking} : {}),
 			passed: false,
 			error: errorText,

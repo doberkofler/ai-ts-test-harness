@@ -69,6 +69,29 @@ ai-ts-test-harness auth list
 ai-ts-test-harness auth use ollama
 ```
 
+#### Multiple local OpenAI-compatible servers (Ollama + MLX)
+
+If you run more than one local OpenAI-compatible endpoint, create separate named `ollama` connections with different `--url` values:
+
+```bash
+# Ollama
+ai-ts-test-harness login ollama --name ollama-local --url http://localhost:11434/v1
+
+# MLX server
+ai-ts-test-harness login ollama --name mlx-local --url http://localhost:8080/v1
+
+# inspect and switch active default connection
+ai-ts-test-harness auth list
+ai-ts-test-harness auth use mlx-local
+```
+
+How it is differentiated:
+- by saved connection name/id (for example, `ollama-local` vs `mlx-local`)
+- by endpoint URL stored in each connection
+- not by auto-detecting server type
+
+Tip: most OpenAI-compatible local servers use a `/v1` base path. If your server does not, use the root URL (for example `http://localhost:8080`).
+
 Notes:
 - `openai-codex` uses browser OAuth (`--oauth`) for ChatGPT Plus/Pro subscription auth.
 - OAuth-capable providers from PI are shown automatically when using `login --oauth`.

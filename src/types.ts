@@ -53,6 +53,8 @@ export type ProblemExecutionResult = {
 	category: string;
 	program?: string;
 	artifact?: ChangedFilesArtifact;
+	tested_workspace?: ChangedFilesArtifact;
+	tests_snapshot?: WorkspaceFile[];
 	passed: boolean;
 	error?: string;
 	failure_kind?: FailureKind;
@@ -63,6 +65,9 @@ export type Result = {
 	category: ProblemExecutionResult['category'];
 	program?: ProblemExecutionResult['program'];
 	artifact?: ProblemExecutionResult['artifact'];
+	tested_workspace?: ProblemExecutionResult['tested_workspace'];
+	tests_snapshot?: ProblemExecutionResult['tests_snapshot'];
+	reference_solution?: ChangedFilesArtifact;
 	thinking?: string;
 	passed: ProblemExecutionResult['passed'];
 	error?: ProblemExecutionResult['error'];

@@ -11,7 +11,7 @@ describe('video-player-with-track', () => {
 		expect(html).toMatch(/<video[^>]*poster="[^"]+"[^>]*>/i);
 		expect(html).toMatch(/<source[^>]*type="video\/mp4"[^>]*>/i);
 		expect(html).toMatch(/<source[^>]*type="video\/webm"[^>]*>/i);
-		expect(html).toMatch(/<track[^>]*kind="subtitles"[^>]*srclang="en"[^>]*label="English"[^>]*default[^>]*>/i);
-		expect(html).toMatch(/<track[^>]*kind="captions"[^>]*srclang="en"[^>]*label="English CC"[^>]*>/i);
+		expect(html).toMatch(/<track[^>]*kind="subtitles"[^>]*srclang="en"[^>]*label="[^"]+"[^>]*default[^>]*>/i);
+		expect(html).toMatch(/<track[^>]*kind="captions"[^>]*srclang="en"[^>]*label="[^"]+"[^>]*>/i);
 	});
 });

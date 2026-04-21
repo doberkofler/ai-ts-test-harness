@@ -1,4 +1,4 @@
 {
   "version": 1,
-  "description": "Simulate an LRU cache with given capacity and operation tuples. Return outputs for each operation."
+  "description": "Simulate an LRU cache with given capacity and operation tuples. Return outputs for each operation. Capacity must be a positive integer; throw an error for invalid capacity values."
 }
